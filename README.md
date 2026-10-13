@@ -1,9 +1,14 @@
 # My Big Brother
 
-[English](README.md) | [简体中文](README.zh-CN.md)
+English | [简体中文](README.zh-CN.md)
 
-**BIG BROTHER IS WATCHING YOU.**
-On your computer. Every day. And he's taking notes for your next weekly report.
+**THE BIG BROTHER IS WATCHING YOU!**
+
+**On your computer!**
+
+**EVERY DAY!**
+
+And... taking notes for your next weekly report.
 
 Meet your AI big brother: he reviews the work you've recorded and helps you
 remember what you did, what changed, and what still needs attention.
