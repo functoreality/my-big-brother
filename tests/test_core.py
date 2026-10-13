@@ -5,6 +5,7 @@ import unittest
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from my_big_brother import config, runner
@@ -25,7 +26,7 @@ class CoreTests(unittest.TestCase):
 
     def evidence(self, day="2020-01-15", content="Review the import parser"):
         events = [{"type": "session_meta", "payload": {"thread_source": "user"}},
-                  {"type": "event_msg", "timestamp": day + "T10:00:00+00:00",
+                  {"type": "event_msg", "timestamp": datetime.fromisoformat(day + "T10:00:00").astimezone().isoformat(),
                    "payload": {"type": "user_message", "message": content}}]
         (self.sessions / (day + ".jsonl")).write_text(
             "".join(json.dumps(event) + "\n" for event in events), encoding="utf-8")
@@ -203,6 +204,24 @@ class CoreTests(unittest.TestCase):
         self.assertEqual(args[-1], "-")
         self.assertIn("--ephemeral", args)
         self.assertIn("workspace-write", args)
+
+    def test_windows_npm_wrapper_uses_node_without_a_shell(self):
+        shim = self.root / "npm with spaces" / "codex.cmd"
+        script = shim.parent / "node_modules/@openai/codex/bin/codex.js"
+        script.parent.mkdir(parents=True)
+        script.write_text("// fixture\n", encoding="utf-8")
+        node = str(self.root / "node.exe")
+        with patch.object(codex, "os", SimpleNamespace(name="nt")):
+            with patch("shutil.which", side_effect=[str(shim), node]):
+                args = codex.command(self.settings["codex"], self.root)
+        self.assertEqual(args[:2], [node, str(script)])
+        self.assertNotIn("cmd.exe", args)
+
+    def test_unknown_windows_wrapper_fails_with_native_binary_hint(self):
+        with patch.object(codex, "os", SimpleNamespace(name="nt")):
+            with patch("shutil.which", side_effect=[str(self.root / "codex.cmd"), "/node.exe"]):
+                with self.assertRaisesRegex(ValueError, "native codex.exe"):
+                    codex.command(self.settings["codex"], self.root)
 
 
 if __name__ == "__main__":

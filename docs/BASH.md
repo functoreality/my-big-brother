@@ -93,6 +93,7 @@ Existing scalar or array `PROMPT_COMMAND` hooks retain their order and receive
 the preceding command's exit status. The recorder does not change history
 options, history entries, EXIT traps, or the shell's umask. Sourcing the recorder
 twice does not attach a second hook.
+Array prompt hooks require Bash 5.1 or newer. Older Bash can use scalar hooks.
 
 The recorder declines attachment when any of these are present:
 

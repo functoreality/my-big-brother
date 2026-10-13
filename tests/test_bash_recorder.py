@@ -23,7 +23,7 @@ recorder = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(recorder)
 
 
-@unittest.skipUnless(shutil.which("bash"), "Bash is not installed")
+@unittest.skipUnless(os.name == "posix" and shutil.which("bash"), "Requires a POSIX Bash environment")
 class BashRecorderTests(unittest.TestCase):
     def shell(self, setup, commands):
         directory = tempfile.TemporaryDirectory()
@@ -83,6 +83,9 @@ class BashRecorderTests(unittest.TestCase):
         self.assertFalse(any(r["command"].startswith("printf \"%s") for r in rows))
 
     def test_array_prompt(self):
+        version = subprocess.check_output(["bash", "-c", "printf '%s.%s' \"${BASH_VERSINFO[0]}\" \"${BASH_VERSINFO[1]}\""], text=True)
+        if tuple(int(part) for part in version.split(".")) < (5, 1):
+            self.skipTest("Array PROMPT_COMMAND requires Bash 5.1+")
         result, rows, root = self.shell(
             ["PROMPT_COMMAND=('printf \"%s\\n\" \"$?\" >> status' 'printf second >> hook')"],
             ["false", "printf success"],
@@ -139,7 +142,7 @@ class BashRecorderTests(unittest.TestCase):
             config.mkdir(parents=True)
             target = root / "raw space"
             (config / "raw-logs-path.txt").write_bytes((str(target) + "\r\n").encode())
-            with patch.dict(os.environ, {"XDG_CONFIG_HOME": str(root / "config")}, clear=False):
+            with patch.object(recorder, "locations", return_value=(config, root / "data")):
                 self.assertEqual(recorder.raw_root(), target)
                 for bad in ("", "relative", str(target) + "\nextra", str(target) + "\r"):
                     (config / "raw-logs-path.txt").write_bytes(bad.encode())

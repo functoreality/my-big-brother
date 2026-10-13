@@ -15,6 +15,11 @@ if [[ $__mbb_prompt_flags == *r* ]]; then
     printf '%s\n' 'my-big-brother: recorder not attached (PROMPT_COMMAND is readonly).' >&2
     return 0
 fi
+if [[ $__mbb_prompt_flags == *a* ]] &&
+   (( BASH_VERSINFO[0] < 5 || (BASH_VERSINFO[0] == 5 && BASH_VERSINFO[1] < 1) )); then
+    printf '%s\n' 'my-big-brother: recorder not attached (array PROMPT_COMMAND requires Bash 5.1+).' >&2
+    return 0
+fi
 __mbb_python=${MBB_PYTHON:-python3}
 __mbb_helper=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/recorder.py
 if ! "$__mbb_python" "$__mbb_helper" check; then

@@ -1,4 +1,5 @@
 import json
+import os
 import sqlite3
 import tempfile
 import unittest
@@ -117,7 +118,9 @@ class SourceTests(unittest.TestCase):
         result = codex.collect(self.root, self.start, self.end)
         self.assertEqual([row["content"] for row in result.rows], ["User batch work"])
 
-    def create_database(self, filename="data # space?.db", part_created=True):
+    def create_database(self, filename=None, part_created=True):
+        if filename is None:
+            filename = "data # space.db" if os.name == "nt" else "data # space?.db"
         path = self.root / filename
         connection = sqlite3.connect(path)
         connection.execute("CREATE TABLE session (id TEXT PRIMARY KEY, parent_id TEXT)")
@@ -188,12 +191,14 @@ class SourceTests(unittest.TestCase):
     def test_bash_date_first_logical_window_and_incomplete_line(self):
         start = self.start + timedelta(hours=4)
         end = start + timedelta(days=1)
-        first = self.write_events("2026-06-20/bash/session.jsonl", [
+        first_day = start.astimezone().date().isoformat()
+        last_day = (end - timedelta(seconds=1)).astimezone().date().isoformat()
+        first = self.write_events(f"{first_day}/bash/first-session.jsonl", [
             {"event": [], "completed_at": start.isoformat()},
             {"event": "command", "command": "too early", "completed_at": self.start.isoformat()},
             {"event": "command", "command": "make test", "completed_at": start.isoformat(), "exit_status": 0},
         ])
-        self.write_events("2026-06-21/bash/session.jsonl", [
+        self.write_events(f"{last_day}/bash/last-session.jsonl", [
             {"event": "command", "command": "git status", "completed_at": (end - timedelta(seconds=1)).isoformat()},
             {"event": "command", "command": "too late", "completed_at": end.isoformat()},
         ])

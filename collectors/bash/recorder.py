@@ -16,7 +16,7 @@ def locations():
         base = home / "Library" / "Application Support" / "my-big-brother"
         return base / "configs", base / "data"
     if os.name == "nt":
-        base = Path(os.environ.get("LOCALAPPDATA", home / "AppData" / "Local"))
+        base = Path(os.environ.get("LOCALAPPDATA") or home / "AppData" / "Local")
         return base / "my-big-brother" / "configs", base / "my-big-brother" / "data"
 
     def xdg(name, fallback):

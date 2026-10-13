@@ -3,6 +3,7 @@
 import argparse
 import json
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -86,9 +87,12 @@ def main(argv=None):
                 value = runner.due(paths, settings, args.max_days)
         print(json.dumps(value, indent=2, ensure_ascii=False))
         return 0
-    except (ValueError, OSError, KeyError, TypeError) as error:
+    except (ValueError, OSError, KeyError, TypeError, subprocess.TimeoutExpired) as error:
         print(f"my-big-brother: {error}", file=sys.stderr)
         return 1
+    except KeyboardInterrupt:
+        print("my-big-brother: review cancelled, diagnostics preserved", file=sys.stderr)
+        return 130
 
 
 if __name__ == "__main__":

@@ -1,0 +1,26 @@
+{
+  "date": "2020-01-15",
+  "samples": [
+    {
+      "task": "Fix blank trailing lines in a CSV importer with empty, normal, and trailing-blank fixture cases.",
+      "elapsed_minutes": 8.0,
+      "human_minutes": null,
+      "confidence": "medium",
+      "basis": "Recorded request at 2020-01-15T18:00:00+08:00 and assistant-reported completion at 2020-01-15T18:08:00+08:00 define an 8-minute elapsed span. The assistant reported updating import_orders.py and passing the three fixtures. An overlapping one-minute shell record has line exit status 0 for an input line beginning with python -m unittest. Timing and directory context suggest association, but there is no direct session link or specific test output. The shell interval is included in the span, not added to it. Continuous activity, interruptions, concurrent work, and human effort are not established by the available records."
+    },
+    {
+      "task": "Update an installation guide with Python requirements and explicit input-source selection examples.",
+      "elapsed_minutes": 12.0,
+      "human_minutes": null,
+      "confidence": "medium",
+      "basis": "Recorded request at 2020-01-15T18:20:00+08:00 and assistant-reported completion at 2020-01-15T18:32:00+08:00 define a 12-minute elapsed span. The assistant reported updating INSTALLATION.md and reviewing command snippets. File contents and snippet execution were not independently observed. Continuous activity, interruptions, concurrent work, and human effort are not established by the available records."
+    },
+    {
+      "task": "Draft a release checklist for an importer fix and installation documentation update.",
+      "elapsed_minutes": 10.0,
+      "human_minutes": null,
+      "confidence": "medium",
+      "basis": "Recorded request at 2020-01-15T21:00:00+08:00 and assistant-reported completion at 2020-01-15T21:10:00+08:00 define a 10-minute elapsed span. The assistant reported creating RELEASE.md with fixture validation, clean-install checks, and release notes. Checklist creation was not independently verified. Publishing remained pending and is outside this draft-only sample. Continuous activity, interruptions, concurrent work, and human effort are not established by the available records."
+    }
+  ]
+}

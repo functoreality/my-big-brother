@@ -19,7 +19,7 @@ This working note records the agreed implementation scope.
 - Test in isolated directories. Do not install hooks or scheduled tasks on this
   machine. Validate a real analyzer run using synthetic session evidence.
 
-## Shared interface for parallel development
+## Shared interfaces
 
 Input adapters live in `my_big_brother/sources/`.
 Each exports `collect(path: Path, start: datetime, end: datetime) -> SourceResult`.
@@ -33,7 +33,7 @@ content into separately readable excerpts and small index previews.
 Configuration is `C/config.json`, where C follows the agreed platform defaults.
 Only `C/raw-logs-path.txt` is shared with collectors. It contains one UTF-8
 absolute path, with an optional LF or CRLF terminator. No variable expansion.
-Defaults are C and D as described in the parent storage design. No arbitrary
+Defaults are C and D as described in `INSTALLATION.md`. No arbitrary
 project environment variable changes the config discovery location.
 
 Default configuration fields:
@@ -57,9 +57,9 @@ Default configuration fields:
 Automatic raw-log and runtime-material cleanup is deferred. Nothing deletes
 native histories or collected logs in this MVP.
 
-The root agent owns paths, configuration, CLI, runner, output checking and
-analyzer launch. Other owners work only in their assigned files and tests.
-Do not commit or change Git state from a delegated task.
+Paths, configuration, CLI, run management, output checking, and analyzer launch
+share the core implementation. Source parsing and host recording remain
+independent modules.
 
 CLI shape: `python -m my_big_brother init|paths|doctor|prepare|analyze|finish|due`.
 `prepare` creates a run without launching an Agent. `finish` validates outputs
@@ -76,7 +76,7 @@ Final paths are `results/records/worklog/DATE.md`,
 `results/records/time-estimates/DATE.json`.
 Daily duration samples are replaced for a rerun rather than blindly appended.
 An Agent completion receipt is `run/completion.json`, listing source coverage,
-output paths, date and run ID. The root owner specifies its exact checks.
+output paths, date and run ID. The daily task and runner define its exact checks.
 
 Tests use unittest and synthetic fixtures. Use subprocess tests for real Bash
 hook behavior. Windows and macOS behavior is reviewed and covered by portable

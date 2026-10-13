@@ -22,6 +22,8 @@ Use `python3` or the selected absolute executable if `python` resolves to an
 older interpreter. For unattended reviews, check that Codex is installed,
 authenticated, and usable noninteractively. Follow its installed help for
 account setup. Do not open or copy credential files.
+The official [Codex non-interactive guide](https://learn.chatgpt.com/docs/non-interactive-mode)
+describes the execution mode used by the launcher.
 
 On native Windows, the launcher supports a standard npm `codex.cmd` shim by
 invoking its adjacent Codex JavaScript entry with Node directly. Node must
