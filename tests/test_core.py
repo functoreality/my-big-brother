@@ -1,0 +1,209 @@
+import json
+import os
+import tempfile
+import unittest
+from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
+from pathlib import Path
+from unittest.mock import patch
+
+from my_big_brother import config, runner
+from my_big_brother.paths import Paths, discover, raw_logs_root
+from my_big_brother.analyzers import codex
+
+
+class CoreTests(unittest.TestCase):
+    def setUp(self):
+        self.temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temporary.cleanup)
+        self.root = Path(self.temporary.name)
+        self.paths = Paths(self.root / "config", self.root / "data")
+        self.settings = config.initialize(self.paths, sources=["codex"])
+        self.sessions = self.root / "sessions"
+        self.sessions.mkdir()
+        self.settings["sources"]["codex"]["path"] = str(self.sessions)
+
+    def evidence(self, day="2020-01-15", content="Review the import parser"):
+        events = [{"type": "session_meta", "payload": {"thread_source": "user"}},
+                  {"type": "event_msg", "timestamp": day + "T10:00:00+00:00",
+                   "payload": {"type": "user_message", "message": content}}]
+        (self.sessions / (day + ".jsonl")).write_text(
+            "".join(json.dumps(event) + "\n" for event in events), encoding="utf-8")
+
+    def staged_review(self, day="2020-01-15"):
+        prepared = runner.prepare_run(self.paths, self.settings, day)
+        run = Path(prepared["run_dir"])
+        context = runner.read_object(run / "context.json")
+        for name in context["output_paths"]:
+            path = Path(name)
+            if path.suffix == ".md":
+                path.write_text(f"# {day}\n\nObserved parser review.\n", encoding="utf-8")
+            else:
+                key = "samples" if path.parent.name == "time-estimates" else "segments"
+                config.write_json(path, {"date": day, key: []})
+        config.write_json(run / "completion.json", context["completion_example"])
+        return run, context
+
+    def test_platform_discovery_and_relative_xdg_fallback(self):
+        home = self.root / "home"
+        linux = discover(system="linux", home=home, environ={"XDG_CONFIG_HOME": "relative"})
+        self.assertEqual(linux.config, home / ".config" / "my-big-brother")
+        mac = discover(system="darwin", home=home, environ={})
+        self.assertEqual(mac.config, home / "Library/Application Support/my-big-brother/configs")
+        win = discover(system="win32", home=home, environ={"LOCALAPPDATA": str(self.root / "local")})
+        self.assertEqual(win.data, self.root / "local/my-big-brother/data")
+
+    def test_locator_preserves_spaces_crlf_and_rejects_multiline(self):
+        locator = self.paths.config / "raw-logs-path.txt"
+        value = str(self.root / "space folder")
+        locator.write_bytes((value + "\r\n").encode())
+        self.assertEqual(raw_logs_root(self.paths), Path(value))
+        for text in ("", value + "\n\n", "relative\n", '"' + value + '"\n'):
+            locator.write_bytes(text.encode())
+            with self.assertRaises(ValueError):
+                raw_logs_root(self.paths)
+
+    def test_init_preserves_existing_settings_and_locator(self):
+        self.settings["language"] = "zh"
+        config.write_json(self.paths.config / "config.json", self.settings)
+        locator = (self.paths.config / "raw-logs-path.txt").read_bytes()
+        initialized = config.initialize(self.paths)
+        self.assertEqual(initialized["language"], "zh")
+        self.assertEqual((self.paths.config / "raw-logs-path.txt").read_bytes(), locator)
+        with self.assertRaises(ValueError):
+            config.initialize(self.paths, results_root=str(self.root / "other"))
+
+    def test_invalid_config_is_reported(self):
+        for field, value in (("day_start_hour", True), ("day_start_hour", 24),
+                             ("results_root", "relative"), ("outputs", ["typo"]),
+                             ("analyzer", "opencode"), ("unexpected", True)):
+            settings = dict(self.settings)
+            settings[field] = value
+            config.write_json(self.paths.config / "config.json", settings)
+            with self.assertRaises(ValueError):
+                config.load(self.paths)
+
+    def test_prepare_materializes_excerpts_without_publishing(self):
+        self.evidence()
+        prepared = runner.prepare_run(self.paths, self.settings, "2020-01-15")
+        self.assertEqual(prepared["status"], "prepared")
+        manifest = runner.read_object(Path(prepared["run_dir"]) / "manifest.json")
+        source = manifest["sources"]["codex"]
+        self.assertEqual(source["entries"], 1)
+        row = json.loads(Path(source["index"]).read_text())
+        self.assertEqual(Path(row["excerpt"]).read_text(), "Review the import parser")
+        self.assertNotIn("content", row)
+        self.assertEqual(list(Path(self.settings["results_root"]).rglob("*.md")), [])
+
+    def test_missing_coverage_or_output_does_not_publish(self):
+        self.evidence()
+        run, context = self.staged_review()
+        receipt = context["completion_example"]
+        receipt["sources"]["codex"]["covered"] = False
+        config.write_json(run / "completion.json", receipt)
+        with self.assertRaisesRegex(ValueError, "coverage"):
+            runner.finish_run(self.paths, self.settings, run)
+        self.assertFalse(Path(context["final_output_paths"][0]).exists())
+
+    def test_finish_publishes_and_records_completed_day(self):
+        self.evidence()
+        run, context = self.staged_review()
+        finished = runner.finish_run(self.paths, self.settings, run)
+        self.assertEqual(finished["status"], "completed")
+        self.assertTrue(all(Path(x).is_file() for x in context["final_output_paths"]))
+        ledger = runner.read_object(self.paths.state / "completed.json")
+        self.assertTrue(ledger["days"]["2020-01-15"]["closed_day"])
+
+    def test_user_edit_after_prepare_prevents_overwrite(self):
+        self.evidence()
+        run, context = self.staged_review()
+        final = Path(context["final_output_paths"][0])
+        final.parent.mkdir(parents=True, exist_ok=True)
+        final.write_text("User correction\n", encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "changed after prepare"):
+            runner.finish_run(self.paths, self.settings, run)
+        self.assertEqual(final.read_text(), "User correction\n")
+        self.assertFalse(Path(context["final_output_paths"][-1]).exists())
+
+    def test_existing_outputs_are_staged_for_preserving_user_notes(self):
+        self.evidence()
+        run, context = self.staged_review()
+        runner.finish_run(self.paths, self.settings, run)
+        final = Path(context["final_output_paths"][0])
+        final.write_text("Keep my manual note\n", encoding="utf-8")
+        new = runner.prepare_run(self.paths, self.settings, "2020-01-15")
+        new_context = runner.read_object(Path(new["run_dir"]) / "context.json")
+        self.assertEqual(Path(new_context["output_paths"][0]).read_text(), "Keep my manual note\n")
+
+    def test_point_timeline_allowed_but_reverse_or_naive_rejected(self):
+        path = self.root / "time-use/data/2020-01-15.json"
+        row = {"start": "2020-01-15T10:00:00+00:00", "end": "2020-01-15T10:00:00+00:00",
+               "activity": "Message submission", "confidence": "high", "human_attention": "unknown"}
+        config.write_json(path, {"date": "2020-01-15", "segments": [row]})
+        runner.validate_output(path, "2020-01-15")
+        for value in ("2020-01-15T09:59:59+00:00", "2020-01-15T10:00:00"):
+            row["end"] = value
+            config.write_json(path, {"date": "2020-01-15", "segments": [row]})
+            with self.assertRaises(ValueError):
+                runner.validate_output(path, "2020-01-15")
+
+    def test_empty_day_does_not_launch_analyzer(self):
+        with patch("my_big_brother.analyzers.codex.launch") as launch:
+            result = runner.analyze(self.paths, self.settings, "2020-01-15")
+        self.assertEqual(result["status"], "empty")
+        launch.assert_not_called()
+
+    def test_backend_failure_keeps_stable_results_and_diagnostics(self):
+        self.evidence()
+        final = Path(self.settings["results_root"]) / "records/worklog/2020-01-15.md"
+        final.parent.mkdir(parents=True, exist_ok=True)
+        final.write_text("Existing report\n", encoding="utf-8")
+        with patch("my_big_brother.analyzers.codex.launch", side_effect=ValueError("test failure")):
+            with self.assertRaisesRegex(ValueError, "test failure"):
+                runner.analyze(self.paths, self.settings, "2020-01-15")
+        self.assertEqual(final.read_text(), "Existing report\n")
+        states = list((self.paths.state / "runs").rglob("state.json"))
+        self.assertEqual(runner.read_object(states[0])["status"], "failed")
+
+    def test_successful_due_is_skipped_without_account_usage(self):
+        self.evidence()
+        run, _ = self.staged_review()
+        runner.finish_run(self.paths, self.settings, run)
+        with patch.object(runner, "latest_closed_date", return_value="2020-01-15"):
+            with patch("my_big_brother.analyzers.codex.launch") as launch:
+                results = runner.due(self.paths, self.settings, 1)
+        self.assertEqual(results[0]["status"], "already-completed")
+        launch.assert_not_called()
+
+    def test_due_rechecks_completion_after_date_lock(self):
+        with patch.object(runner, "latest_closed_date", return_value="2020-01-15"):
+            with patch.object(runner, "completed", side_effect=[False, True]) as check:
+                with patch("my_big_brother.analyzers.codex.launch") as launch:
+                    results = runner.due(self.paths, self.settings, 1)
+        self.assertEqual(results[0]["status"], "already-completed")
+        self.assertEqual(check.call_count, 2)
+        launch.assert_not_called()
+
+    @unittest.skipIf(os.name == "nt", "POSIX lock concurrency is executed on Linux")
+    def test_two_dates_finish_without_losing_shared_ledger(self):
+        self.evidence("2020-01-15")
+        self.evidence("2020-01-16")
+        first, _ = self.staged_review("2020-01-15")
+        second, _ = self.staged_review("2020-01-16")
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            results = list(pool.map(lambda run: runner.finish_run(self.paths, self.settings, run), [first, second]))
+        self.assertTrue(all(result["status"] == "completed" for result in results))
+        ledger = runner.read_object(self.paths.state / "completed.json")
+        self.assertEqual(set(ledger["days"]), {"2020-01-15", "2020-01-16"})
+
+    def test_analyzer_command_keeps_model_optional_and_prompt_off_argv(self):
+        with patch("shutil.which", return_value="/tools/codex"):
+            args = codex.command(self.settings["codex"], self.root)
+        self.assertNotIn("--model", args)
+        self.assertEqual(args[-1], "-")
+        self.assertIn("--ephemeral", args)
+        self.assertIn("workspace-write", args)
+
+
+if __name__ == "__main__":
+    unittest.main()
