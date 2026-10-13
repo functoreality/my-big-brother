@@ -52,6 +52,8 @@ read their contents or install recording hooks.
 `--results-root` and `--raw-logs-root` can set absolute custom locations on
 first initialization. Existing configuration is preserved rather than replaced.
 Change an existing installation by editing its personal config and path file.
+`init` with source or path options is for first initialization. For an existing
+installation, run it without options to create missing files and retain settings.
 
 Inspect the reported locations before changing configuration. Defaults are:
 
@@ -135,7 +137,8 @@ For an unattended review:
 python -m my_big_brother analyze --date 2026-01-15
 ```
 
-This invokes the configured Agent and can consume the user's account quota.
+This invokes the configured Codex executable and can consume the user's
+account quota.
 The program checks a completion receipt and structured outputs before
 publishing the stable daily files. A process exiting successfully is not
 sufficient proof of valid reports. Inspect the command result and output
@@ -174,7 +177,30 @@ another shell's startup file.
 ## 7. Optional scheduling and login catch-up
 
 Once one review works, offer an explicit schedule. Scheduling is not enabled
-by initialization. It should invoke:
+by initialization. Prefer the user's Agent-native local scheduler when it
+can access this installation, the selected evidence, and personal data paths.
+Do not add a second OS scheduler for the same work by default.
+
+Choose the executor separately from the trigger:
+
+- A native Agent task can run `prepare`, follow the English daily task using
+  the returned run context, then call `finish`. It reviews the last closed
+  day by default. The `analyzer` setting does not restrict this route.
+- A native command task can invoke `due` as a trigger for the configured
+  unattended analyzer. This still launches Codex in the current release.
+- For a CLI-only setup without a native scheduler, use the system scheduler
+  described below to invoke `due`.
+
+OpenClaw and Hermes provide native scheduling. Treat their task setup as
+instructions using this project's existing interfaces, not as pre-tested
+launcher or history-reader integrations. See [SCHEDULING.md](docs/SCHEDULING.md)
+for official references, the native task prompt, and shared OS templates.
+Codex CLI does not provide the Scheduled management interface. OpenAI's
+[scheduled-task documentation](https://learn.chatgpt.com/docs/automations)
+describes separate app-managed scheduling, including local-project tasks.
+Check the installed surface's actual capabilities and local access.
+
+For the bundled Codex launcher, invoke:
 
 ```sh
 python -m my_big_brother due --max-days 7
@@ -194,6 +220,9 @@ to the existing completion history even if reports stay in the same place.
 oldest first. It skips already successful dates and dates without usable
 evidence. Failures can be retried on later invocations. A seven-day lookback
 does not promise recovery of all historical gaps.
+`due` is a one-shot command, not a background timer. Its catch-up and skip
+behavior belongs to the bundled launcher route. A native Agent performing
+prepare/task/finish must explicitly handle missed dates if catch-up is wanted.
 After adding a source or correcting a completed review's evidence, rerun that
 date explicitly with `analyze --date`. The completion history does not perform
 automatic source-change detection for already successful dates.
@@ -235,9 +264,9 @@ Microsoft documents these separate fields in
 [ExecAction](https://learn.microsoft.com/windows/win32/taskschd/execaction).
 
 These are scheduling instructions, not an automated scheduler installer.
-Verify the actual scheduled action in its intended user environment.
-The development environment exercises Linux. Do not describe macOS or Windows
-schedule instructions as tested on those systems without doing those tests.
+Verify the actual scheduled action in its intended user environment, first
+with a one-off run and then with its trigger. macOS and Windows scheduled
+actions have not been verified on those systems in this release.
 
 ## 8. Handoff and maintenance
 

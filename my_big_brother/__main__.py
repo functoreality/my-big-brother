@@ -29,7 +29,7 @@ def parser():
             command.add_argument("--allow-empty", action="store_true", help="Explicitly analyze a day with no evidence")
     finish = commands.add_parser("finish", help="Validate and publish a review from the current Agent")
     finish.add_argument("--run-dir", required=True)
-    due = commands.add_parser("due", help="Analyze missing completed days with evidence")
+    due = commands.add_parser("due", help="Analyze missing completed days with evidence using Codex")
     due.add_argument("--max-days", type=int, default=7)
     return result
 

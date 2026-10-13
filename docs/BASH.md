@@ -1,5 +1,7 @@
 # Optional Bash recording
 
+English | [简体中文](zh-CN/BASH.md)
+
 The Bash collector records interactive command activity without reading or
 changing Bash history. It works independently of `HISTCONTROL`, `HISTIGNORE`,
 and whether history is enabled. Repeated commands produce repeated records.
@@ -136,7 +138,7 @@ To disable it for a new shell, export `MBB_BASH_RECORDING=0` before sourcing.
 To uninstall, remove the source line and open a new shell. There is no automatic
 raw-log deletion in this MVP.
 
-## Validation
+## Tests
 
 Run the isolated compatibility suite from the project root:
 
@@ -148,5 +150,5 @@ The Linux tests use temporary home/config/data directories, interactive Bash
 subprocesses, and one pseudo-terminal session. They cover duplicate commands,
 history filtering and disabling, scalar and array prompt hooks, exit-status
 preservation, existing DEBUG and EXIT traps, umask preservation, redaction,
-opt-out, pointer validation, and duplicate attachment. They never modify the
-developer's shell configuration or install a hook into the developer's shell.
+opt-out, pointer validation, and duplicate attachment. Tests use isolated
+subprocesses and do not install a recorder into your shell.

@@ -1,5 +1,7 @@
 # Extending My Big Brother
 
+English | [简体中文](zh-CN/EXTENDING.md)
+
 The core prepares evidence and manages a review. An Agent reads the Markdown
 task and leads analysis. Keep new features on the relevant side of this
 boundary rather than turning each semantic step into a program workflow.

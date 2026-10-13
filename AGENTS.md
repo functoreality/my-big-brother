@@ -13,6 +13,9 @@ Do not treat this file as the daily analysis task itself.
 - Keep user configuration, logs, results, and state outside the repository.
 - Use Python 3.11+ standard-library facilities for the core.
 - Update user documentation when command behavior or configuration changes.
+- Keep English and `zh-CN` reader documentation consistent. Agent task and
+  installation instructions remain shared English files. Translate report
+  prose without duplicating command names, JSON schemas, or scheduler templates.
 - Use synthetic, isolated fixtures for tests. Never modify real Agent
   histories, shell hooks, or schedules as part of an automated test.
 

@@ -1,23 +1,32 @@
 # Synthetic daily review
 
-These English files were produced by a real Codex review of invented work
-records during the Linux smoke test. They are examples, not someone's actual
-work history. The fictional review date is 2020-01-15.
+[English](README.md) | [简体中文](README.zh-CN.md)
+
+These reports show a Codex review of fictional work records dated 2020-01-15.
+They do not describe anyone's actual work history. The English reports are
+the original generated outputs. The Chinese reports are translations of
+those outputs, not a separate analysis run.
 
 The input describes a CSV importer fix, an installation-guide update, and a
-release-checklist draft. All times in this saved example use UTC+08:00, the
-validation machine's local offset. Other installations use their local time.
-The saved run used UTC source timestamps. The current harness anchors events
-to the local clock so they stay within one review day across time zones.
-Clock times in a fresh run can therefore differ from this saved example.
+release-checklist draft. The evidence includes four Codex conversation entries,
+two OpenCode conversation entries, and one Bash record.
+All times in these examples use UTC+08:00.
 
-- [Worklog](worklog.md): work, reported outcomes, and pending publication.
-- [Time Use](time-use.md) and [canonical JSON](time-use.json): chronological
-  activity with uncertainty and overlapping evidence.
-- [Daily Insights](insights.md): grounded, conditional suggestions.
+| Report | English | 简体中文 |
+| --- | --- | --- |
+| Worklog | [Read](en/worklog.md) | [阅读](zh-CN/worklog.md) |
+| Time use | [Read](en/time-use.md) | [阅读](zh-CN/time-use.md) |
+| Daily insights | [Read](en/insights.md) | [阅读](zh-CN/insights.md) |
+
+The reports distinguish recorded interactions from assistant-reported
+outcomes. They leave unobserved periods and human effort unknown.
+
+Machine-readable examples are shared across both languages:
+
+- [Time-use JSON](time-use.json): activity segments, overlapping evidence,
+  and limitations.
 - [Duration samples](time-estimates.json): elapsed spans with unknown human
-  effort left null.
+  effort left `null`.
 
-Reproduce a fresh preparation with `python3 tests/smoke.py` from the repository.
-Add `--run-analyzer` to request a new model-generated review using the installed
-Codex account. The result can differ in wording and organization.
+The JSON examples retain the original English text and field names.
+Report language can be configured for your own analysis.
