@@ -30,7 +30,7 @@ python -m my_big_brother doctor
 `--sources` 仅用于首次初始化。
 已有安装请编辑个人配置来修改输入源。
 不带选项运行 `init` 可以补齐缺少的文件，不替换已有设置。
-`doctor` 检查路径和启动器，但不能证明身份认证或输入格式一定兼容。
+`doctor` 检查通用配置和路径，但不能证明 Agent 身份认证或输入格式一定兼容。
 没有 Codex 可执行文件，也不妨碍其他 Agent 使用 `prepare` 和 `finish`。
 
 ## 配置个人安装
@@ -70,7 +70,7 @@ python -m my_big_brother prepare --date 2026-01-15
 使用内置 Codex 启动器时，运行：
 
 ```sh
-python -m my_big_brother analyze --date 2026-01-15
+python -m my_big_brother.analyzers.codex --date 2026-01-15
 ```
 
 这会使用已安装的 Codex 账号，可能消耗额度。
@@ -90,6 +90,12 @@ python -m my_big_brother finish --run-dir /absolute/path/to/the/run
 自定义 `day_start_hour` 会改变分析日的边界。
 输出可包括工作日志、Markdown 和 JSON 时间使用记录、每日洞察和耗时样本。
 每种输出可以单独选择。
+
+共享的[自动化任务](../../tasks/daily-review/AUTOMATION.md)也说明了待办后操作：
+由同一个 Agent 读取操作提示词、完成任务、写好准确回执，再调用 `finish`。
+通用 `analyze` 和 `due` 返回工作票据，不会启动 Agent。
+Codex 使用上面的外部入口，其他 Agent 可以使用原生任务或本地启动脚本。
+独立编辑器插件的接入见[Vim/Neovim 记录](VIM.md)。
 
 ## 启用周期性复盘
 

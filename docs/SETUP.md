@@ -30,8 +30,8 @@ not install recording hooks or schedules. It preserves existing settings.
 Source selection with `--sources` is for first initialization. For an existing
 installation, edit the personal config to change sources. Run `init` without
 options to create missing files without replacing existing settings.
-`doctor` checks paths and the launcher, but does not prove authentication or
-source-format compatibility. A missing Codex executable does not prevent
+`doctor` checks the common configuration and paths, but does not prove Agent
+authentication or source-format compatibility. A missing Codex executable does not prevent
 another Agent from using `prepare` and `finish`.
 
 ## Configure your own installation
@@ -72,12 +72,12 @@ without launching an Agent or publishing reports.
 For the bundled Codex launcher, run:
 
 ```sh
-python -m my_big_brother analyze --date 2026-01-15
+python -m my_big_brother.analyzers.codex --date 2026-01-15
 ```
 
 This uses your installed Codex account and can consume quota. Selected evidence
 can be sent to that Agent's configured model provider. Without usable evidence,
-the analyzer is skipped. Inspect the resulting files and their limitations.
+the Agent records an empty result. Inspect the resulting files and their limitations.
 
 Alternatively, ask your current Agent to follow
 [TASK.md](../tasks/daily-review/TASK.md) with the prepared run's context.
@@ -91,6 +91,13 @@ Omit `--date` to review the last closed analysis day. Setting a custom
 `day_start_hour` changes that day's boundary. Generated outputs may include a
 Worklog, Time Use Markdown and JSON, Daily Insights, and duration samples.
 Each output can be selected independently.
+
+The shared [automation task](../tasks/daily-review/AUTOMATION.md) also covers
+pending post-review work: read the action prompt, perform it in the same Agent,
+write the exact action receipt, then call `finish` again. Generic `analyze`
+and `due` return work tickets; they do not start an Agent. Use the external
+startup command above for Codex, or a native task/local runner for your Agent.
+See [Vim/Neovim recording](VIM.md) for the separately installed editor plugin.
 
 ## Enable recurring reviews
 

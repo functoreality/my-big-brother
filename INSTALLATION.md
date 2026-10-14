@@ -1,69 +1,69 @@
 # Installation for an Agent
 
-Use this guide when a user asks you to install My Big Brother on their machine.
-Set up the ordinary cloned repository and personal configuration first.
-Do not install a Skill, MCP server, daemon, or scheduler by assumption.
+Use this guide when a user asks you to install My Big Brother.
+The normal goal is a daily unattended review, followed by reusable reports
+and any explicitly chosen personal context updates.
+Set up the cloned repository and personal files. Do not install a Skill,
+MCP service, collector or scheduler by assumption.
 
-## 1. Confirm the environment
+## 1. Choose the environment and executing Agent
 
-Identify the operating system, an absolute Python 3 executable path, and
-the user's preferred stable installation directory. Clone the repository
-there, or use the existing clone. Run all commands below with that repository
-as the working directory. No dependency installation is required for the core.
-
-Python 3.11+ is recommended. Older versions are unverified and compatibility
-is not guaranteed. Do not reject an interpreter solely for being older than
-3.11. Check the actual commands below.
-
-Check Python:
+Identify the operating system, stable checkout location and absolute Python
+executable. Python 3.11+ is recommended. Older versions are unverified,
+not rejected solely by version. The core uses only the standard library.
+Clone the repository or reuse the existing checkout. Check:
 
 ```sh
 python --version
 python -m my_big_brother --help
 ```
 
-Use `python3` or the selected absolute executable if `python` resolves to an
-older interpreter. For unattended reviews, check that Codex is installed,
-authenticated, and usable noninteractively. Follow its installed help for
-account setup. Do not open or copy credential files.
-The official [Codex non-interactive guide](https://learn.chatgpt.com/docs/non-interactive-mode)
-describes the execution mode used by the launcher.
+Ask which Agent should perform daily reviews. You, the installing Agent,
+may also be that analyzer. Its conversation-history reader is a separate
+choice: an Agent can analyze supported records from other tools.
 
-On native Windows, the launcher supports a standard npm `codex.cmd` shim by
-invoking its adjacent Codex JavaScript entry with Node directly. Node must
-also be discoverable. An unrecognized batch wrapper is rejected. Configure
-`codex.executable` with an absolute native `codex.exe` path in that case.
-The launcher does not concatenate a batch-shell command from configured paths.
+Check the chosen Agent's installed help for noninteractive execution and
+native local scheduling. If the interface is unclear, consult or search
+its official documentation. Do not guess flags or silently substitute Codex.
+The core prepare/analyze/due/finish commands never start an Agent.
+Only the independent startup entry is specific to a product or harness.
 
-Codex is the first unattended backend. Existing OpenCode conversations can
-still be an input. If the user only has another capable Agent, it can perform
-the interactive prepare/task/finish workflow without a Codex launch.
+For the bundled Codex entry, verify its executable and noninteractive login
+without reading or copying credentials. It uses
+`python -m my_big_brother.analyzers.codex`, which starts one Codex invocation
+and gives it the shared automation task. Its `codex.executable`, optional
+`model` and `timeout_seconds` apply only at that startup boundary.
+On Windows, the standard npm `codex.cmd` shim needs its adjacent JavaScript
+entry and discoverable Node. Other batch wrappers are rejected. Configure a
+native `codex.exe` path if that setup does not apply.
 
-## 2. Initialize personal paths
+## 2. Select inputs and initialize personal locations
 
-Ask which available histories the user wants included before preparation.
-For a Codex-only installation:
+Ask which histories and collectors the user wants. Check for Vim/Neovim
+executables, existing editor configuration or a recorder installation.
+If these exist or the user regularly uses the editor, recommend the separate
+plugin described in step 4 and ask whether to install it and update their
+active configuration. Detection is not recording consent.
+
+For a first installation using Codex history:
 
 ```sh
 python -m my_big_brother init --sources codex
 python -m my_big_brother paths
 ```
 
-For both Agent histories, use `init --sources codex,opencode`. Add `bash` only
-when the user also wants its recorded files included. Omitting `--sources`
-creates defaults, with optional Vim and screenshot readers disabled.
-Explicitly select `vim` or `screenshots` only when their collectors and records
-are available. Follow [INPUT-SOURCES.md](docs/INPUT-SOURCES.md) and install
-Pillow in the selected interpreter for screenshot contact sheets.
-Initialization itself does not
-read their contents or install recording hooks.
-`--results-root` and `--raw-logs-root` can set absolute custom locations on
-first initialization. Existing configuration is preserved rather than replaced.
-Change an existing installation by editing its personal config and path file.
-`init` with source or path options is for first initialization. For an existing
-installation, run it without options to create missing files and retain settings.
+Use `--sources codex,opencode` for both supported native histories.
+The choice does not select the executing Agent. Enable `bash`, `vim` or
+`screenshots` only for wanted records and after the corresponding collector
+setup. Initialization does not read histories or install recording hooks.
+Use actual paths, without searching unrelated accounts or private folders.
 
-Inspect the reported locations before changing configuration. Defaults are:
+`--results-root` and `--raw-logs-root` accept absolute custom paths on first
+initialization. For an existing setup, run `init` without options to fill
+missing files and edit its personal settings deliberately. Preserve previous
+values, reports and raw data.
+
+Defaults use configuration directory C and data directory D:
 
 | System | Configuration directory C | Default data directory D |
 | --- | --- | --- |
@@ -71,239 +71,174 @@ Inspect the reported locations before changing configuration. Defaults are:
 | macOS | `~/Library/Application Support/my-big-brother/configs` | `~/Library/Application Support/my-big-brother/data` |
 | Windows | `%LOCALAPPDATA%\my-big-brother\configs` | `%LOCALAPPDATA%\my-big-brother\data` |
 
-Linux XDG variables must contain absolute paths. Ensure the installation
-Agent, collectors, and scheduled process discover the same C. A desktop
-application does not necessarily inherit variables from an interactive shell.
-Treat WSL as its own Linux environment, with its own paths and Python.
+Linux XDG values must be absolute. GUI editors, the installing Agent and
+scheduled runs must discover the same C and D under the intended account.
+WSL and remote machines have their own environments.
 
-The shared `C/raw-logs-path.txt` is one UTF-8 line containing an absolute path.
-An LF or CRLF line terminator is allowed. Do not add JSON syntax, quotes,
-comments, or variables such as `~` or `$HOME`. This path is only for collectors.
-The `results_root` path belongs in `C/config.json` and is not shared with them.
-By default they resolve to `D/raw-logs` and `D/results`, respectively.
-Runtime state stays under `D/state`.
+`C/raw-logs-path.txt` contains one UTF-8 absolute path, with an optional LF
+or CRLF terminator. Do not add JSON, quotes, comments or environment variables.
+Collectors share this locator and write `YYYY-MM-DD/<source>/` directories.
+`results_root` belongs in `C/config.json`; collectors do not use it.
+Defaults are `D/raw-logs`, `D/results` and runtime state in `D/state`.
 
-## 3. Configure sources and outputs
+## 3. Configure outputs and personal context
 
-Read the generated `config.json` and keep its valid JSON structure. Its
-principal settings are:
+Read the generated JSON and keep it valid. Configure:
 
-- `analyzer`: the one unattended backend, currently `codex`.
-- `language`: output language, initially `en`.
-- `day_start_hour`: the local analysis-day boundary, initially `0`.
-- `results_root`: an absolute path outside the installation.
-- `sources`: independent `codex`, `opencode`, `bash`, `vim`, and `screenshots` settings.
-  Native Agent sources have an `enabled` flag and an absolute `path`.
-  Collected sources use the shared raw root unless an explicit reader path
-  is configured. A source can be `required`, blocking publication when unavailable.
-- `local_profile`: optional absolute JSON path for selected personal rules,
-  reference files, output bindings, validators, and post-review operations.
-- `outputs`: any supported names from `worklog`, `time-use`, `insights`, and
-  `time-estimates`. The generated configuration enables all four.
-- `codex`: `executable`, `timeout_seconds`, and an optional `model`.
-  Omit `model` to inherit the installed Codex default.
+- `sources`: enabled records and their actual paths. Optional sources can
+  remain visibly unavailable. A source marked `required` blocks publication
+  if it is unavailable.
+- `outputs`: selected `worklog`, `time-use`, `insights`, `time-estimates`.
+- `language`, `day_start_hour` and an absolute `results_root` outside Git.
+- `analyzer`: the chosen Agent's name, describing the installation's executor.
+  The startup command or native task selects the actual executable. This
+  field does not cause the core to launch that Agent.
+- `local_profile`: optional personal task rules, read-only references,
+  output bindings, schema validators and scoped post-review operations.
+- `codex`: startup options only if using the bundled Codex entry.
 
-Use the user's actual source paths. Do not scan unrelated accounts or copy
-histories into this repository. Disable sources the user does not want read.
-Leave unavailable optional sources visibly unavailable rather than inventing
-data. Reading native histories does not require a new recording plugin.
-Read [PROFILES.md](docs/PROFILES.md) before configuring private extensions.
-Keep that profile and its files outside Git. Do not infer operation permission
-from the mere presence of a file under `local-tasks/`.
+Read [PROFILES.md](docs/PROFILES.md) before configuring personal extensions.
+Files under `local-tasks/` are used only when explicitly selected.
+Do not turn a discovered personal file into authorization.
 
-Then run:
+Run `python -m my_big_brother doctor` to check the common setup.
+A passing diagnostic does not prove a source format, Agent login or successful
+review. Generic preparation and publication require no Codex installation.
 
-```sh
-python -m my_big_brother doctor
+## 4. Offer and verify optional collectors
+
+### Vim and Neovim
+
+Offer [session-recorder.vim](https://github.com/functoreality/session-recorder.vim)
+when the environment check indicates relevant use. Explain that it records
+original text, saved diffs, paths and cursor-line context. Ask whether to
+install it, edit the active Vim/Neovim configuration and enable its input.
+If the user declines, skip those changes and leave this source disabled
+unless they explicitly choose existing records instead.
+
+With consent, read the plugin's current README and [VIM.md](docs/VIM.md).
+Back up the active configuration, use the existing plugin manager and install
+the whole repository. For vim-plug, add inside the existing plugin block:
+
+```vim
+Plug 'functoreality/session-recorder.vim'
 ```
 
-Resolve reported path or analyzer problems needed for the chosen workflow.
-Do not claim that a passing diagnostic proves end-to-end analysis succeeds.
-`doctor` reports source-path presence, not source-format compatibility or
-authentication. It returns a nonzero status if Codex is absent, which does not
-prevent a different current Agent from using `prepare` and `finish`.
+Adapt the declaration for another manager or Neovim Lua configuration.
+Do not replace the entire vimrc or assume a fixed configuration path.
+Use the shared raw-log locator. No extra path variable is normally needed.
+An existing `record_dir` override bypasses shared discovery; migrate it only
+with consent or explicitly configure a compatible legacy reader path.
+Preserve exclusions and specify the intended native Python when needed.
 
-## 4. Verify input preparation first
+Ask the user to restart their editor, then check `:RecorderStatus`.
+Test a disposable file by opening, changing, saving and exiting normally.
+Verify its manifest, original snapshot and diff under the shared raw root,
+then enable `sources.vim` and prepare a date containing that closed session.
+An open session may have no final manifest. Do not close unsaved user work.
 
-Choose a completed date with known activity in the enabled records:
+### Bash
 
-```sh
-python -m my_big_brother prepare --date 2026-01-15
-```
+Offer the bundled recorder only when the user wants future shell activity
+recorded. With consent, follow [BASH.md](docs/BASH.md), back up the active
+`.bashrc` and preserve prompt hooks, traps and history settings.
+It records the first simple command and the line's status independently of
+history exclusions, so leading spaces or HISTIGNORE do not hide commands.
+Use redaction and exclusions as appropriate. Do not source it in a different
+shell or treat it as a PowerShell recorder.
 
-Inspect the reported run's `manifest.json` and `context.json`. Confirm the
-date, timezone offsets, source entry counts, source gaps, and resolved output
-paths. The input window includes its start and excludes its end.
-The configured boundary can make one analysis day span two natural dates.
+### Screenshots
 
-A prepared run does not launch an Agent and does not publish final reports.
-If records are empty, select a known active date or fix the source settings.
-Do not fabricate inputs and present them as the user's actual work.
-Omitting `--date` selects the last completed analysis day. An explicit current
-date prepares only the elapsed portion of that day, not future activity.
-Use `--snapshot-end <ISO timestamp with UTC offset>` on `prepare` or `analyze`
-when a fixed cutoff is needed for a controlled rerun or comparison.
+The optional reader consumes existing captures and uses Pillow for contact
+sheets. Follow [INPUT-SOURCES.md](docs/INPUT-SOURCES.md). If captures are not
+already available, explain that a portable collector is not bundled. Any
+local capture setup needs the user's explicit choice and its own verification.
+Do not start screen recording merely by enabling the reader.
 
-## 5. Verify one analysis
+## 5. Verify preparation before analysis
 
-Choose either unattended or current-conversation analysis.
-
-For an unattended review:
+Choose a completed date with known records:
 
 ```sh
 python -m my_big_brother analyze --date 2026-01-15
 ```
 
-This invokes the configured Codex executable and can consume the user's
-account quota.
-The program checks a completion receipt and structured outputs before
-publishing the stable daily files. A process exiting successfully is not
-sufficient proof of valid reports. Inspect the command result and output
-paths, then review the reports' factual grounding and limitations.
-If a personal profile includes `post_review`, publication is followed by a
-separate Codex invocation with its declared write directories. `finish` also
-performs that configured phase. A failed phase remains pending and is resumed
-without regenerating published reports. Profiles define operation idempotency
-and their validators, not permission to execute historical instructions.
-Without usable evidence, `analyze` returns an empty run without invoking the
-Agent. `--allow-empty` is an explicit override for an honest empty review.
-An unavailable required source returns `blocked`. Unattended `analyze` and
-`due` exit unsuccessfully for that status so a scheduler can report the failure.
+This prepares a work ticket and `prompt_path`, not an Agent launch.
+`prepare` is also available for direct preparation. Check the run's manifest,
+context, timestamps, source counts/gaps and resolved paths. The half-open
+logical-day window may span two natural-date directories.
+Omitting `--date` selects the last closed day. Use an explicit current date
+only for an honest partial review. `--snapshot-end` accepts a timestamp with
+UTC offset for a fixed cutoff.
 
-For the current Agent, use the prepared run from step 4. Read
-`tasks/daily-review/TASK.md`, the related task contracts, and the run's context.
-Write to `context.output_paths`, which are staged paths. Write the exact
-`completion.json` receipt indicated by `context.completion_example`. Then:
+## 6. Verify one complete review with the chosen Agent
 
-```sh
-python -m my_big_brother finish --run-dir /absolute/path/to/the/run
-```
+Give the prepared run prompt to the chosen Agent and use the shared
+[tasks/daily-review/AUTOMATION.md](tasks/daily-review/AUTOMATION.md).
+The Agent reads evidence, follows TASK/INPUTS/OUTPUTS/WORKFLOW, writes staged
+reports and the exact completion receipt, then calls `finish`.
+If `finish` returns `actions-pending`, that same Agent reads the returned
+action prompt, completes authorized operations, writes the action receipt
+and calls `finish` again. Never declare success from exit code alone or while
+post-review work is pending. Do not bypass publication conflict checks.
 
-If existing results changed after preparation, do not overwrite them by
-forcing publication. Prepare again and preserve those changes during review.
-
-## 6. Optional Bash recording
-
-Bash recording is separate from reading existing AI conversations. Only add
-the bundled recorder if the user wants future interactive command activity
-recorded. Read [BASH.md](docs/BASH.md) and preserve the
-user's existing prompt hooks, traps, and history settings.
-
-It writes below `raw-logs/YYYY-MM-DD/bash/`. Explain that command recording
-can include private information and that redaction is not comprehensive.
-The recorder observes the first simple command after a prompt and the whole
-input line's status. It does not depend on history settings, so commands
-excluded from history can still be recorded. Conflicting DEBUG/pre-command
-integrations cause it to decline attachment rather than replace them.
-It does not replace PowerShell recording. Do not source a Bash script from
-another shell's startup file.
-
-## 7. Optional scheduling and login catch-up
-
-Once one review works, offer an explicit schedule. Scheduling is not enabled
-by initialization. Prefer the user's Agent-native local scheduler when it
-can access this installation, the selected evidence, and personal data paths.
-Do not add a second OS scheduler for the same work by default.
-
-Choose the executor separately from the trigger:
-
-- A native Agent task can run `prepare`, follow the English daily task using
-  the returned run context, then call `finish`. It reviews the last closed
-  day by default. The `analyzer` setting does not restrict this route.
-- A native command task can invoke `due` as a trigger for the configured
-  unattended analyzer. This still launches Codex in the current release.
-- For a CLI-only setup without a native scheduler, use the system scheduler
-  described below to invoke `due`.
-
-OpenClaw and Hermes provide native scheduling. Treat their task setup as
-instructions using this project's existing interfaces, not as pre-tested
-launcher or history-reader integrations. See [SCHEDULING.md](docs/SCHEDULING.md)
-for official references, the native task prompt, and shared OS templates.
-Codex CLI does not provide the Scheduled management interface. OpenAI's
-[scheduled-task documentation](https://learn.chatgpt.com/docs/automations)
-describes separate app-managed scheduling, including local-project tasks.
-Check the installed surface's actual capabilities and local access.
-
-For the bundled Codex launcher, invoke:
+For the bundled external Codex entry, a one-off test is:
 
 ```sh
-python -m my_big_brother due --max-days 7
+python -m my_big_brother.analyzers.codex --date 2026-01-15
 ```
 
-Use the absolute interpreter path, a stable repository working directory,
-the same user's account and config-discovery environment, and a known Codex
-executable path. Interactive shell aliases and startup files may not apply.
-Capture stdout and stderr outside the repository for diagnosis.
-Codex account access and network connectivity must work in that environment.
-Confirm that `paths` under the scheduled account reports the same configuration,
-results, raw logs, and state paths used during setup. Both XDG configuration
-and data values can matter on Linux. A different state location loses access
-to the existing completion history even if reports stay in the same place.
+This can consume account quota and send selected evidence to the Agent's
+configured provider. It starts one Agent, which executes the common workflow
+and its configured post-review itself. Inspect the final completed status,
+receipts, reports and actual coverage. Without usable evidence, preserve an
+honest empty result. Required-source failures remain blocked.
 
-`due` considers completed analysis days within its bounded lookback,
-oldest first. It skips already successful dates and dates without usable
-evidence. Failures can be retried on later invocations. A seven-day lookback
-does not promise recovery of all historical gaps.
-`due` is a one-shot command, not a background timer. Its catch-up and skip
-behavior belongs to the bundled launcher route. A native Agent performing
-prepare/task/finish must explicitly handle missed dates if catch-up is wanted.
-After adding a source or correcting a completed review's evidence, rerun that
-date explicitly with `analyze --date`. The completion history does not perform
-automatic source-change detection for already successful dates.
+For another Agent, use its native task or create a local one-shot startup
+runner with its supported execution interface. The runner launches that Agent
+with the same automation task, paths and date/lookback instructions.
+It must not duplicate semantic analysis or start a second harness from inside
+the common scripts. Preserve scope, timeouts, failure diagnostics and checked
+completion. See [EXTENDING.md](docs/EXTENDING.md).
+If the Agent cannot execute unattended on this machine, report that specific
+limitation and the missing setup. Do not falsely mark automation installed.
 
-### Linux
+## 7. Install one chosen trigger
 
-Use the user's cron service for a daily trigger, with a cron entry that
-changes to the absolute installation directory before invoking the absolute
-Python executable. Properly quote both paths, including spaces. Explicitly
-carry absolute XDG values if the installation depends on them.
+After one complete review works, ask for the desired daily time and logical
+day boundary. Prefer the chosen Agent's native local scheduler when available.
+Register the shared automation task there and verify access to the installation,
+inputs and personal paths. Do not add an OS timer for the same task by default.
 
-A user service or login startup entry can invoke the same `due` command for
-catch-up. A cron `@reboot` entry means cron startup, not user login, and may run
-before network or Agent account access is ready. Choose the trigger based on
-the user's intended environment. Avoid putting a long review in every shell
-startup file.
+If it has no suitable native scheduler, implement the local startup runner
+from step 6 and invoke it from cron on Linux, launchd on macOS, or Task
+Scheduler on Windows. Consult installed help and official documentation when
+uncertain about starting that Agent. Preserve authentication and use absolute
+paths, the correct account, a stable working directory and separate logs.
 
-### macOS
+For Codex, the included examples invoke the external entry:
 
-Use a per-user LaunchAgent when requested. Set `ProgramArguments` as an array
-containing the absolute Python executable, `-m`, `my_big_brother`, `due`,
-`--max-days`, and `7`. Set `WorkingDirectory` to the absolute repository path.
-Use `StartCalendarInterval` for the requested daily time and optionally
-`RunAtLoad` for login catch-up. Set explicit output and error log paths.
-Paths with spaces remain single array values rather than shell snippets.
-See Apple's [launchd property-list reference](https://github.com/apple-oss-distributions/launchd/blob/main/man/launchd.plist.5)
-and [timed-job guidance](https://developer.apple.com/library/archive/documentation/MacOSX/Conceptual/BPSystemStartup/Chapters/ScheduledJobs.html).
+```sh
+python -m my_big_brother.analyzers.codex --max-days 7
+```
 
-### Windows
-
-Use a task for the user in Task Scheduler when requested. Set the program
-to the absolute Python executable, arguments to
-`-m my_big_brother due --max-days 7`, and "Start in" to the repository directory.
-Use a daily trigger and optionally an "At log on" trigger. Run under the
-account whose configuration and Agent authentication you checked.
-Use separate program, arguments, and working-directory fields rather than
-constructing a command through `cmd.exe` or PowerShell.
-Microsoft documents these separate fields in
-[ExecAction](https://learn.microsoft.com/windows/win32/taskschd/execaction).
-
-These are scheduling instructions, not an automated scheduler installer.
-Verify the actual scheduled action in its intended user environment, first
-with a one-off run and then with its trigger. macOS and Windows scheduled
-actions have not been verified on those systems in this release.
+The Agent itself calls common `due` to prepare the bounded catch-up tickets,
+then reviews them oldest first and resumes pending actions.
+Calling common `due` alone is not a scheduled analysis: it returns work.
+The lookback is bounded and does not promise recovery of all historical gaps.
+Read [SCHEDULING.md](docs/SCHEDULING.md) and test the actual trigger environment.
+OS templates are examples; macOS and Windows execution remain unverified.
 
 ## 8. Handoff and maintenance
 
-Give the user the installation path, configuration location, results root,
-enabled sources, enabled outputs, and any schedule actually installed.
-Show one reviewed daily report and explain the observed coverage.
+Report installation and personal paths, chosen executor, enabled records and
+outputs, collector decisions, any actual schedule and one reviewed report.
+Distinguish available mechanisms from untested runtime behavior.
+Explain how retained outputs support weekly summaries and other conversations.
 
-To move results, stop active reviews, move the results directory, and update
-`results_root`. Collectors do not need changing. To move raw logs, pause
-collectors and reviews, move the records, update `raw-logs-path.txt`, and
-restart the collectors so they rediscover the location.
-
-Back up configuration and published results. Runtime state includes completion
-history as well as private excerpts, so preserve relevant state when migrating
-an installation. This MVP does not perform automatic raw-log or run-material
-cleanup. Avoid deleting material still being recorded or used by a review.
+Back up configuration, results and completion state. Moving raw logs requires
+pausing collectors, moving records, updating the locator and restarting writers.
+Moving results needs only its own configuration update while reviews are stopped.
+Do not delete active records. This release does not automatically clean raw
+logs or derived materials. Do not replace existing user automation without
+an explicit cutover choice.
