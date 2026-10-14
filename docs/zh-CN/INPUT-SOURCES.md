@@ -106,7 +106,9 @@ raw/YYYY-MM-DD/screenshots/manifest.json
 明确配置的旧截图根目录可以直接包含平面的图片文件。
 共享根目录中还可将导入的平面文件存放在 `legacy/screenshots/`、
 `legacy/screen/` 或 `legacy/screen_record/`。
-适配器不会去其他输入源目录寻找图片。
+采集器迁移期间，已有的 `YYYY-MM-DD/screen_record/` 目录也会被读取。
+新采集器应使用 `screenshots/`。
+适配器不会去无关输入源目录寻找图片。
 
 没有 manifest 时，使用文件修改时间作为采集时间。
 导入旧图片时应保留修改时间。

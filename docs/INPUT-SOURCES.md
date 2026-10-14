@@ -106,7 +106,9 @@ raw/YYYY-MM-DD/screenshots/manifest.json
 JPEG, PNG, and WebP images are supported. An explicitly configured legacy root
 can contain flat image files. Imported flat files can also live under
 `legacy/screenshots/`, `legacy/screen/`, or `legacy/screen_record/` within the
-shared root. The adapter does not search other source directories for images.
+shared root. Existing dated `YYYY-MM-DD/screen_record/` directories are also
+read during collector migration. New collectors should use `screenshots/`.
+The adapter does not search unrelated source directories for images.
 
 Without a manifest, a frame's filesystem modification time is its capture
 timestamp. Preserve modification times when importing old files. A JSON

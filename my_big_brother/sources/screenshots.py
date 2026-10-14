@@ -26,7 +26,8 @@ SHEET_COLUMNS, SHEET_ROWS = 2, 3
 
 
 def _directories(root: Path) -> list[Path]:
-    directories = sorted(path for path in root.glob("*/screenshots") if path.is_dir())
+    directories = sorted(path for name in ('screenshots', 'screen_record')
+                         for path in root.glob('*/' + name) if path.is_dir())
     for relative in ("screenshots", "legacy/screenshots", "legacy/screen", "legacy/screen_record"):
         candidate = root / relative
         if candidate.is_dir() and candidate not in directories:
