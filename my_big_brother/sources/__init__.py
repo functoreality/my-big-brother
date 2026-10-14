@@ -28,7 +28,7 @@ def message_text(value: object) -> str:
     return "\n".join(
         part["text"] for part in value
         if isinstance(part, dict) and isinstance(part.get("text"), str)
-        and part.get("type") in (None, "text", "input_text", "output_text")
+        and part.get("type") in (None, "text", "Text", "input_text", "output_text")
     ).strip()
 
 

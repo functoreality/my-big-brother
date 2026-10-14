@@ -39,6 +39,8 @@ unless already authorized in the installation conversation.
 
 Users can keep additional task instructions in the configuration directory's
 `local-tasks/` directory. These are separate from shipped task documents so
-upgrades do not overwrite them. The MVP does not automatically discover or
-execute those files. Users explicitly give them to their Agent and define
-their read/write scope. See `docs/EXTENDING.md`.
+upgrades do not overwrite them. The program does not automatically discover
+those files. An explicitly selected `local_profile` can configure review
+instructions, reference files and separately scoped post-review operations.
+Users can also give instructions to their current Agent. Keep review staging
+and post-review permissions separate. See `docs/PROFILES.md` and `docs/EXTENDING.md`.

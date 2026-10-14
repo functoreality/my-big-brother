@@ -57,3 +57,12 @@ def raw_logs_root(paths: Paths) -> Path:
     elif text.endswith("\n"):
         text = text[:-1]
     return absolute(text, str(locator))
+
+
+def is_within(path: Path, root: Path) -> bool:
+    """Check resolved containment using APIs available before Python 3.9."""
+    try:
+        path.resolve().relative_to(root.resolve())
+    except ValueError:
+        return False
+    return True

@@ -47,7 +47,11 @@ python -m my_big_brother paths
 
 For both Agent histories, use `init --sources codex,opencode`. Add `bash` only
 when the user also wants its recorded files included. Omitting `--sources`
-creates defaults for all supported sources. Initialization itself does not
+creates defaults, with optional Vim and screenshot readers disabled.
+Explicitly select `vim` or `screenshots` only when their collectors and records
+are available. Follow [INPUT-SOURCES.md](docs/INPUT-SOURCES.md) and install
+Pillow in the selected interpreter for screenshot contact sheets.
+Initialization itself does not
 read their contents or install recording hooks.
 `--results-root` and `--raw-logs-root` can set absolute custom locations on
 first initialization. Existing configuration is preserved rather than replaced.
@@ -84,8 +88,12 @@ principal settings are:
 - `language`: output language, initially `en`.
 - `day_start_hour`: the local analysis-day boundary, initially `0`.
 - `results_root`: an absolute path outside the installation.
-- `sources`: independent `codex`, `opencode`, and `bash` settings.
+- `sources`: independent `codex`, `opencode`, `bash`, `vim`, and `screenshots` settings.
   Native Agent sources have an `enabled` flag and an absolute `path`.
+  Collected sources use the shared raw root unless an explicit reader path
+  is configured. A source can be `required`, blocking publication when unavailable.
+- `local_profile`: optional absolute JSON path for selected personal rules,
+  reference files, output bindings, validators, and post-review operations.
 - `outputs`: any supported names from `worklog`, `time-use`, `insights`, and
   `time-estimates`. The generated configuration enables all four.
 - `codex`: `executable`, `timeout_seconds`, and an optional `model`.
@@ -95,6 +103,9 @@ Use the user's actual source paths. Do not scan unrelated accounts or copy
 histories into this repository. Disable sources the user does not want read.
 Leave unavailable optional sources visibly unavailable rather than inventing
 data. Reading native histories does not require a new recording plugin.
+Read [PROFILES.md](docs/PROFILES.md) before configuring private extensions.
+Keep that profile and its files outside Git. Do not infer operation permission
+from the mere presence of a file under `local-tasks/`.
 
 Then run:
 
@@ -126,6 +137,8 @@ If records are empty, select a known active date or fix the source settings.
 Do not fabricate inputs and present them as the user's actual work.
 Omitting `--date` selects the last completed analysis day. An explicit current
 date prepares only the elapsed portion of that day, not future activity.
+Use `--snapshot-end <ISO timestamp with UTC offset>` on `prepare` or `analyze`
+when a fixed cutoff is needed for a controlled rerun or comparison.
 
 ## 5. Verify one analysis
 
@@ -143,8 +156,15 @@ The program checks a completion receipt and structured outputs before
 publishing the stable daily files. A process exiting successfully is not
 sufficient proof of valid reports. Inspect the command result and output
 paths, then review the reports' factual grounding and limitations.
+If a personal profile includes `post_review`, publication is followed by a
+separate Codex invocation with its declared write directories. `finish` also
+performs that configured phase. A failed phase remains pending and is resumed
+without regenerating published reports. Profiles define operation idempotency
+and their validators, not permission to execute historical instructions.
 Without usable evidence, `analyze` returns an empty run without invoking the
 Agent. `--allow-empty` is an explicit override for an honest empty review.
+An unavailable required source returns `blocked`. Unattended `analyze` and
+`due` exit unsuccessfully for that status so a scheduler can report the failure.
 
 For the current Agent, use the prepared run from step 4. Read
 `tasks/daily-review/TASK.md`, the related task contracts, and the run's context.

@@ -9,7 +9,8 @@ different from an unavailable one.
 The run window is half-open: its start is included and its end is excluded.
 Use timestamp offsets as recorded. Conversation files may have been created
 before this window, so session creation date is not an activity filter.
-Prepared indexes include only records inside the selected window.
+Indexes select records by the window. A source may retain actual session
+intervals spanning its boundary, with explicit clipping and attribution limits.
 
 ## Reading the prepared material
 
@@ -68,13 +69,56 @@ timestamps and status do not constitute a complete shell audit, prove file
 contents, or establish focused work for the whole command duration.
 Background jobs can outlive a foreground command.
 
-The recorder bypasses history, so `HISTIGNORE`, leading-space policies, and
+The bundled recorder bypasses history, so `HISTIGNORE`, leading-space policies, and
 history being disabled do not hide commands from it. It captures the first
 simple command after a prompt rather than necessarily the complete input line.
 Its recorded exit status belongs to that line, which can contain additional
 commands. Commands without a following prompt, including shell exit, may be
 absent. Preserve these recorder limitations when they affect a conclusion.
 Never reproduce sensitive command arguments in formal outputs.
+Other explicitly configured recorders can use history-input semantics.
+Preserve their declared scope, timing, and working-directory meanings rather
+than assuming every Bash source has the bundled collector's behavior.
+
+## Vim and Neovim
+
+Read every indexed session's metadata, file summaries, and declared gaps.
+Viewing a file, editing it, and executing it are different evidence.
+Use the recorded artifact paths for relevant diffs and focus context, without
+scanning unrelated projects or opening the current file as a historical copy.
+Modified line counts do not prove execution or a passing test.
+An execution flag establishes only what that collector actually records.
+
+Preserve actual session intervals and the adapter's `diff_scope` limitation.
+An aggregate diff across a window boundary cannot allocate each change to a
+particular day. Open or excluded late-closing sessions do not provide a final
+within-window diff. Missing artifacts are gaps, not proof of zero modifications.
+
+## Screenshots
+
+The optional adapter indexes reliable frames and generates aspect-preserving
+contact sheets under the run's source-assets directory. Read every sheet and
+its mapping, covering every frame rather than only representative frames.
+Use low-resolution sheets first. Enlarge the relevant same-period frames or
+crops when a task theme depends on readable text or a specific visual detail.
+If the Agent supports delegation, visual blocks can be assigned separately
+while the coordinator retains complete coverage and shared task boundaries.
+
+A thumbnail that establishes an interface type does not establish its topic.
+Static screens do not establish inactivity, focused attention, or voice input.
+Image similarity is an observation about pixels, not task completion.
+Do not infer a capture convention from timestamps alone. Any interpretation
+of intervals before frames or gaps must come from the selected profile's
+explicit capture policy. Generic screenshots do not prove such intervals.
+
+## Configured personal references
+
+A profile can declare method notes and other references separately from event
+sources. Their absence from activity logs does not mean they are unavailable.
+Read the relevant original passages and their applicability conditions, using
+outline navigation when appropriate. A broad principle does not make every
+concrete refinement redundant. Missing execution traces do not prove non-use.
+Record meaningful reference failures without pretending a comparison occurred.
 
 ## Missing and empty evidence
 

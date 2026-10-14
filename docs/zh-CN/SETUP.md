@@ -53,6 +53,8 @@ python -m my_big_brother doctor
 不要在这个文件中填写结果路径或 JSON 语法。
 读取 Agent 原生历史不需要新的采集插件。
 
+可选 Vim、截图适配器的记录格式与回看资产见[输入来源](INPUT-SOURCES.md)。
+
 ## 验证首次复盘
 
 选择已启用历史中确实存在活动的日期：

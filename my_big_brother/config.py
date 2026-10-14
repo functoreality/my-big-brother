@@ -1,14 +1,17 @@
 """Small JSON configuration, with explicit enabled inputs."""
 
 import json
+import hashlib
 import os
 import tempfile
 from pathlib import Path
+from string import Formatter
 
 from .paths import Paths, absolute, raw_logs_root
 
 OUTPUTS = ("worklog", "time-use", "insights", "time-estimates")
-SOURCES = ("codex", "opencode", "bash")
+SOURCES = ("codex", "opencode", "bash", "vim", "screenshots")
+OUTPUT_KEYS = ("worklog", "time_use_markdown", "time_use_json", "insights", "time_estimates")
 
 
 def write_json(path: Path, value):
@@ -35,10 +38,13 @@ def defaults(paths: Paths):
         "language": "en",
         "day_start_hour": 0,
         "results_root": str(paths.data / "results"),
+        "local_profile": None,
         "sources": {
             "codex": {"enabled": True, "path": str(codex_home / "sessions")},
             "opencode": {"enabled": True, "path": str(opencode_data / "opencode" / "opencode.db")},
             "bash": {"enabled": True},
+            "vim": {"enabled": False},
+            "screenshots": {"enabled": False},
         },
         "outputs": list(OUTPUTS),
         "codex": {"executable": "codex", "timeout_seconds": 1800},
@@ -76,9 +82,13 @@ def load(paths: Paths):
     for name, spec in source_config.items():
         if not isinstance(spec, dict) or type(spec.get("enabled", True)) is not bool:
             raise ValueError(f"sources.{name}.enabled must be a boolean")
-        if name != "bash" and spec.get("enabled", True):
+        if type(spec.get("required", False)) is not bool:
+            raise ValueError(f"sources.{name}.required must be a boolean")
+        if name in {"codex", "opencode"} and spec.get("enabled", True):
             absolute(spec.get("path"), f"sources.{name}.path")
-        if set(spec) - {"enabled", "path"} or (name == "bash" and "path" in spec):
+        if "path" in spec:
+            absolute(spec["path"], f"sources.{name}.path")
+        if set(spec) - {"enabled", "path", "required"}:
             raise ValueError(f"Invalid fields for sources.{name}")
     backend = config["codex"]
     if not isinstance(backend, dict) or set(backend) - {"executable", "timeout_seconds", "model"}:
@@ -92,7 +102,104 @@ def load(paths: Paths):
     if "model" in backend and (not isinstance(backend["model"], str) or not backend["model"]):
         raise ValueError("codex.model must be a nonempty string")
     raw_logs_root(paths)
+    load_profile(config)
     return config
+
+
+def path_list(value, name, *, files=False, must_exist=True):
+    if not isinstance(value, list):
+        raise ValueError(f"{name} must be an array of absolute paths")
+    for item in value:
+        path = absolute(item, name)
+        if must_exist and (not path.exists() or (files and not path.is_file())):
+            raise ValueError(f"{name} path is not available: {path}")
+    if len(value) != len(set(value)):
+        raise ValueError(f"{name} contains duplicate paths")
+    return value
+
+
+def validation_argv(value, name):
+    if not isinstance(value, list) or not value or any(not isinstance(x, str) for x in value):
+        raise ValueError(f"{name} must be a nonempty argument array")
+    executable = absolute(value[0], name)
+    if not executable.is_file():
+        raise ValueError(f"{name} executable is not available: {executable}")
+    for argument in value:
+        try:
+            fields = {field for _, field, _, _ in Formatter().parse(argument) if field is not None}
+            if fields - {"run_dir", "date"}:
+                raise ValueError("unsupported placeholder")
+            argument.format(run_dir="/example/run", date="2020-01-15")
+        except (ValueError, KeyError, IndexError) as error:
+            raise ValueError(f"{name} supports only {{run_dir}} and {{date}} placeholders") from error
+    return value
+
+
+def load_profile(config):
+    """Load one explicitly selected local policy, without reading its context files."""
+    selected = config.get("local_profile")
+    if selected is None:
+        return None
+    path = absolute(selected, "local_profile")
+    payload = path.read_bytes()
+    value = json.loads(payload)
+    allowed = {"schema_version", "instructions", "context_files", "output_paths",
+               "output_schema", "validation_command", "post_review"}
+    if not isinstance(value, dict) or set(value) - allowed:
+        raise ValueError("local_profile contains unsupported fields")
+    if type(value.get("schema_version", 1)) is not int or value.get("schema_version", 1) != 1:
+        raise ValueError("local_profile requires schema_version 1")
+    instructions = path_list(value.get("instructions", []), "profile.instructions", files=True)
+    context_files = path_list(value.get("context_files", []), "profile.context_files")
+    output_paths = value.get("output_paths", {})
+    if not isinstance(output_paths, dict) or set(output_paths) - set(OUTPUT_KEYS):
+        raise ValueError("profile.output_paths contains unknown output keys")
+    for key, template in output_paths.items():
+        absolute(template, f"profile.output_paths.{key}")
+        if "{date}" not in template:
+            raise ValueError(f"profile.output_paths.{key} must contain {{date}}")
+        try:
+            if any(field != "date" for _, field, _, _ in Formatter().parse(template) if field is not None):
+                raise ValueError("unsupported placeholder")
+            template.format(date="2020-01-15")
+        except (ValueError, KeyError, IndexError) as error:
+            raise ValueError(f"profile.output_paths.{key} supports only {{date}}") from error
+    schema = value.get("output_schema", "default")
+    if not isinstance(schema, str) or not schema:
+        raise ValueError("profile.output_schema must be a nonempty name")
+    validator = value.get("validation_command")
+    if validator is not None:
+        validator = validation_argv(validator, "profile.validation_command")
+    if schema != "default" and validator is None:
+        raise ValueError("A custom output_schema requires validation_command")
+    post = value.get("post_review")
+    if post is not None:
+        if not isinstance(post, dict) or set(post) - {"task", "read_paths", "write_paths", "validation_command"}:
+            raise ValueError("profile.post_review contains unsupported fields")
+        task = str(absolute(post.get("task"), "profile.post_review.task"))
+        path_list([task], "profile.post_review.task", files=True)
+        read_paths = path_list(post.get("read_paths", []), "profile.post_review.read_paths")
+        write_paths = path_list(post.get("write_paths", []), "profile.post_review.write_paths", must_exist=False)
+        for target in write_paths:
+            if Path(target).exists() and not Path(target).is_dir():
+                raise ValueError("profile.post_review.write_paths must be directories")
+        post = {"task": task, "read_paths": read_paths, "write_paths": write_paths,
+                "validation_command": validation_argv(post.get("validation_command"),
+                                                       "profile.post_review.validation_command")}
+    fingerprint = hashlib.sha256(payload)
+    # Policy content affects completion. Evolving data files deliberately do not.
+    policy_files = list(instructions) + ([post["task"]] if post else [])
+    for command in [validator, post["validation_command"] if post else None]:
+        for argument in command or []:
+            candidate = Path(argument)
+            if candidate.is_absolute() and candidate.suffix in {".py", ".sh", ".js", ".ps1"} and candidate.is_file():
+                policy_files.append(argument)
+    for name in sorted(set(policy_files)):
+        fingerprint.update(name.encode("utf-8"))
+        fingerprint.update(Path(name).read_bytes())
+    return {"path": str(path), "digest": fingerprint.hexdigest(), "instructions": instructions,
+            "context_files": context_files, "output_paths": output_paths, "output_schema": schema,
+            "validation_command": validator, "post_review": post}
 
 
 def initialize(paths, *, sources=None, results_root=None, raw_root=None):
@@ -103,6 +210,9 @@ def initialize(paths, *, sources=None, results_root=None, raw_root=None):
         config = defaults(paths)
         enabled = SOURCES if sources is None else sources
         config["sources"] = {name: spec for name, spec in config["sources"].items() if name in enabled}
+        if sources is not None:
+            for spec in config["sources"].values():
+                spec["enabled"] = True
         if results_root:
             config["results_root"] = str(absolute(results_root, "results_root"))
         write_json(config_path, config)

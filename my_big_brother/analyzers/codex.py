@@ -8,7 +8,7 @@ import subprocess
 from pathlib import Path
 
 
-def command(settings, run_dir):
+def command(settings, run_dir, *, write_paths=()):
     executable = shutil.which(settings["executable"])
     if executable is None:
         raise ValueError("Codex executable not found. Install it and log in, then run doctor.")
@@ -25,12 +25,17 @@ def command(settings, run_dir):
             "--output-last-message", str(run_dir / "logs" / "last-message.txt")]
     if settings.get("model"):
         args.extend(["--model", settings["model"]])
+    for name in write_paths:
+        path = Path(name)
+        if not path.is_absolute() or not path.is_dir():
+            raise ValueError(f"Additional writable root must be an absolute directory: {name}")
+        args.extend(["--add-dir", str(path)])
     args.append("-")
     return args
 
 
-def launch(settings, run_dir, prompt):
-    args = command(settings, run_dir)
+def launch(settings, run_dir, prompt, *, write_paths=()):
+    args = command(settings, run_dir, write_paths=write_paths)
     (run_dir / "logs" / "command.json").write_text(
         json.dumps(args, indent=2) + "\n", encoding="utf-8")
     with (run_dir / "logs" / "stdout.log").open("w", encoding="utf-8") as out:

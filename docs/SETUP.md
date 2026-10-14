@@ -54,6 +54,9 @@ Collectors share only the absolute raw-log path in `raw-logs-path.txt`.
 Do not put results paths or JSON syntax in that file. Reading native Agent
 histories does not require a new collector plugin.
 
+Optional Vim and screenshot adapters, record formats, and replay assets are
+described in [Input sources](INPUT-SOURCES.md).
+
 ## Verify a first review
 
 Pick a date with known activity in your selected histories:

@@ -4,6 +4,10 @@ Use `context.output_paths` as the exact write destinations. All paths there
 are staged inside this run. `context.final_output_paths` describes stable
 published destinations and can be used for links between daily reports.
 Write in the configured language. The date is the analysis day from context.
+The default paths and schemas below apply without a profile override.
+If a selected profile declares custom output bindings or schema, use the
+resolved context and its instruction files. A custom schema requires its
+configured validator. Receipt and publication checks still apply.
 
 Only write selected outputs. Do not create additional output files or modify
 private user documents as a side effect of this standard task.
@@ -76,7 +80,8 @@ purpose in a short type label such as "time management", "working method",
 "AI delegation", "reusable context", or "question". Explain the minimal
 evidence, likely benefit, applicability, confidence, and what could disprove it.
 
-Do not pretend private method notes or user preferences have been configured.
+Without a profile, do not pretend private method notes or preferences exist.
+With a profile, compare relevant passages in its explicitly declared references.
 Do not infer that a method was omitted merely because it is absent from logs.
 One observation can support a conditional suggestion, but not an established
 habit or a personality judgment. No daily quota of new insights is required.

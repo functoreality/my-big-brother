@@ -1,4 +1,6 @@
 import json
+import contextlib
+import io
 import os
 import tempfile
 import unittest
@@ -9,6 +11,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from my_big_brother import config, runner
+from my_big_brother import __main__ as cli
 from my_big_brother.paths import Paths, discover, raw_logs_root
 from my_big_brother.analyzers import codex
 
@@ -53,6 +56,16 @@ class CoreTests(unittest.TestCase):
         self.assertEqual(mac.config, home / "Library/Application Support/my-big-brother/configs")
         win = discover(system="win32", home=home, environ={"LOCALAPPDATA": str(self.root / "local")})
         self.assertEqual(win.data, self.root / "local/my-big-brother/data")
+
+    def test_required_source_blocks_unattended_cli_with_failure_exit(self):
+        blocked = {'status': 'blocked', 'blocked_sources': ['vim']}
+        with patch.object(cli, 'discover', return_value=self.paths), \
+             patch.object(cli.config, 'load', return_value=self.settings), \
+             patch.object(cli.runner, 'analyze', return_value=blocked), \
+             patch.object(cli.runner, 'due', return_value=[{'date': '2020-01-15', **blocked}]), \
+             contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(cli.main(['analyze', '--date', '2020-01-15']), 1)
+            self.assertEqual(cli.main(['due']), 1)
 
     def test_locator_preserves_spaces_crlf_and_rejects_multiline(self):
         locator = self.paths.config / "raw-logs-path.txt"

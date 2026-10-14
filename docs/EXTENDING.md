@@ -73,12 +73,13 @@ Do not make optional multi-Agent capabilities a requirement for the task.
 ## User-specific tasks
 
 Users can keep Markdown instructions in `C/local-tasks/` without editing the
-installed standard tasks. This MVP reserves that location but does not
-automatically discover, schedule, or execute those files.
-Users explicitly provide additional instructions to their current Agent and
-define inputs, destinations, and permissions.
+installed standard tasks. The program does not discover files there implicitly.
+An explicitly selected [personal profile](PROFILES.md) can load review rules,
+declare references, bind outputs and validators, and configure a separately
+scoped post-review task. Users can also give instructions to their current Agent.
+Every extension defines inputs, destinations, permissions, and retry behavior.
 
-Future tasks may maintain long-term knowledge, edit a user-selected file, or
+Configured tasks may maintain long-term knowledge, edit a user-selected file, or
 send a notification. Such operations need an explicit target and rerun
 behavior. A notification must not be sent again merely because a report was
 regenerated. Separate the report's completion from a later operation's status.

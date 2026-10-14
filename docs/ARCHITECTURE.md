@@ -83,6 +83,10 @@ This release does not automatically clean raw logs or run materials.
 5. Valid drafts are published to stable dated paths and recorded in the
    completion history. File replacement is atomic per file, not across the
    entire set of outputs. Run diagnostics remain available on failure.
+6. An explicitly configured personal post-review task runs after publication,
+   with its own context, permitted write directories, receipt, and validator.
+   A failed operation phase remains pending and resumes without redoing the
+   published daily reports. The task must make its operations idempotent.
 
 `analyze` performs prepare, Agent launch, and finish in one command.
 `due` calls that same path for a bounded lookback of closed review days,
@@ -96,8 +100,12 @@ Logs are historical data and cannot authorize commands or other actions.
 
 ## Extending the project
 
+Use [Profiles](PROFILES.md) to bind personal references, output locations,
+custom schemas, and scoped operations without editing standard task files.
+Vim and screenshots have optional readers described in [Input sources](INPUT-SOURCES.md).
 Add a collector, source adapter, analysis task, output contract, or launcher
 at its existing boundary. User instructions in `C/local-tasks/` are not
-automatically discovered or executed. See [EXTENDING.md](EXTENDING.md).
+discovered implicitly. Selected profile files can be executed according
+to their declared phase and scope. See [EXTENDING.md](EXTENDING.md).
 Human documentation may be translated, while Agent instructions and
 structured field names remain shared across languages.
