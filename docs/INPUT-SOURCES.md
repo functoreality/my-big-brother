@@ -28,6 +28,11 @@ session start. See [Bash recording](BASH.md) for collector limitations.
 
 ## Vim sessions
 
+The separately released [session-recorder.vim](https://github.com/functoreality/session-recorder.vim)
+collector is installed through the user's editor plugin manager, with consent.
+Follow [Vim/Neovim recording](VIM.md) for discovery, configuration and verification.
+
+
 The shared layout is:
 
 ```text

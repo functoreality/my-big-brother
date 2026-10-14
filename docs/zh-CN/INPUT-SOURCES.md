@@ -28,6 +28,11 @@ Bash 适配器读取按日期存储的 `YYYY-MM-DD/bash/*.jsonl`，
 
 ## Vim 会话
 
+独立发布的 [session-recorder.vim](https://github.com/functoreality/session-recorder.vim)
+采集器需要获得用户同意后，通过编辑器插件管理器安装。
+检测、配置与验证见[Vim/Neovim 记录](VIM.md)。
+
+
 共享存储结构如下：
 
 ```text
