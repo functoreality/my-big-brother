@@ -30,6 +30,11 @@ def parser():
             command.add_argument("--allow-empty", action="store_true", help="Explicitly analyze a day with no evidence")
     finish = commands.add_parser("finish", help="Validate and publish a review from the current Agent")
     finish.add_argument("--run-dir", required=True)
+    begin = commands.add_parser("begin-automation", help="Plan automation inside the current Agent")
+    begin.add_argument("--launch-dir", required=True)
+    begin.add_argument("--dates", nargs="*", help="Explicit oldest-first dates selected by a local task, including an empty list")
+    complete = commands.add_parser("complete-automation", help="Verify automation completed by the current Agent")
+    complete.add_argument("--launch-dir", required=True)
     due = commands.add_parser("due", help="Prepare missing daily reviews for the current Agent")
     due.add_argument("--max-days", type=int, default=7)
     return result
@@ -72,6 +77,12 @@ def main(argv=None):
                          "note": "Source presence does not verify supported contents. Run analyze and inspect its task ticket."}
                 print(json.dumps(value, indent=2, ensure_ascii=False))
                 return 0
+            elif args.command in {"begin-automation", "complete-automation"}:
+                from . import automation
+                if args.command == "begin-automation":
+                    value = automation.begin(paths, settings, args.launch_dir, dates=args.dates)
+                else:
+                    value = automation.complete(paths, settings, args.launch_dir)
             elif args.command == "prepare":
                 review_date = args.date or runner.latest_closed_date(settings["day_start_hour"])
                 with runner.lock(paths, review_date):

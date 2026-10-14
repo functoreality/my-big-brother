@@ -115,7 +115,11 @@ def main():
                                 capture_output=True, text=True)
         summary["analysis"] = json.loads(result.stdout)
         summary["doctor"] = run(["doctor"], environment)
-        review = summary["analysis"]["results"][0]
+        assert summary["analysis"]["status"] == "agent-exited"
+        automation = json.loads((Path(summary["analysis"]["launch_dir"]) / "automation-result.json").read_text())
+        assert automation["status"] == "completed", automation
+        summary["automation"] = automation
+        review = automation["results"][0]
         assert review["status"] == "completed", review
         run_dir = Path(review["run_dir"])
         context = json.loads((run_dir / "context.json").read_text())

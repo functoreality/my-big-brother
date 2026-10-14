@@ -13,6 +13,19 @@ and either a review date or a bounded missed-day lookback.
 If it names a launcher context, read that JSON first. Use its `checkout`,
 `python_executable`, `date`, `max_days`, `snapshot_end`, and `allow_empty`.
 The launcher context is invocation configuration, not historical evidence.
+The startup entry does no date planning, evidence preparation, review,
+publication or business completion checking. You own all of those operations.
+When a launcher context is present, run:
+
+```sh
+python -m my_big_brother begin-automation --launch-dir /absolute/launch/directory
+```
+
+Read its returned `automation-context.json`. It supplies planned `dates`,
+`tickets_path`, `receipt_path`, and `receipt_example`. The command never starts
+an Agent. An explicitly selected local automation task may perform authorized
+preflight work and override dates with `--dates DATE ...` or an empty `--dates`.
+Do not invent local preflight operations or expand permissions yourself.
 
 Run commands with the selected Python and installation on the module search
 path. Quote path arguments. Preserve the account and configuration-discovery
@@ -40,7 +53,7 @@ JSON tickets. They do not launch an Agent or analyze the evidence themselves.
 An explicit date permits a rerun. `due` skips successfully completed dates.
 
 If a launcher context was supplied, save the exact returned tickets as an
-array to the context's `tickets_path` before processing them.
+array to the automation context's `tickets_path` before processing them.
 Do not replace ticket dates, source status, or run identities with guesses.
 
 Handle each ticket:
@@ -102,12 +115,21 @@ Do not call the work completed while its status is `actions-pending`.
 ## Complete this invocation
 
 Record each result's `date`, `status`, and `run_dir` when supplied by the
-common commands. With a launcher context, write its `receipt_path` using
-`receipt_example` and the actual ordered result list. Match `invocation_id`.
+common commands. With a launcher context, write the automation context's
+`receipt_path` using `receipt_example` and the actual ordered result list. Match `invocation_id`.
 Only do this once all tickets have valid final results: `completed`,
 `already-completed`, or `empty`. Do not turn failures or blocked work into
-successful empty results. The external launcher checks receipts against
-prepared evidence and the completion ledger.
+successful empty results. Then perform the common completion check yourself:
+
+```sh
+python -m my_big_brother complete-automation --launch-dir /absolute/launch/directory
+```
+
+This checks receipts against prepared evidence and the completion ledger,
+then writes `automation-result.json`. Require its returned `completed` status.
+The startup entry only returns `agent-exited` after your process exits.
+That status is not a review completion claim. Never restart an Agent or invoke
+another startup entry to repair a failed completion check.
 
 Without a launcher context, report the same final results to your native
 scheduler or caller. Keep the response short, with published paths, source
