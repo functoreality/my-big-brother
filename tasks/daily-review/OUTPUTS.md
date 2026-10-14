@@ -124,6 +124,21 @@ to fabricate a parent task duration.
 Replace each day's staged sample file on rerun, preserving relevant manual
 corrections. Never append duplicate samples merely because a run repeated.
 
+## Optional cumulative knowledge
+
+`user-model` publishes `records/knowledge/USER-MODEL.md`, with output kind
+`user_model`. `machine-context` publishes `records/knowledge/SOURCES.md`,
+with output kind `machine_context`. Both are ordinary standard Markdown
+outputs, available to any executing Agent without a personal profile.
+They are disabled by default. Their targets are cumulative across dates.
+
+Follow `KNOWLEDGE.md` for their evidence, preservation and scope rules.
+Existing targets are copied into staged drafts before analysis, including
+manual edits. Update those drafts without replacing earlier knowledge with
+only this day's findings. A supported absence of new knowledge permits an
+unchanged draft. A new file can briefly state that no supported knowledge
+has been established. Never invent facts to satisfy output completion.
+
 ## Stable results and temporary notes
 
 Daily outputs describe the work, not the review process. Do not add run IDs,

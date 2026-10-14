@@ -159,6 +159,7 @@ class ProfileTests(unittest.TestCase):
                     config.load_profile(self.settings)
 
     def test_custom_destinations_preserve_output_kind_and_existing_notes(self):
+        self.settings["outputs"] = list(config.OUTPUTS)
         self.profile["output_paths"] = {key: str(self.root / "existing layout" / (key + "-{date}" +
                                     (".json" if key in {"time_use_json", "time_estimates"} else ".md")))
                                     for key in config.OUTPUT_KEYS}

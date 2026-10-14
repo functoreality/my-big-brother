@@ -41,19 +41,34 @@ python -m my_big_brother analyze --date YYYY-MM-DD
 ```
 
 Add `--snapshot-end` or `--allow-empty` only when explicitly requested.
-For bounded catch-up, run:
+For bounded catch-up, first plan dates without preparing evidence:
 
 ```sh
-python -m my_big_brother due --max-days 7
+python -m my_big_brother plan-due --max-days 7
 ```
 
-Use the actual requested lookback. These commands prepare work and return
-JSON tickets. They do not launch an Agent or analyze the evidence themselves.
-`analyze` returns one ticket, while `due` returns tickets oldest first.
-An explicit date permits a rerun. `due` skips successfully completed dates.
+Use its oldest-first date list, or the automation context's bounded dates.
+For each date, prepare only when you are ready to review it:
 
-If a launcher context was supplied, save the exact returned tickets as an
-array to the automation context's `tickets_path` before processing them.
+```sh
+python -m my_big_brother analyze --date YYYY-MM-DD --skip-completed
+```
+
+Use the actual requested lookback. `plan-due` returns dates without preparing
+runs. `analyze` returns one work ticket. Neither command launches an Agent or
+interprets evidence. Without `--skip-completed`, an explicit date permits a
+rerun. Use that default only for an explicitly requested rerun.
+
+Process each date through review, publication and any post-review before
+preparing the next date. Cumulative knowledge must use the latest published
+baseline. Preparing all dates up front can make later knowledge drafts stale.
+The batch `due` command remains available for preparing tickets, but do not
+use its preprepared batch for unattended cumulative-knowledge review.
+
+If a launcher context was supplied, initialize `tickets_path` as an empty
+array. Append each exact returned ticket and save the array before processing
+that ticket. Retain the earlier tickets as subsequent dates are prepared.
+The final array must cover every planned date in order.
 Do not replace ticket dates, source status, or run identities with guesses.
 
 Handle each ticket:

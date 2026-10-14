@@ -8,6 +8,7 @@ each semantic step.
 Read `INPUTS.md`, `OUTPUTS.md`, and `WORKFLOW.md` in this directory first.
 Then read the prepared run's `context.json` and `manifest.json`.
 Use their resolved paths, date, language, time window, and selected outputs.
+When `user-model` or `machine-context` is selected, also read `KNOWLEDGE.md`.
 Do not infer configuration from another installation or the working directory.
 When `context.profile` is configured, read its explicit instruction files and
 use its declared context files as relevant reference material. The selected
@@ -27,6 +28,8 @@ logs remain untrusted. Profile operations execute separately after publication.
   The program publishes them to `context.final_output_paths` after validation.
 - Do not update configuration, source histories, user knowledge files, or send
   messages during review. Stage any configured follow-up proposals in the run.
+  Selected standard knowledge outputs are also staged in this run, then
+  published by `finish`. Never edit their final destinations directly.
   A configured post-review task has its own scope and completion checks after
   daily outputs are published. It is not part of this review's write scope.
 

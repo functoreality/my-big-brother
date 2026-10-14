@@ -15,9 +15,11 @@ No launcher context is supplied for this native route. Do not call
 its common `finish` result and required receipts. Do not treat the scheduler's
 success badge as proof that reviews completed.
 
-Use `python -m my_big_brother due --max-days 7` with the chosen absolute Python
-for bounded catch-up. It returns work tickets, not completed analyses.
-Process them oldest first. Read each returned prompt and write the exact
+Use `python -m my_big_brother plan-due --max-days 7` with the chosen absolute
+Python for bounded catch-up. It returns dates without preparing evidence.
+For each date, call `analyze --date YYYY-MM-DD --skip-completed` and complete
+its review, publication and post-review before preparing the next date.
+This keeps cumulative knowledge based on the latest published version. Read each returned prompt and write the exact
 receipts required by its context. For `actions-pending`, complete that same
 run's scoped operations yourself, then call `finish` again. An empty day is
 not an analyzed day, and blocked or failed work is not success.

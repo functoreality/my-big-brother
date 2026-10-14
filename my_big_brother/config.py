@@ -9,9 +9,11 @@ from string import Formatter
 
 from .paths import Paths, absolute, raw_logs_root
 
-OUTPUTS = ("worklog", "time-use", "insights", "time-estimates")
+DEFAULT_OUTPUTS = ("worklog", "time-use", "insights", "time-estimates")
+OUTPUTS = DEFAULT_OUTPUTS + ("user-model", "machine-context")
 SOURCES = ("codex", "opencode", "bash", "vim", "screenshots")
-OUTPUT_KEYS = ("worklog", "time_use_markdown", "time_use_json", "insights", "time_estimates")
+KNOWLEDGE_KEYS = ("user_model", "machine_context")
+OUTPUT_KEYS = ("worklog", "time_use_markdown", "time_use_json", "insights", "time_estimates") + KNOWLEDGE_KEYS
 
 
 def write_json(path: Path, value):
@@ -46,7 +48,7 @@ def defaults(paths: Paths):
             "vim": {"enabled": False},
             "screenshots": {"enabled": False},
         },
-        "outputs": list(OUTPUTS),
+        "outputs": list(DEFAULT_OUTPUTS),
         "codex": {"executable": "codex", "timeout_seconds": 1800},
     }
 
@@ -145,7 +147,7 @@ def load_profile(config):
         raise ValueError("profile.output_paths contains unknown output keys")
     for key, template in output_paths.items():
         absolute(template, f"profile.output_paths.{key}")
-        if "{date}" not in template:
+        if key not in KNOWLEDGE_KEYS and "{date}" not in template:
             raise ValueError(f"profile.output_paths.{key} must contain {{date}}")
         try:
             if any(field != "date" for _, field, _, _ in Formatter().parse(template) if field is not None):

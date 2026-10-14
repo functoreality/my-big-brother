@@ -29,6 +29,9 @@ outputs. Do not repeat a full independent analysis for each report.
 Worklog records actions and outcomes. Time Use describes observed timing and
 uncertainty. Insights adds useful judgments instead of repeating those facts.
 Time Estimates selects only defensible reusable duration samples.
+If selected, User Model retains reusable user context and Machine Context
+retains known machine and source locations. Use the shared evidence and
+`KNOWLEDGE.md`, without starting another analysis Agent or crawling the machine.
 
 The time-use JSON, when enabled, is the authority for its Markdown view and
 any duration samples derived from it. When time-use is disabled, retain the
@@ -46,6 +49,9 @@ the matching task or finding. Preserve user-authored notes and corrections.
 If their provenance or meaning is unclear, retain them with a brief conflict
 note rather than silently replacing them. Do not append another daily copy
 or duplicate a duration sample because the run ID changed.
+For cumulative knowledge, merge into the existing cross-day document rather
+than replacing it with a daily report. Preserve human content and corrections,
+deduplicate existing facts, and retain the basis of revisions.
 
 Write only the resolved staged paths. JSON must be valid UTF-8 JSON with no
 comments, fences, or trailing commas. Ensure time-use Markdown agrees with

@@ -28,6 +28,7 @@ def parser():
         command.add_argument("--snapshot-end", help="Optional fixed ISO snapshot cutoff with UTC offset")
         if name == "analyze":
             command.add_argument("--allow-empty", action="store_true", help="Explicitly analyze a day with no evidence")
+            command.add_argument("--skip-completed", action="store_true", help="Skip a matching completed daily review")
     finish = commands.add_parser("finish", help="Validate and publish a review from the current Agent")
     finish.add_argument("--run-dir", required=True)
     begin = commands.add_parser("begin-automation", help="Plan automation inside the current Agent")
@@ -37,6 +38,8 @@ def parser():
     complete.add_argument("--launch-dir", required=True)
     due = commands.add_parser("due", help="Prepare missing daily reviews for the current Agent")
     due.add_argument("--max-days", type=int, default=7)
+    plan = commands.add_parser("plan-due", help="List oldest-first review dates without preparing evidence")
+    plan.add_argument("--max-days", type=int, default=7)
     return result
 
 
@@ -92,8 +95,12 @@ def main(argv=None):
                 value = runner.analyze(paths, settings,
                                        args.date or runner.latest_closed_date(settings["day_start_hour"]),
                                        allow_empty=args.allow_empty,
+                                       skip_completed=args.skip_completed,
                                        snapshot_end=datetime.fromisoformat(args.snapshot_end.replace("Z", "+00:00"))
                                        if args.snapshot_end else None)
+            elif args.command == "plan-due":
+                from . import automation
+                value = {"dates": automation.invocation_dates(settings, None, args.max_days)}
             elif args.command == "finish":
                 context = runner.read_object(Path(args.run_dir) / "context.json")
                 with runner.lock(paths, context["date"]):
