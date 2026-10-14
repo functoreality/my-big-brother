@@ -20,6 +20,7 @@ profile 使用 `schema_version: 1`，可包含以下字段：
 | `instructions` | 复盘说明文件的绝对路径列表 |
 | `context_files` | 明确允许只读参考的已有文件或目录 |
 | `output_paths` | 含 `{date}` 的正式输出路径 |
+| `output_file_mode` | 可选的 POSIX 发布权限，使用四位八进制字符串 |
 | `output_schema` | `default`，或配有校验程序的自定义格式名 |
 | `validation_command` | 校验程序及参数组成的数组 |
 | `post_review` | 日报发布后执行、另有权限范围的任务 |
@@ -34,6 +35,11 @@ profile 使用 `schema_version: 1`，可包含以下字段：
 `insights`、`time_estimates`。路径必须为绝对路径并包含 `{date}`。
 未指定的键使用标准结果目录。程序只准备和发布已启用的输出，
 不同输出不能指向同一位置。暂存文件始终留在本次运行目录内。
+
+在 POSIX 系统上，发布时保留已有文件的权限，新文件默认使用 `0600`。
+如果正式报告需要沿用共享工作区的权限，可以明确设置
+`output_file_mode`，例如 `"0664"`。它只影响正式报告，配置和运行文件仍保持私有。
+此选项不改变 Windows 文件权限。
 
 完整 JSON 示例见[英文版](../PROFILES.md)。
 说明和参考资料必须指向实际存在的文件。

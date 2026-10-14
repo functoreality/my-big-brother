@@ -144,7 +144,7 @@ def load_profile(config):
     payload = path.read_bytes()
     value = json.loads(payload)
     allowed = {"schema_version", "instructions", "context_files", "output_paths",
-               "output_schema", "validation_command", "post_review"}
+               "output_schema", "output_file_mode", "validation_command", "post_review"}
     if not isinstance(value, dict) or set(value) - allowed:
         raise ValueError("local_profile contains unsupported fields")
     if type(value.get("schema_version", 1)) is not int or value.get("schema_version", 1) != 1:
@@ -165,6 +165,11 @@ def load_profile(config):
         except (ValueError, KeyError, IndexError) as error:
             raise ValueError(f"profile.output_paths.{key} supports only {{date}}") from error
     schema = value.get("output_schema", "default")
+    output_file_mode = value.get('output_file_mode')
+    if output_file_mode is not None:
+        if (not isinstance(output_file_mode, str) or len(output_file_mode) != 4
+            or output_file_mode[0] != '0' or any(x not in '01234567' for x in output_file_mode)):
+            raise ValueError('profile.output_file_mode must be a four-digit octal string')
     if not isinstance(schema, str) or not schema:
         raise ValueError("profile.output_schema must be a nonempty name")
     validator = value.get("validation_command")
@@ -197,9 +202,12 @@ def load_profile(config):
     for name in sorted(set(policy_files)):
         fingerprint.update(name.encode("utf-8"))
         fingerprint.update(Path(name).read_bytes())
-    return {"path": str(path), "digest": fingerprint.hexdigest(), "instructions": instructions,
+    profile = {"path": str(path), "digest": fingerprint.hexdigest(), "instructions": instructions,
             "context_files": context_files, "output_paths": output_paths, "output_schema": schema,
             "validation_command": validator, "post_review": post}
+    if output_file_mode is not None:
+        profile["output_file_mode"] = output_file_mode
+    return profile
 
 
 def initialize(paths, *, sources=None, results_root=None, raw_root=None):

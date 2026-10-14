@@ -5,6 +5,7 @@ import importlib
 import json
 import os
 import shutil
+import stat
 import subprocess
 import tempfile
 import traceback
@@ -319,7 +320,7 @@ def day_entry(paths, review_date):
     return ledger["days"].get(review_date, {})
 
 
-def publish_outputs(run_dir, context, layout, profile_digest):
+def publish_outputs(run_dir, context, layout, profile_digest, file_mode=None):
     """Journal per-file replacement so a retry recognizes its own partial writes."""
     journal_path = run_dir / "publication.json"
     stage_digests = {item["staged"]: digest(Path(item["staged"])) for item in layout}
@@ -356,6 +357,10 @@ def publish_outputs(run_dir, context, layout, profile_digest):
         fd, temporary = tempfile.mkstemp(prefix=".mbb-", dir=target.parent)
         with os.fdopen(fd, "wb") as handle:
             handle.write(Path(item["staged"]).read_bytes())
+        if os.name == 'posix':
+            mode = int(file_mode, 8) if file_mode is not None else (
+                stat.S_IMODE(target.stat().st_mode) if target.exists() else 0o600)
+            os.chmod(temporary, mode)
         os.replace(temporary, target)
         journal["published"].append(item["final"])
         write_json(journal_path, journal)
@@ -485,7 +490,8 @@ def finish_run(paths, config, run_dir):
             validate_output(Path(item["staged"]), review_date, item["kind"], custom=custom)
         if profile and profile["validation_command"]:
             run_validation(profile["validation_command"], run_dir, review_date, "review-validation")
-    publish_outputs(run_dir, context, layout, profile_digest)
+    publish_outputs(run_dir, context, layout, profile_digest,
+                    file_mode=profile.get('output_file_mode') if profile else None)
     entry = {"run_id": context["run_id"], "run_dir": str(run_dir),
              "closed_day": context["window"]["closed_day"], "profile_digest": profile_digest,
              "window": context["window"],

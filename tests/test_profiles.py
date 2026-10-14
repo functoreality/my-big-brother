@@ -105,6 +105,35 @@ class ProfileTests(unittest.TestCase):
         self.assertIsNone(context["profile"])
         self.assertNotIn(str(self.methods), runner.prompt_for(run_dir))
 
+    @unittest.skipUnless(os.name == "posix", "POSIX file modes")
+    def test_publication_preserves_existing_mode(self):
+        target = self.root / (DAY + "-existing.md")
+        target.write_text("Existing report\n", encoding="utf-8")
+        target.chmod(0o664)
+        self.profile["output_paths"]["worklog"] = str(self.root / "{date}-existing.md")
+        self.select_profile()
+        run_dir, context = self.staged()
+        self.assertNotIn("output_file_mode", context["profile"])
+        runner.finish_run(self.paths, self.settings, run_dir)
+        self.assertEqual(target.stat().st_mode & 0o777, 0o664)
+        self.assertIn("Isolated parser review", target.read_text())
+
+    @unittest.skipUnless(os.name == "posix", "POSIX file modes")
+    def test_explicit_publication_mode_does_not_expose_run_files(self):
+        self.profile["output_file_mode"] = "0664"
+        self.select_profile()
+        run_dir, context = self.staged()
+        runner.finish_run(self.paths, self.settings, run_dir)
+        for item in context["output_mapping"]:
+            self.assertEqual(Path(item["final"]).stat().st_mode & 0o777, 0o664)
+        self.assertEqual((run_dir / "context.json").stat().st_mode & 0o777, 0o600)
+
+    def test_output_mode_rejects_invalid_values(self):
+        for mode in (664, "664", "0888", "1664"):
+            self.profile["output_file_mode"] = mode
+            with self.assertRaises(ValueError):
+                self.select_profile()
+
     def test_loads_explicit_policy_but_does_not_copy_context(self):
         self.select_profile()
         run_dir, context = self.prepare()

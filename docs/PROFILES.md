@@ -22,6 +22,7 @@ The profile has `schema_version: 1` and these optional fields:
 | `instructions` | Absolute paths of review instruction files |
 | `context_files` | Existing absolute paths allowed for read-only reference |
 | `output_paths` | Selected output destinations, using `{date}` |
+| `output_file_mode` | Optional POSIX publication mode, as a four-digit octal string |
 | `output_schema` | `default`, or a named custom schema with a validator |
 | `validation_command` | Validator executable and arguments, as an array |
 | `post_review` | A separately scoped task after report publication |
@@ -38,6 +39,12 @@ The five `output_paths` keys are `worklog`, `time_use_markdown`, `time_use_json`
 Unspecified keys use the standard results layout. Only enabled outputs are
 prepared and published. Distinct outputs must have distinct destinations.
 Staging always stays inside the run directory, even with custom destinations.
+
+On POSIX systems, publication preserves an existing destination's permission
+bits and gives new files mode `0600`. Set `output_file_mode` explicitly, for
+example `"0664"`, when published reports need a shared workspace's permissions.
+This option affects formal reports only. Configuration and runtime files remain
+private. It has no effect on Windows file permissions.
 
 For example, a profile can use local methods and an existing report layout:
 
