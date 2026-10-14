@@ -23,7 +23,8 @@ My Big Brother 提供复盘命令，不提供常驻调度程序。
 | 内置 Codex 入口加系统定时器 | `python -m my_big_brother.analyzers.codex` | 一次 Codex 调用 |
 
 各入口都使用相同的[自动化任务](../../tasks/daily-review/AUTOMATION.md)
-和通用准备、发布命令。Agent 调用 `analyze` 或 `due` 得到工作票据，
+和通用准备、发布命令。Agent 用 `plan-due` 规划日期，
+再为每个日期调用 `analyze --skip-completed` 得到工作票据，
 逐项分析，然后调用 `finish`。有后操作时，由它自己执行返回的任务，
 再调用 `finish`。通用命令不会启动 Agent，
 产品特有的命令、登录、沙箱和超时设置只留在外部启动入口。
@@ -55,8 +56,9 @@ Agent 可以自行决定通过自身工具委派子任务。
 python -m my_big_brother.analyzers.codex --max-days 7
 ```
 
-这会启动一次 Codex 会话。它遵循共享任务，从通用 `due` 得到最近七个
-已闭合日期的票据，按最早日期优先完成复盘和待办后操作。
+这会启动一次 Codex 会话。它遵循共享任务，用 `plan-due` 得到最近七个
+已闭合日期，再逐日准备并完成复盘和待办后操作。
+前一天完成后才准备下一天，让累计知识使用最新基线。
 已经完成的日期会跳过。空日不生成虚构报告，也不会标为完成，
 后续仍可重新准备以发现迟到记录。
 Agent 自己调用 `begin-automation` 和 `complete-automation`。

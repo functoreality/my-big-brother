@@ -59,9 +59,11 @@ and destinations, rather than enabled as a standard output for everyone.
   They preserve outcomes, evidence gaps, and unknown human attention.
 - **Reflection and planning:** **Available** Daily Insights and conservative
   duration samples. Each standard output can be enabled independently.
-- **Long-term understanding:** **Via profile** updates to user, project, and
-  machine-context notes, including useful knowledge about working directories.
-  **Planned** standard tasks and shared formats for this accumulated context.
+- **Long-term understanding:** **Available** optional User Model and Machine
+  Context outputs, retained under `records/knowledge/`. The same daily Agent
+  maintains supported user preferences and known file/directory/source locations.
+  A profile can redirect them to existing files. See [Knowledge](docs/KNOWLEDGE.md).
+  **Via profile** additional project-specific knowledge and operations.
 - **Follow-up actions:** **Via profile** maintenance of selected local files
   and cumulative records. Notification tasks can be configured with their own
   delivery helper and validator. **Planned** reusable action presets.
@@ -156,7 +158,8 @@ actions still require validation on those systems.
 Bash support applies to Bash environments, including WSL as a separate
 environment, and does not record PowerShell.
 
-There is no built-in weekly-report command or standard knowledge updater.
+There is no built-in weekly-report command. Optional standard knowledge
+outputs share the daily review, with no extra Agent or machine-wide scan.
 Existing daily files can be summarized by your Agent. Explicit personal
 post-review tasks can maintain selected local knowledge or cumulative records.
 They run after checked publication and have separate completion/retry state.

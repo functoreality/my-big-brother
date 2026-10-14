@@ -25,8 +25,8 @@ Do not guess launch flags or substitute a different Agent without the user's cho
 | Bundled Codex entry plus OS timer | `python -m my_big_brother.analyzers.codex` | One Codex invocation |
 
 All routes use the same [automation task](../tasks/daily-review/AUTOMATION.md)
-and common preparation/publication commands. The Agent runs `analyze` or
-`due` to obtain work tickets, reviews each prepared run, calls `finish`, and
+and common preparation/publication commands. The Agent plans dates with `plan-due`, then runs `analyze --skip-completed`
+for each date, reviews the prepared run, calls `finish`, and
 handles returned post-review work itself before calling `finish` again.
 The common commands never start an Agent. The outer startup entry alone
 contains product-specific command, login, sandbox and timeout handling.
@@ -60,8 +60,9 @@ python -m my_big_brother.analyzers.codex --max-days 7
 ```
 
 This starts one Codex session. It follows the shared task, obtaining the last
-seven closed-day tickets from common `due`, then completes reviews and pending
-actions oldest first. Completed dates are skipped. Empty dates produce no invented reports and
+seven closed dates from common `plan-due`, then prepares and completes each
+review and pending actions oldest first. Prepare the next date only after the
+previous date finishes, so cumulative knowledge uses the latest baseline. Completed dates are skipped. Empty dates produce no invented reports and
 remain eligible for later preparation when records arrive.
 The Agent calls `begin-automation` and `complete-automation` itself.
 The entry reports `agent-exited`, which only records process exit. Inspect the

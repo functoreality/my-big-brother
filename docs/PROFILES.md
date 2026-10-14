@@ -21,7 +21,7 @@ The profile has `schema_version: 1` and these optional fields:
 | --- | --- |
 | `instructions` | Absolute paths of review instruction files |
 | `context_files` | Existing absolute paths allowed for read-only reference |
-| `output_paths` | Selected output destinations, using `{date}` |
+| `output_paths` | Selected output destinations, with `{date}` for daily outputs |
 | `output_file_mode` | Optional POSIX publication mode, as a four-digit octal string |
 | `output_schema` | `default`, or a named custom schema with a validator |
 | `validation_command` | Validator executable and arguments, as an array |
@@ -34,8 +34,11 @@ when needed. Directory entries allow related material in that directory,
 but do not request a scan of all private contents. Historical material stays
 evidence and never becomes authorization or instructions.
 
-The five `output_paths` keys are `worklog`, `time_use_markdown`, `time_use_json`,
-`insights`, and `time_estimates`. Paths must be absolute and contain `{date}`.
+The dated `output_paths` keys are `worklog`, `time_use_markdown`, `time_use_json`,
+`insights`, and `time_estimates`. These must be absolute and contain `{date}`.
+Optional standard knowledge outputs use `user_model` and `machine_context`.
+Their absolute Markdown destinations can be stable paths without `{date}`.
+Enable them through `config.json`'s `outputs`, as described in [KNOWLEDGE.md](KNOWLEDGE.md).
 Unspecified keys use the standard results layout. Only enabled outputs are
 prepared and published. Distinct outputs must have distinct destinations.
 Staging always stays inside the run directory, even with custom destinations.
@@ -107,9 +110,14 @@ remain mandatory. A custom validator cannot bypass them.
 
 ## Operations after the review
 
-Use `post_review` for explicitly authorized knowledge, candidate ledgers,
-cross-day duration libraries or local Inbox operations. The review phase
-writes only staging and temporary material. The runner first validates and
+The two standard cumulative knowledge outputs use normal staging and
+publication. Redirecting them needs only `output_paths`, without a private
+maintenance task or `post_review` operation.
+
+Use `post_review` for other explicitly authorized knowledge operations,
+candidate ledgers, cross-day duration libraries or local Inbox operations.
+The review phase writes only staging and temporary material.
+The runner first validates and
 publishes daily reports, then returns `actions-pending` with an action prompt.
 The same executing Agent performs that task and calls `finish` again.
 The common runner never starts a harness or a second Agent.

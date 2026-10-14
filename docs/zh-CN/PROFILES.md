@@ -19,7 +19,7 @@ profile 使用 `schema_version: 1`，可包含以下字段：
 | --- | --- |
 | `instructions` | 复盘说明文件的绝对路径列表 |
 | `context_files` | 明确允许只读参考的已有文件或目录 |
-| `output_paths` | 含 `{date}` 的正式输出路径 |
+| `output_paths` | 正式输出路径，按日输出包含 `{date}` |
 | `output_file_mode` | 可选的 POSIX 发布权限，使用四位八进制字符串 |
 | `output_schema` | `default`，或配有校验程序的自定义格式名 |
 | `validation_command` | 校验程序及参数组成的数组 |
@@ -31,8 +31,11 @@ profile 使用 `schema_version: 1`，可包含以下字段：
 指定目录允许参考其中与任务相关的材料，不意味着要求扫描整个私人资料库。
 历史材料仍是证据，不能授权动作或成为当前指令。
 
-`output_paths` 有五个键：`worklog`、`time_use_markdown`、`time_use_json`、
-`insights`、`time_estimates`。路径必须为绝对路径并包含 `{date}`。
+按日 `output_paths` 有五个键：`worklog`、`time_use_markdown`、`time_use_json`、
+`insights`、`time_estimates`。这些路径必须为绝对路径并包含 `{date}`。
+可选的标准知识输出使用 `user_model` 和 `machine_context`，
+允许指定不含 `{date}` 的稳定 Markdown 绝对路径。
+通过 `config.json` 的 `outputs` 启用，见[长期知识输出](KNOWLEDGE.md)。
 未指定的键使用标准结果目录。程序只准备和发布已启用的输出，
 不同输出不能指向同一位置。暂存文件始终留在本次运行目录内。
 
@@ -71,7 +74,10 @@ profile 使用 `schema_version: 1`，可包含以下字段：
 
 ## 日报后的操作
 
-`post_review` 用于已明确授权的知识维护、洞见台账、跨日时长库或本地 Inbox 操作。
+两类标准累积知识输出沿用普通暂存和发布。
+将其重定向到已有知识文件只需 `output_paths`，无需私人维护任务或 `post_review`。
+
+`post_review` 用于其他已明确授权的知识操作、洞见台账、跨日时长库或本地 Inbox 操作。
 复盘阶段只写暂存输出和临时材料。
 运行器先校验并发布日报，再返回 `actions-pending` 和操作提示词。
 由同一个执行 Agent 完成任务，之后再次调用 `finish`。

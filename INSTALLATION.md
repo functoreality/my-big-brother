@@ -106,7 +106,10 @@ Read the generated JSON and keep it valid. Configure:
 - `sources`: enabled records and their actual paths. Optional sources can
   remain visibly unavailable. A source marked `required` blocks publication
   if it is unavailable.
-- `outputs`: selected `worklog`, `time-use`, `insights`, `time-estimates`.
+- `outputs`: selected `worklog`, `time-use`, `insights`, `time-estimates`,
+  and optional cumulative `user-model` and `machine-context`.
+  See [KNOWLEDGE.md](docs/KNOWLEDGE.md) for default paths, evidence rules and
+  simple profile redirection to existing knowledge files.
 - `language`, `day_start_hour` and an absolute `results_root` outside Git.
 - `analyzer`: the chosen Agent's name, describing the installation's executor.
   The startup command or native task selects the actual executable. This
@@ -289,8 +292,9 @@ For Codex, the included examples invoke the external entry:
 python -m my_big_brother.analyzers.codex --max-days 7
 ```
 
-The Agent itself calls common `due` to prepare the bounded catch-up tickets,
-then reviews them oldest first and resumes pending actions.
+The Agent itself calls common `plan-due`, then prepares and finishes each
+date oldest first with `analyze --skip-completed`. Complete that date's
+post-review before preparing the next, keeping cumulative knowledge current.
 Calling common `due` alone is not a scheduled analysis: it returns work.
 The lookback is bounded and does not promise recovery of all historical gaps.
 Read [SCHEDULING.md](docs/SCHEDULING.md) and test the actual trigger environment.
