@@ -89,8 +89,6 @@ def record():
 def main():
     operation = sys.argv[1]
     if operation == "check":
-        if sys.version_info < (3, 11):
-            raise ValueError("Python 3.11 or newer is required")
         raw_root()
     elif operation == "session":
         print(uuid.uuid4().hex)

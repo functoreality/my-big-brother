@@ -56,7 +56,9 @@ errors are reported as gaps, not silently treated as an empty workday.
 
 Give [INSTALLATION.md](INSTALLATION.md) to an Agent that can work on your
 machine. It describes setup, checks, a first review, and optional scheduling.
-Python 3.11 or later is required. The core uses only the standard library.
+Python 3.11 or later is recommended. Older versions may work but are unverified,
+and compatibility is not guaranteed. The core uses only the standard library.
+Optional dependencies can have their own Python version requirements.
 The bundled unattended launcher additionally requires a working Codex CLI.
 For a human-readable walkthrough, see [Setup](docs/SETUP.md).
 Documentation language and report language are separate: set `language`

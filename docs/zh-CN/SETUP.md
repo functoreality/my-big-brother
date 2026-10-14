@@ -9,13 +9,14 @@
 
 ## 环境要求
 
-- Python 3.11 或更新版本。核心程序没有第三方依赖。
+- Python 3，推荐 3.11 或更新版本。旧版本未经验证，不保证兼容。
+  核心程序没有第三方依赖。
 - 将本仓库克隆到一个稳定的目录。
 - 使用 Codex 或受支持的 OpenCode SQLite 历史作为输入。Bash 是可选的。
 - 内置无人值守启动器需要可用且已认证的 Codex CLI。
   其他有相应能力的 Agent 也可以自己执行 prepare/task/finish 流程。
 
-如果 Python 3.11 或更新版本对应的命令是 `python3`，请用它替代 `python`。
+如果所选 Python 3 解释器对应的命令是 `python3`，请用它替代 `python`。
 在克隆的仓库中运行：
 
 ```sh

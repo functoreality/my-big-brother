@@ -11,8 +11,10 @@ MVP. Do not install it in someone else's shell without their permission.
 
 ## Installation
 
-Use Bash and Python 3.11 or newer. After initializing my-big-brother, add this
-line near the end of your interactive `.bashrc`, after prompt integrations:
+Use Bash and Python 3, with Python 3.11+ recommended. Older Python versions
+are unverified and compatibility is not guaranteed. After initializing
+my-big-brother, add this line near the end of your interactive `.bashrc`,
+after prompt integrations:
 
 ```bash
 source "/absolute/path/to/my-big-brother/collectors/bash/session-recorder.sh"
@@ -25,7 +27,7 @@ been executed only on Linux Bash. macOS execution remains unverified.
 For Windows, WSL follows Linux paths. Native Windows Python with Git Bash has
 not been tested. This is a Bash collector, not a PowerShell or Zsh collector.
 
-If `python3` is not the required Python installation, configure its executable
+If `python3` is not your intended Python installation, configure its executable
 before sourcing the recorder:
 
 ```bash

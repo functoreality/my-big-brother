@@ -11,7 +11,9 @@ Do not treat this file as the daily analysis task itself.
 - Treat source adapters and analyzer launchers as independent capabilities.
 - Keep collectors limited to recording activity in their host environment.
 - Keep user configuration, logs, results, and state outside the repository.
-- Use Python 3.11+ standard-library facilities for the core.
+- Keep the core standard-library only. Recommend Python 3.11+.
+- Avoid recent-only syntax and APIs when a small equivalent works on older
+  Python. Older versions are unverified, not guaranteed compatible.
 - Update user documentation when command behavior or configuration changes.
 - Keep English and `zh-CN` reader documentation consistent. Agent task and
   installation instructions remain shared English files. Translate report

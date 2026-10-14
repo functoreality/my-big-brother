@@ -6,10 +6,14 @@ Do not install a Skill, MCP server, daemon, or scheduler by assumption.
 
 ## 1. Confirm the environment
 
-Identify the operating system, an absolute Python 3.11+ executable path, and
+Identify the operating system, an absolute Python 3 executable path, and
 the user's preferred stable installation directory. Clone the repository
 there, or use the existing clone. Run all commands below with that repository
 as the working directory. No dependency installation is required for the core.
+
+Python 3.11+ is recommended. Older versions are unverified and compatibility
+is not guaranteed. Do not reject an interpreter solely for being older than
+3.11. Check the actual commands below.
 
 Check Python:
 

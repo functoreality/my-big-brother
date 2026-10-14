@@ -9,13 +9,14 @@ want a daily schedule or optional Bash recording.
 
 ## Requirements
 
-- Python 3.11 or newer. The core has no third-party dependencies.
+- Python 3, with 3.11 or newer recommended. Older versions are unverified
+  and compatibility is not guaranteed. The core has no third-party dependencies.
 - A clone of this repository in a stable directory.
 - Codex or supported OpenCode SQLite history as input. Bash is optional.
 - A working, authenticated Codex CLI for the bundled unattended launcher.
   Another capable Agent can instead use prepare/task/finish itself.
 
-Use `python3` if that is your Python 3.11+ command. Run these commands from
+Use `python3` if that selects your intended Python 3 interpreter. Run these commands from
 the cloned repository:
 
 ```sh

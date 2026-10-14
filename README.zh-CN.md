@@ -55,7 +55,8 @@ My Big Brother 准备本地证据，由 Agent 主导复盘。
 
 把 [INSTALLATION.md](INSTALLATION.md) 交给能操作你电脑的 Agent。
 其中说明了安装、检查、首次复盘和可选的定时运行。
-需要 Python 3.11 或更新版本，核心程序只使用标准库。
+推荐 Python 3.11 或更新版本。旧版本可能可用，但未经验证，不保证兼容。
+核心程序只使用标准库，可选依赖可能有自己的 Python 版本要求。
 内置无人值守启动器还需要可用的 Codex CLI。
 面向用户的操作说明见[安装与设置](docs/zh-CN/SETUP.md)。
 文档语言和报告语言是独立的：在个人 `config.json` 中把 `language`

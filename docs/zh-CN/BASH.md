@@ -11,7 +11,8 @@ Bash 采集器记录交互式命令活动，不读取或修改 Bash history。
 
 ## 安装
 
-需要 Bash 和 Python 3.11 或更新版本。
+需要 Bash 和 Python 3，推荐 Python 3.11 或更新版本。
+旧 Python 版本未经验证，不保证兼容。
 初始化 my-big-brother 后，在交互式 `.bashrc` 的末尾附近添加以下一行，
 放在其他提示符集成之后：
 
