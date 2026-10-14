@@ -8,10 +8,18 @@ MCP service, collector or scheduler by assumption.
 
 ## 1. Choose the environment and executing Agent
 
-Identify the operating system, stable checkout location and absolute Python
-executable. Python 3.11+ is recommended. Older versions are unverified,
+Identify where command tools actually run: the user's computer, a remote
+host, a container, or a provider's cloud computer. For this local project,
+confirm access to the intended computer and account, not only the chat UI.
+Do not substitute a cloud checkout or upload local histories without the
+user choosing that deployment. Resolve the operating system, stable checkout
+location and absolute Python executable in that execution environment.
+Python 3.11+ is recommended. Older versions are unverified,
 not rejected solely by version. The core uses only the standard library.
-Clone the repository or reuse the existing checkout. Check:
+Clone the repository or reuse the existing checkout. Run the examples below
+from its root with the selected absolute Python executable. `python` is a
+placeholder, not a requirement to use whichever interpreter is on `PATH`.
+Quote paths with spaces using the active shell's invocation syntax. Check:
 
 ```sh
 python --version
@@ -22,8 +30,11 @@ Ask which Agent should perform daily reviews. You, the installing Agent,
 may also be that analyzer. Its conversation-history reader is a separate
 choice: an Agent can analyze supported records from other tools.
 
-Check the chosen Agent's installed help for noninteractive execution and
-native local scheduling. If the interface is unclear, consult or search
+Record the chosen Agent's product and installed version. Check its installed
+help for an execution-capable mode, noninteractive execution and native local
+scheduling. A chat-only or planning mode may understand the instructions while
+lacking permission to read, write or execute the required commands.
+If the interface is unclear, consult or search
 its official documentation. Do not guess flags or silently substitute Codex.
 The core prepare/analyze/due/finish commands never start an Agent.
 Only the independent startup entry is specific to a product or harness.
@@ -45,6 +56,11 @@ If these exist or the user regularly uses the editor, recommend the separate
 plugin described in step 4 and ask whether to install it and update their
 active configuration. Detection is not recording consent.
 
+Choose inputs independently of the executor. If its own history format is
+unsupported, offer the supported records the user actually has. Do not enable
+Codex history merely because it is the first example below. Existing compatible
+records can be used without starting a new collector.
+
 For a first installation using Codex history:
 
 ```sh
@@ -53,9 +69,11 @@ python -m my_big_brother paths
 ```
 
 Use `--sources codex,opencode` for both supported native histories.
-The choice does not select the executing Agent. Enable `bash`, `vim` or
-`screenshots` only for wanted records and after the corresponding collector
-setup. Initialization does not read histories or install recording hooks.
+The choice does not select the executing Agent. For existing Bash records,
+`init --sources bash` is also a valid standalone starting point. Set that
+source's path to the selected existing records. Enable `bash`, `vim` or
+`screenshots` only for wanted records, after checking existing compatible
+records or completing the corresponding collector setup. Initialization does not read histories or install recording hooks.
 Use actual paths, without searching unrelated accounts or private folders.
 
 `--results-root` and `--raw-logs-root` accept absolute custom paths on first
@@ -100,6 +118,9 @@ Read the generated JSON and keep it valid. Configure:
 Read [PROFILES.md](docs/PROFILES.md) before configuring personal extensions.
 Files under `local-tasks/` are used only when explicitly selected.
 Do not turn a discovered personal file into authorization.
+
+Choose the intended report language and logical-day boundary before preparing
+the first review, so verification covers the settings that will actually run.
 
 Run `python -m my_big_brother doctor` to check the common setup.
 A passing diagnostic does not prove a source format, Agent login or successful
@@ -173,8 +194,18 @@ UTC offset for a fixed cutoff.
 
 ## 6. Verify one complete review with the chosen Agent
 
-Give the prepared run prompt to the chosen Agent and use the shared
-[tasks/daily-review/AUTOMATION.md](tasks/daily-review/AUTOMATION.md).
+Choose one verification route:
+
+- To consume the exact ticket from step 5 in an existing Agent session, give
+  that Agent the exact ticket, resolved checkout/Python/environment and its
+  `prompt_path`. Start at **Review a prepared run** in the
+  shared [AUTOMATION.md](tasks/daily-review/AUTOMATION.md). Do not prepare a
+  second run by following the earlier **Prepare work** section again.
+  If the installing Agent is the chosen executor, it can do this itself.
+- To test an unattended entry, give it the resolved installation, Python,
+  environment and explicit test date. It follows AUTOMATION.md from the start
+  and obtains its own fresh ticket. Inspect that run, not the earlier ticket.
+
 The Agent reads evidence, follows TASK/INPUTS/OUTPUTS/WORKFLOW, writes staged
 reports and the exact completion receipt, then calls `finish`.
 If `finish` returns `actions-pending`, that same Agent reads the returned
@@ -200,22 +231,51 @@ honest empty result. Required-source failures remain blocked.
 For another Agent, use its native task or create a local one-shot startup
 runner with its supported execution interface. The runner launches that Agent
 with the same automation task, paths and date/lookback instructions.
+Use its version's supported file and shell tools. Confirm that it can read
+the checkout, selected inputs and personal references, and write state,
+results and explicitly configured post-review targets. A workspace selection
+alone may not grant those external paths. Identify the effective permission
+scope, including settings that affect other
+tasks. Prefer narrow grants and explain broader settings before asking the
+user to choose them. Preserve product controls unless that change is explicitly
+chosen. Test that unattended execution does not pause for an approval nobody
+will answer.
 Keep the runner limited to one Agent launch and necessary execution settings
 and diagnostics. Put date planning, input preparation, queue handling,
 publication and completion checks inside the executing Agent's task.
 Never loop over dates by launching additional Agents or retry with another
-Agent automatically. It must not duplicate semantic analysis or start a second harness from inside
-the common scripts. Preserve scope, timeouts, failure diagnostics and checked
+Agent automatically. It must not duplicate semantic analysis or start a
+second harness from inside the common scripts. Preserve scope, timeouts,
+failure diagnostics and checked
 completion. See [EXTENDING.md](docs/EXTENDING.md).
 If the Agent cannot execute unattended on this machine, report that specific
 limitation and the missing setup. Do not falsely mark automation installed.
 
 ## 7. Install one chosen trigger
 
-After one complete review works, ask for the desired daily time and logical
-day boundary. Prefer the chosen Agent's native local scheduler when available.
-Register the shared automation task there and verify access to the installation,
-inputs and personal paths. Do not add an OS timer for the same task by default.
+After one complete review works, choose the desired daily time and timezone
+using the agreed logical-day boundary. If that boundary changes, repeat the
+review test first. Prefer the chosen Agent's native local scheduler when it
+meets the checks below.
+Start with [native-agent-task.md](examples/scheduling/native-agent-task.md).
+Replace its placeholders and save the resolved task in the chosen scheduler
+or an explicitly selected personal task file. Supply the actual checkout,
+Python, account, configuration-discovery environment, expected personal paths,
+lookback, timezone and result destination. Future runs must not depend on
+this installation conversation. Schedule the analysis task, not INSTALLATION.md.
+Keep a new job disabled or paused for testing when the product supports it.
+If job creation enables recurrence immediately, first verify an equivalent
+one-shot task in that same execution environment, then obtain the scheduling
+choice before creation. If there is no disabled-job test or equivalent one-shot
+route, do not enable recurrence before verification. Report that limitation and
+choose another suitable route. A recurring job is not a harmless preview.
+If task creation requires a UI you cannot operate, give the user the resolved
+prompt and required fields, and mark that manual step pending. Do not invent
+an undocumented scheduling API or claim it was installed.
+A native scheduled Agent follows this task directly without a Codex launcher
+or a fabricated Codex launch context. `begin-automation` and
+`complete-automation` apply only when an actual launcher context is supplied.
+Do not add an OS timer for the same task by default.
 
 If it has no suitable native scheduler, implement the local startup runner
 from step 6 and invoke it from cron on Linux, launchd on macOS, or Task
@@ -234,7 +294,33 @@ then reviews them oldest first and resumes pending actions.
 Calling common `due` alone is not a scheduled analysis: it returns work.
 The lookback is bounded and does not promise recovery of all historical gaps.
 Read [SCHEDULING.md](docs/SCHEDULING.md) and test the actual trigger environment.
-OS templates are examples; macOS and Windows execution remain unverified.
+OS templates are examples. Use the actual native job test/manual-run control
+or resolved OS entry to check the scheduled environment. A native scheduler may
+use a different working directory, container, toolset or permission policy from
+this interactive session. Confirm `paths` selects the same configuration and
+state, inputs remain readable, and required writes complete without an
+unexpected approval wait. Interactive verification alone is not a test of
+the scheduled environment.
+
+Keep each trigger to one executing Agent. Do not configure an Agent-target
+notification, handoff, or job retry that automatically starts another Agent
+for this same firing. Human-facing status delivery and local diagnostics are
+sufficient. Provider/API request retries within the same executing Agent are
+distinct from scheduler retries that start a fresh Agent run.
+If the product cannot provide this execution mode, report that
+constraint instead of claiming the requirement is met. A native scheduler
+that cannot meet these checks is unsuitable for this setup. Use the chosen
+Agent's supported one-shot entry with an OS timer if it can meet them instead.
+If neither route works, retain the working one-off installation and report
+the missing capability without substituting another Agent.
+
+Verify the common `finish` results, receipts and published files after the
+scheduled test. A scheduler's success badge can mean only that its Agent turn
+ended, even if the response describes a blocker. `actions-pending`, `blocked`
+and failed work are not completed reviews. An honest `empty` result is not an
+analyzed day. Without a launch context, use the final results returned by the
+common commands instead of expecting `automation-result.json`.
+macOS and Windows execution remain unverified by this repository.
 
 ## 8. Handoff and maintenance
 

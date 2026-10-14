@@ -1,9 +1,19 @@
 <!-- my-big-brother:analysis -->
 
 Work in `<absolute installation directory>` using `<absolute Python executable>`.
+Use `<intended account and configuration-discovery environment>`.
+Expected configuration: `<absolute config.json path>`.
+Expected state: `<absolute state directory>`.
+Confirm these paths through the common `paths` command before preparing work.
+If tools run on a different host or cannot access these paths, stop and report
+the mismatch. Do not use cloud copies or another account's records instead.
 Perform the daily review yourself. Read `tasks/daily-review/AUTOMATION.md`
 and follow its complete prepare/review/publish/post-review/completion workflow.
 Do not start another harness from inside the common analysis commands.
+No launcher context is supplied for this native route. Do not call
+`begin-automation` or `complete-automation` without one. Verify each run through
+its common `finish` result and required receipts. Do not treat the scheduler's
+success badge as proof that reviews completed.
 
 Use `python -m my_big_brother due --max-days 7` with the chosen absolute Python
 for bounded catch-up. It returns work tickets, not completed analyses.
