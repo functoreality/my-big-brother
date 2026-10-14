@@ -2,7 +2,7 @@
 
 Run from the checkout: python tests/smoke.py [--run-analyzer].
 The explicit analyzer option can consume the installed Codex account quota.
-All configuration, evidence, and results stay in an ignored .local directory.
+All configuration, evidence, and results stay in a separate temporary directory.
 """
 
 import argparse
@@ -11,7 +11,7 @@ import os
 import sqlite3
 import subprocess
 import sys
-import uuid
+import tempfile
 from datetime import datetime
 from pathlib import Path
 
@@ -32,11 +32,13 @@ def run(command, environment):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--run-analyzer", action="store_true")
+    parser.add_argument("--with-post-review", action="store_true")
     args = parser.parse_args()
+    if args.with_post_review and not args.run_analyzer:
+        parser.error("--with-post-review requires --run-analyzer")
     if not sys.platform.startswith("linux"):
         raise SystemExit("This CLI isolation smoke harness currently requires Linux/XDG. Unit fixtures are portable.")
-    root = REPO / ".local" / ("smoke run " + uuid.uuid4().hex[:8])
-    root.mkdir(parents=True, mode=0o700)
+    root = Path(tempfile.mkdtemp(prefix="mbb-smoke-"))
     environment = dict(os.environ)
     environment["XDG_CONFIG_HOME"] = str(root / "config")
     environment["XDG_DATA_HOME"] = str(root / "data")
@@ -83,17 +85,51 @@ def main():
             "command_scope": "first-simple-command", "cwd": "/synthetic/orders-project",
             "started_at": timestamp("10:07:00"), "completed_at": timestamp("10:08:00"), "exit_status": 0}
     (bash_directory / "synthetic.jsonl").write_text(json.dumps(bash) + "\n", encoding="utf-8")
+    if args.with_post_review:
+        rules = root / "rules"
+        rules.mkdir()
+        knowledge = root / "knowledge"
+        knowledge.mkdir()
+        marker = knowledge / "review-count.json"
+        task = rules / "post-review.md"
+        task.write_text("Maintain only the isolated fixture marker " + str(marker) + ".\n"
+                        "If absent, write JSON {\"count\": 1}. If already present, retain it unchanged.\n"
+                        "This records one completed fixture review, not a measured work duration.\n"
+                        "Write the exact action receipt after the marker is correct.\n")
+        validator = rules / "validate.py"
+        validator.write_text("import json, pathlib, sys\n"
+                             "assert json.loads(pathlib.Path(" + repr(str(marker)) + ").read_text()) == {'count': 1}\n")
+        profile = rules / "profile.json"
+        profile.write_text(json.dumps({"schema_version": 1, "post_review": {
+            "task": str(task), "read_paths": [], "write_paths": [str(knowledge)],
+            "validation_command": [sys.executable, str(validator), "{run_dir}"]}}))
+        settings["local_profile"] = str(profile)
+        settings["codex"]["model"] = "gpt-6.1-sol"
+        Path(paths["config"]).write_text(json.dumps(settings, indent=2) + "\n")
     prepared = run(["prepare", "--date", DAY], environment)
     summary = {"fixture_root": str(root), "date": DAY, "prepare": prepared}
     if args.run_analyzer:
         print(f"Running installed Codex against synthetic evidence only. Artifacts: {root}", flush=True)
-        summary["analysis"] = run(["analyze", "--date", DAY], environment)
+        result = subprocess.run([sys.executable, "-m", "my_big_brother.analyzers.codex",
+                                 "--date", DAY], cwd=REPO, env=environment, check=True,
+                                capture_output=True, text=True)
+        summary["analysis"] = json.loads(result.stdout)
         summary["doctor"] = run(["doctor"], environment)
-        for output in summary["analysis"]["outputs"]:
+        review = summary["analysis"]["results"][0]
+        assert review["status"] == "completed", review
+        run_dir = Path(review["run_dir"])
+        context = json.loads((run_dir / "context.json").read_text())
+        for output in context["final_output_paths"]:
             assert Path(output).is_file(), output
         worklog = Path(paths["results"]) / "records/worklog" / (DAY + ".md")
         text = worklog.read_text(encoding="utf-8").lower()
         assert "csv" in text and "installation" in text, "Reports must describe fixture work"
+        if args.with_post_review:
+            assert json.loads(marker.read_text()) == {"count": 1}
+            assert (run_dir / "actions/action_receipt.json").is_file()
+            assert not (run_dir / "actions/logs/command.json").exists(), "Post-review must not start another Agent"
+            assert len(list(Path(paths["state"]).glob("launches/*/logs/command.json"))) == 1
+            summary["same_agent_post_review"] = True
     (root / "summary.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(summary, indent=2))
 

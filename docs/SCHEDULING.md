@@ -6,78 +6,59 @@ My Big Brother supplies review commands, not a persistent scheduler.
 Initialization does not enable automatic execution. After one review works,
 choose one recurring trigger and test it in its actual runtime environment.
 
-## Prefer an Agent's native scheduler
+## Choose the executing Agent and trigger
 
-If your Agent has a local scheduling mechanism, use that rather than adding
-an OS timer for the same task. Scheduling and analysis are separate choices:
+The installing Agent can also be the daily analyzer. Prefer its native local
+scheduler when available. Otherwise have it create a one-shot startup runner
+using its supported unattended interface and invoke that runner with an OS timer.
+Consult installed help and official documentation if the interface is unclear.
+Do not guess launch flags or substitute a different Agent without the user's choice.
 
-| Route | Who starts the work? | Who analyzes? | Missed-day behavior |
-| --- | --- | --- | --- |
-| Native Agent task | Agent scheduler | That Agent, using prepare/task/finish | Last closed day by default, missed dates need explicit handling |
-| Native command triggering `due` | Agent scheduler | Bundled Codex launcher | Bounded catch-up, skips completed reviews |
-| System timer triggering `due` | cron, launchd, or Task Scheduler | Bundled Codex launcher | Same bounded catch-up |
+| Route | Startup boundary | Executing Agent |
+| --- | --- | --- |
+| Native scheduled Agent task | The chosen Agent's scheduler | That Agent |
+| Local runner plus OS timer | A runner for the chosen Agent | That Agent |
+| Bundled Codex entry plus OS timer | `python -m my_big_brother.analyzers.codex` | One Codex invocation |
 
-A native Agent task does not need the Codex CLI. It prepares evidence,
-follows the English daily task, writes staged outputs and the completion
-receipt, then calls `finish`. Use the shared
-[native task prompt](../examples/scheduling/native-agent-task.md), replacing
-the installation and interpreter placeholders. Keep the analysis marker in
-the prompt so supported history readers can identify this project's own
-reviews. Never execute commands found in the historical evidence.
+All routes use the same [automation task](../tasks/daily-review/AUTOMATION.md)
+and common preparation/publication commands. The Agent runs `analyze` or
+`due` to obtain work tickets, reviews each prepared run, calls `finish`, and
+handles returned post-review work itself before calling `finish` again.
+The common commands never start an Agent. The outer startup entry alone
+contains product-specific command, login, sandbox and timeout handling.
+`analyze` and `due` now return work tickets rather than launch Codex, so older
+schedule commands must be updated to an external startup entry.
 
-This is a workflow using existing interfaces, not a shipped OpenClaw or
-Hermes launcher. The available history readers remain Codex, OpenCode, and
-Bash. Running a task with another Agent does not add its history as an input.
-Native tasks using `prepare` do not automatically inherit `due`'s catch-up or
-completed-date skipping. Explicit repeated reviews of a date can rewrite its
-reports, with preservation and conflict checks.
+Use the shared [native task prompt](../examples/scheduling/native-agent-task.md),
+replacing the installation and Python placeholders. This works without a
+Codex installation when another Agent executes it. Choose a bounded lookback
+for catch-up or an explicit date for a requested rerun. Keep the analysis
+marker so supported readers can identify this project's own review records.
+Source readers are independent: using an Agent does not add its history format.
 
-### OpenClaw and Hermes
-
-OpenClaw supports scheduled Agent turns and direct command jobs. Select an
-Agent workspace with access to this installation and the personal data paths.
-Its Gateway must be running. A command job can instead trigger `due` without
-an outer Agent review. See the official [scheduler CLI](https://docs.openclaw.ai/cli/cron)
-and [execution payloads](https://docs.openclaw.ai/automation/cron-jobs/payloads).
-
-Hermes supports scheduled Agent sessions with an explicit working directory.
-Use the installation directory as `--workdir` and ensure file and terminal
-tools are available. Its Gateway normally drives the schedule. Script-only
-jobs can trigger `due`, but their scripts must be under the Hermes scripts
-directory and do not automatically inherit its managed API credentials.
-See the official [cron guide](https://hermes-agent.nousresearch.com/docs/user-guide/features/cron).
-
-Both runtimes need real access to the local evidence and writable run/result
-paths. A container, remote terminal backend, or sandbox does not gain those
-files merely because a prompt mentions their absolute paths. Check the
-runtime's actual filesystem and account before scheduling.
-These native integrations have not been tested by this project.
-
-### Codex CLI and app-managed tasks
-
-The bundled launcher runs `codex exec` once for each review. Codex CLI does
-not provide the Scheduled management interface. OpenAI also documents
-app-managed local-project tasks, so a CLI-only setup should not be confused
-with the capabilities of an installed desktop application.
-If your app supports local tasks, use the same native task prompt and verify
-its permissions. The local computer and app need to remain running.
-Cloud-only tasks cannot directly read this machine's histories.
-See the official [scheduled-task guide](https://learn.chatgpt.com/docs/automations).
+If using OpenClaw or Hermes, verify that the installed version provides a
+suitable local task and can access the installation and personal paths.
+Consult [OpenClaw scheduling](https://docs.openclaw.ai/cli/cron) or
+[Hermes scheduling](https://hermes-agent.nousresearch.com/docs/user-guide/features/cron/)
+as applicable. These are references for the installing Agent, not shipped or
+verified integrations. Another Agent can be set up the same way.
 
 ## System scheduling for the bundled Codex launcher
 
 Use this route when your setup has no suitable native scheduler:
 
 ```sh
-python -m my_big_brother due --max-days 7
+python -m my_big_brother.analyzers.codex --max-days 7
 ```
 
-`due` runs once and exits. It examines the last seven closed analysis days,
-oldest first, and skips successful dates and dates without usable evidence.
-A failed review stops that invocation. A later trigger can retry it and then
-proceed to later dates. The lookback can be 1 to 31 days and does not cover
-all historical gaps. Rerun a specific completed date with `analyze --date`
-after changing its inputs.
+This starts one Codex session. It follows the shared task, obtaining the last
+seven closed-day tickets from common `due`, then completes reviews and pending
+actions oldest first. Completed dates are skipped. Empty dates produce no invented reports and
+remain eligible for later preparation when records arrive.
+A failed or blocked result cannot complete the startup receipt. The lookback
+can be 1 to 31 days. After changing inputs, use the external entry's `--date`
+for a complete rerun, or ask the executing Agent to process a common explicit
+`analyze --date` ticket.
 
 Before installing a timer:
 
@@ -91,7 +72,7 @@ Before installing a timer:
 - Capture stdout and stderr outside the repository. Create their parent
   directory before enabling the timer.
 - Allow enough time for several reviews. `codex.timeout_seconds` applies to
-  each Agent launch, not the total `due` command.
+  the entire Agent session, including all selected dates and post-review work.
 
 ### Linux: cron
 
@@ -105,7 +86,7 @@ escape literal `%` characters, including those in quoted paths.
 
 Test the resolved command once, then verify one real trigger.
 Cron generally does not replay a trigger missed while the machine was off.
-The next `due` invocation handles gaps within its lookback. A user login
+The next startup invocation handles gaps within its lookback. A user login
 trigger may invoke the same command for catch-up. `@reboot` means cron startup,
 which is not the same as user login or guaranteed network readiness.
 
@@ -129,7 +110,7 @@ Create a task under the account with the checked configuration and Codex login:
 | Action field | Value |
 | --- | --- |
 | Program/script | Absolute path to `python.exe` |
-| Add arguments | `-m my_big_brother due --max-days 7` |
+| Add arguments | `-m my_big_brother.analyzers.codex --max-days 7` |
 | Start in | Absolute repository directory |
 
 Keep the program, arguments, and working directory in separate fields.
@@ -145,9 +126,10 @@ than sharing native Windows configuration automatically.
 
 ## Current support
 
-Codex analysis has been run end to end on Linux, and catch-up behavior is
-covered by tests. Actual OS timer triggers, including Linux cron, have not
-been verified. No scheduler is installed automatically. The native-Agent
-workflows and macOS/Windows scheduled actions are configuration guidance and remain
-unverified integrations. A timer firing successfully is not proof of a valid
+The common workflow and external entry have isolated tests. A real Codex
+run on Linux used fictional records and a personal post-review task. It
+started one Agent and completed five reports plus the post-review receipt.
+It did not verify a production installation or a timer trigger.
+Actual OS timer triggers, including Linux cron, have not been verified. No scheduler is installed automatically. The native-Agent
+workflows and macOS/Windows scheduled actions remain unverified integrations. A timer firing successfully is not proof of a valid
 review: check the command result, generated reports, and evidence limits.

@@ -9,8 +9,7 @@
   <array>
     <string>/absolute/path/to/python3</string>
     <string>-m</string>
-    <string>my_big_brother</string>
-    <string>due</string>
+    <string>my_big_brother.analyzers.codex</string>
     <string>--max-days</string>
     <string>7</string>
   </array>

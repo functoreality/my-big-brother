@@ -1,4 +1,4 @@
 # Replace every example path before installing in the user's crontab.
 # Create the external log directory first. Preserve required XDG settings.
 # Daily at 09:00 in cron's timezone. Escape any literal % in resolved paths.
-0 9 * * * cd "/absolute/path/to/my-big-brother" && "/absolute/path/to/python3" -m my_big_brother due --max-days 7 >> "/absolute/path/to/runtime-logs/daily-review.log" 2>&1
+0 9 * * * cd "/absolute/path/to/my-big-brother" && "/absolute/path/to/python3" -m my_big_brother.analyzers.codex --max-days 7 >> "/absolute/path/to/runtime-logs/daily-review.log" 2>&1

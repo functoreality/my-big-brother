@@ -60,15 +60,24 @@ A task with a different purpose or time range can have its own task directory.
 A future weekly review will usually read published daily records rather than
 reprocessing a week's raw conversations.
 
-## Add an unattended analyzer
+## Add an Agent startup entry
 
-Add a launcher in `my_big_brother/analyzers/`, register its configuration, and
-document its required executable, authentication, writable scope, and timeout
-behavior. Pass the same task entry and resolved run context to the Agent.
-Preserve validation and completion-receipt checks after its process finishes.
+The startup boundary alone knows the Agent's executable, authentication,
+sandbox and timeout. Start it once with the shared
+[automation task](../tasks/daily-review/AUTOMATION.md), the installation,
+Python, date/lookback and permitted paths. The Agent calls common preparation,
+publication and receipt checks itself, including configured post-review.
+Do not introduce Agent calls into `runner.py`, input adapters, validators,
+or the shared CLI. A native scheduled Agent can use the same task without
+any additional launcher.
 
-Do not change source parsing merely because the execution backend changed.
-Do not make optional multi-Agent capabilities a requirement for the task.
+The installing Agent can write a local entry using its installed execution
+interface. Read installed help or official documentation when needed.
+The bundled example is `python -m my_big_brother.analyzers.codex`.
+A new entry can live outside the checkout or be contributed under `analyzers/`.
+Validate actual completion against common run state, not only process exit.
+Do not copy the analysis algorithm into each startup script or automatically
+launch a second Agent for post-review operations.
 
 ## User-specific tasks
 
