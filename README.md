@@ -4,9 +4,9 @@ English | [简体中文](README.zh-CN.md)
 
 **THE BIG BROTHER IS WATCHING YOU!**
 
-**On your computer!**
-
 **EVERY DAY!**
+
+**ON YOUR COMPUTER!**
 
 And... taking notes for your next weekly report.
 
