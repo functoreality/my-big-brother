@@ -17,6 +17,7 @@ my_big_brother/
   config.py         个人 JSON 配置
   paths.py          平台路径和共享的原始日志位置文件
   runner.py         准备、校验、发布和跟踪完成状态
+  automation.py     由 Agent 调用的日期规划和最终校验
 tasks/daily-review/ 共享的英文分析指令
 collectors/bash/    宿主 shell 中可选的活动记录
 docs/               英文用户文档
@@ -31,7 +32,9 @@ examples/synthetic/
 例如，Codex 可以复盘 OpenCode 记录。
 其他当前 Agent 可以通过 `prepare` 和 `finish` 完成相同复盘，不必启动 Codex。
 `analyzer` 记录首选执行 Agent 的名称，实际可执行程序由启动入口选择。
-通用复盘命令不会启动 Agent。
+启动入口只调用一次 Agent，传递执行设置并保留日志。
+日期规划、导入、队列和业务校验都由该 Agent 负责。
+通用复盘和自动化命令不会启动 Agent。
 
 ## 个人存储
 

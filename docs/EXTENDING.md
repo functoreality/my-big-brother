@@ -75,7 +75,12 @@ The installing Agent can write a local entry using its installed execution
 interface. Read installed help or official documentation when needed.
 The bundled example is `python -m my_big_brother.analyzers.codex`.
 A new entry can live outside the checkout or be contributed under `analyzers/`.
-Validate actual completion against common run state, not only process exit.
+The entry only starts one Agent and carries necessary execution settings and
+logs. It must not plan review dates, prepare inputs, run queues, publish results,
+or verify business completion. The executing Agent calls `begin-automation`
+and `complete-automation` when using a launch context, and checks actual
+completion against common run state. The bundled entry returns `agent-exited`,
+while the Agent writes the checked `automation-result.json`.
 Do not copy the analysis algorithm into each startup script or automatically
 launch a second Agent for post-review operations.
 

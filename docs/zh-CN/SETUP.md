@@ -75,8 +75,10 @@ python -m my_big_brother.analyzers.codex --date 2026-01-15
 
 这会使用已安装的 Codex 账号，可能消耗额度。
 选中的证据可能发送给该 Agent 配置的模型服务商。
-没有可用证据时会跳过分析器。
-请查看生成文件及其中说明的限制。
+没有可用证据时，由已经启动的 Agent 记录空结果。
+入口返回的 `agent-exited` 只表示进程退出。
+请检查返回的 `launch_dir` 中由 Agent 写出的 `automation-result.json`，
+再查看生成文件及其中说明的限制。
 
 也可以让当前 Agent 按准备好的运行上下文，遵循
 [TASK.md](../../tasks/daily-review/TASK.md)。

@@ -24,6 +24,10 @@ My Big Brother 提供复盘命令，不提供常驻调度程序。
 逐项分析，然后调用 `finish`。有后操作时，由它自己执行返回的任务，
 再调用 `finish`。通用命令不会启动 Agent，
 产品特有的命令、登录、沙箱和超时设置只留在外部启动入口。
+启动入口只调用一次 Agent，传递必要的执行设置并保留日志。
+日期规划、输入导入、纠错队列、发布和最终业务校验都由该 Agent 执行。
+不得按日期循环启动 Agent，也不得自动再启动 Agent 来重试。
+Agent 可以自行决定通过自身工具委派子任务。
 `analyze` 和 `due` 现在返回工作票据，不再启动 Codex，
 旧定时命令需要改为外部启动入口。
 
@@ -51,7 +55,11 @@ python -m my_big_brother.analyzers.codex --max-days 7
 这会启动一次 Codex 会话。它遵循共享任务，从通用 `due` 得到最近七个
 已闭合日期的票据，按最早日期优先完成复盘和待办后操作。
 已经完成的日期会跳过。空日不生成虚构报告，也不会标为完成，
-后续仍可重新准备以发现迟到记录。失败或 blocked 不能写成成功启动回执。
+后续仍可重新准备以发现迟到记录。
+Agent 自己调用 `begin-automation` 和 `complete-automation`。
+入口返回的 `agent-exited` 仅表示进程退出，
+应检查返回的 `launch_dir` 中由 Agent 写出的 `automation-result.json`，
+确认经过校验的复盘完成状态。失败或 blocked 不能通过该校验。
 回看范围可设为 1 至 31 天。修改输入后，可用外部入口的 `--date` 完整重跑，
 也可以请执行 Agent 处理通用 `analyze --date` 返回的明确日期票据。
 

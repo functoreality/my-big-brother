@@ -190,14 +190,21 @@ python -m my_big_brother.analyzers.codex --date 2026-01-15
 
 This can consume account quota and send selected evidence to the Agent's
 configured provider. It starts one Agent, which executes the common workflow
-and its configured post-review itself. Inspect the final completed status,
+and its configured post-review itself. It also calls `begin-automation` and
+`complete-automation` to plan and verify the invocation. The startup entry's
+`agent-exited` status only means that process exited successfully. Inspect
+`automation-result.json` in the returned `launch_dir`, its completed status,
 receipts, reports and actual coverage. Without usable evidence, preserve an
 honest empty result. Required-source failures remain blocked.
 
 For another Agent, use its native task or create a local one-shot startup
 runner with its supported execution interface. The runner launches that Agent
 with the same automation task, paths and date/lookback instructions.
-It must not duplicate semantic analysis or start a second harness from inside
+Keep the runner limited to one Agent launch and necessary execution settings
+and diagnostics. Put date planning, input preparation, queue handling,
+publication and completion checks inside the executing Agent's task.
+Never loop over dates by launching additional Agents or retry with another
+Agent automatically. It must not duplicate semantic analysis or start a second harness from inside
 the common scripts. Preserve scope, timeouts, failure diagnostics and checked
 completion. See [EXTENDING.md](docs/EXTENDING.md).
 If the Agent cannot execute unattended on this machine, report that specific

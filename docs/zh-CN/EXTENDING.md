@@ -73,7 +73,11 @@ def collect(path: Path, start: datetime, end: datetime) -> SourceResult:
 安装 Agent 可以根据本机执行接口编写入口，不确定时查询本机帮助或官方文档。
 内置示例是 `python -m my_big_brother.analyzers.codex`。
 新入口可保存在安装仓库之外，也可作为 PR 加入 `analyzers/`。
-按通用运行状态检查实际完成情况，不能只看进程退出码。
+入口只启动一次 Agent，传递必要的执行设置并保留日志。
+日期规划、输入准备、队列处理、发布和业务完成校验都由执行 Agent 负责。
+有启动上下文时，Agent 自己调用 `begin-automation` 和 `complete-automation`。
+内置入口返回的 `agent-exited` 只表示进程正常退出，
+Agent 写出的 `automation-result.json` 才记录经过校验的业务完成状态。
 不要在每个入口里复制分析算法，或自动另启 Agent 执行后操作。
 
 ## 用户自定义任务

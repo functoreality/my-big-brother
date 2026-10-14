@@ -12,6 +12,9 @@ Do not treat this file as the daily analysis task itself.
 - Keep Agent invocation only in independent startup entries. Common review
   scripts never launch a harness. The executing Agent follows AUTOMATION.md
   and performs both review and configured post-review itself.
+- Keep startup to one Agent launch and execution settings/logs. Put date
+  planning, imports, queues and business completion checks in that Agent's
+  workflow. Never loop or retry by launching another Agent from driver code.
 - Keep collectors limited to recording activity in their host environment.
 - Keep user configuration, logs, results, and state outside the repository.
 - Keep the core standard-library only. Recommend Python 3.11+.

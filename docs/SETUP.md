@@ -77,7 +77,9 @@ python -m my_big_brother.analyzers.codex --date 2026-01-15
 
 This uses your installed Codex account and can consume quota. Selected evidence
 can be sent to that Agent's configured model provider. Without usable evidence,
-the Agent records an empty result. Inspect the resulting files and their limitations.
+the Agent records an empty result. The entry's `agent-exited` status is only
+process exit. Inspect the Agent-written `automation-result.json` in the returned
+`launch_dir`, then the resulting reports and their limitations.
 
 Alternatively, ask your current Agent to follow
 [TASK.md](../tasks/daily-review/TASK.md) with the prepared run's context.

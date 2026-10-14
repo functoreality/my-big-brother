@@ -26,6 +26,10 @@ and common preparation/publication commands. The Agent runs `analyze` or
 handles returned post-review work itself before calling `finish` again.
 The common commands never start an Agent. The outer startup entry alone
 contains product-specific command, login, sandbox and timeout handling.
+Keep startup limited to one Agent invocation and necessary execution settings
+and logs. Date planning, input import, correction queues, publication and final
+business checks belong to that Agent. Never loop over dates or retry by
+starting additional Agents. The Agent can choose its own delegation tools.
 `analyze` and `due` now return work tickets rather than launch Codex, so older
 schedule commands must be updated to an external startup entry.
 
@@ -55,7 +59,10 @@ This starts one Codex session. It follows the shared task, obtaining the last
 seven closed-day tickets from common `due`, then completes reviews and pending
 actions oldest first. Completed dates are skipped. Empty dates produce no invented reports and
 remain eligible for later preparation when records arrive.
-A failed or blocked result cannot complete the startup receipt. The lookback
+The Agent calls `begin-automation` and `complete-automation` itself.
+The entry reports `agent-exited`, which only records process exit. Inspect the
+Agent-written `automation-result.json` in its returned `launch_dir` to confirm
+checked review completion. Failed or blocked results cannot pass that check. The lookback
 can be 1 to 31 days. After changing inputs, use the external entry's `--date`
 for a complete rerun, or ask the executing Agent to process a common explicit
 `analyze --date` ticket.

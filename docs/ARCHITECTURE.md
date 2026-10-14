@@ -17,6 +17,7 @@ my_big_brother/
   config.py         Personal JSON configuration
   paths.py          Platform paths and the shared raw-log locator
   runner.py         Prepare, validate, publish, and track completion
+  automation.py     Plan and verify invocations when called by the Agent
 tasks/daily-review/ Shared English analysis instructions
 collectors/bash/    Optional recording in the host shell
 docs/               English reader documentation
@@ -31,7 +32,9 @@ Input sources, analysis instructions, and analyzer launchers are independent.
 For example, Codex can review OpenCode records. A different current Agent can
 perform the same review through `prepare` and `finish` without a Codex launch.
 `analyzer` records the preferred executor name. The startup entry selects
-the actual executable; common review commands never start an Agent.
+the actual executable. It starts exactly one Agent and carries execution
+settings and logs. Date planning, imports, queues and business checks belong
+to that Agent. Common review and automation commands never start an Agent.
 
 ## Personal storage
 
