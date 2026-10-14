@@ -9,9 +9,13 @@ choose one recurring trigger and test it in its actual runtime environment.
 ## Choose the executing Agent and trigger
 
 The installing Agent can also be the daily analyzer. Prefer its native local
-scheduler when available. Otherwise have it create a one-shot startup runner
+scheduler when it meets the installation checks. Otherwise have it create a
+one-shot startup runner
 using its supported unattended interface and invoke that runner with an OS timer.
 Consult installed help and official documentation if the interface is unclear.
+Follow [INSTALLATION.md](../INSTALLATION.md) to resolve the actual execution
+host and scheduled permissions, verify business completion, and avoid native
+retry, repair or Agent-target delivery settings that start another Agent run.
 Do not guess launch flags or substitute a different Agent without the user's choice.
 
 | Route | Startup boundary | Executing Agent |

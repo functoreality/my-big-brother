@@ -97,10 +97,12 @@ Install https://github.com/functoreality/my-big-brother on this machine.
 Read its INSTALLATION.md and follow it. Ask which records and outputs I want.
 If I use Vim or Neovim, offer session-recorder.vim and ask before installing
 it or editing my editor configuration. Help me set up daily unattended reviews
-with my chosen Agent. Prefer that Agent's native scheduler. If it has none,
+with my chosen Agent. Prefer its native scheduler when suitable. Otherwise,
 build the needed local runner and OS schedule using its supported execution
-interface. Verify one review before enabling the schedule, and ask before
-starting continuous recording or installing a recurring task.
+interface. Keep each trigger to one executing Agent that performs all review
+steps itself. Verify one review in the scheduled execution environment before
+enabling the schedule. Ask before starting continuous recording or installing
+a recurring task.
 ```
 
 The shared [INSTALLATION.md](INSTALLATION.md) guides your installing Agent.
