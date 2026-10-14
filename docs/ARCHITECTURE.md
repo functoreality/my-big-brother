@@ -30,7 +30,8 @@ examples/synthetic/
 Input sources, analysis instructions, and analyzer launchers are independent.
 For example, Codex can review OpenCode records. A different current Agent can
 perform the same review through `prepare` and `finish` without a Codex launch.
-`analyzer` selects only the unattended backend, currently Codex.
+`analyzer` records the preferred executor name. The startup entry selects
+the actual executable; common review commands never start an Agent.
 
 ## Personal storage
 
@@ -84,14 +85,18 @@ This release does not automatically clean raw logs or run materials.
 5. Valid drafts are published to stable dated paths and recorded in the
    completion history. File replacement is atomic per file, not across the
    entire set of outputs. Run diagnostics remain available on failure.
-6. An explicitly configured personal post-review task runs after publication,
+6. The same executing Agent performs a configured post-review task after publication,
    with its own context, permitted write directories, receipt, and validator.
    A failed operation phase remains pending and resumes without redoing the
    published daily reports. The task must make its operations idempotent.
 
-`analyze` performs prepare, Agent launch, and finish in one command.
-`due` calls that same path for a bounded lookback of closed review days,
-skipping completed reviews. Neither command contains a persistent timer.
+`analyze` prepares one work ticket, while `due` prepares a bounded set of
+closed-day tickets and skips completed reviews. Neither starts an Agent.
+An external startup entry launches an Agent with `AUTOMATION.md`. That Agent
+uses the common commands and performs review and post-review itself.
+`finish` returns `actions-pending` when post-review work needs execution,
+then validates its receipt on a later call. Only the outer startup module
+contains Agent-specific process handling.
 See [Scheduling](SCHEDULING.md) for external or Agent-native triggers.
 
 The runner checks declared coverage and output structure. These checks do not

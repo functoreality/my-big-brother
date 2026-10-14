@@ -58,5 +58,6 @@ and fill it with the exact prepared entry counts and staged output paths.
 Write `completion.json` only after all required outputs are ready.
 
 The receipt requests validation. It does not itself establish publication.
-The runner, or `finish` for a review in the current conversation, validates
-the receipt and outputs before publishing stable results.
+The executing Agent calls `finish` to validate the receipt and outputs before
+publishing stable results. It then completes any returned post-review task
+and calls `finish` again to validate that phase.

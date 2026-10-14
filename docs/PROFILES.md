@@ -110,15 +110,18 @@ remain mandatory. A custom validator cannot bypass them.
 Use `post_review` for explicitly authorized knowledge, candidate ledgers,
 cross-day duration libraries or local Inbox operations. The review phase
 writes only staging and temporary material. The runner first validates and
-publishes daily reports, then launches the configured post-review task with
-the same analyzer settings.
+publishes daily reports, then returns `actions-pending` with an action prompt.
+The same executing Agent performs that task and calls `finish` again.
+The common runner never starts a harness or a second Agent.
 
 `post_review` requires an existing absolute `task` file and a nonempty
 `validation_command`. `read_paths` lists existing allowed reading locations.
 `write_paths` lists absolute directories where changes are authorized.
-The launcher adds exactly those directories as writable roots, in addition
-to the action directory. The task can further restrict filenames and operation
-types inside those roots. Declare narrow directories suited to the task.
+The external startup entry or native Agent must grant those declared write
+locations to the executing Agent. The common scripts do not grant harness
+permissions or start an Agent. Validators still run as ordinary subprocesses.
+The task can further restrict filenames and operation types inside those roots.
+Declare narrow directories suited to the task.
 
 ```json
 {
@@ -158,10 +161,10 @@ daily schema does not itself implement a cross-day estimation library.
 
 A day is complete only after both its reports and configured operations
 succeed. If operations fail, published reports remain, the day stays pending,
-and a later `due` or `analyze --date` resumes the same action directory without
-regenerating reports. Human report additions made after publication are kept.
+and a later `due` or `analyze --date` returns the same pending action ticket
+without regenerating reports. The caller then performs the task. Human report additions made after publication are kept.
 `finish --run-dir` can also retry that run. A successful action receipt is
-revalidated without launching the task again.
+revalidated without repeating the completed operations.
 
 The post-review task must be idempotent. Preserve operation records and stable
 identities, search existing entries, and check before appending or sending.

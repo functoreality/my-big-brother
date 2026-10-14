@@ -63,8 +63,8 @@ def load(paths: Paths):
         raise ValueError(f"Unknown configuration fields: {', '.join(sorted(unknown))}")
     config = defaults(paths)
     config.update(value)
-    if config["analyzer"] != "codex":
-        raise ValueError("This release supports codex as the unattended analyzer")
+    if not isinstance(config["analyzer"], str) or not config["analyzer"].strip():
+        raise ValueError("analyzer must be a nonempty Agent name")
     if not isinstance(config["language"], str) or not config["language"].strip():
         raise ValueError("language must be a language name or code")
     hour = config["day_start_hour"]
@@ -90,17 +90,6 @@ def load(paths: Paths):
             absolute(spec["path"], f"sources.{name}.path")
         if set(spec) - {"enabled", "path", "required"}:
             raise ValueError(f"Invalid fields for sources.{name}")
-    backend = config["codex"]
-    if not isinstance(backend, dict) or set(backend) - {"executable", "timeout_seconds", "model"}:
-        raise ValueError("codex supports executable, timeout_seconds, and optional model")
-    backend.setdefault("executable", "codex")
-    backend.setdefault("timeout_seconds", 1800)
-    if not isinstance(backend["executable"], str) or not backend["executable"]:
-        raise ValueError("codex.executable must be a program name or absolute path")
-    if type(backend["timeout_seconds"]) is not int or backend["timeout_seconds"] < 1:
-        raise ValueError("codex.timeout_seconds must be a positive integer")
-    if "model" in backend and (not isinstance(backend["model"], str) or not backend["model"]):
-        raise ValueError("codex.model must be a nonempty string")
     raw_logs_root(paths)
     load_profile(config)
     return config

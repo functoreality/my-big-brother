@@ -238,10 +238,12 @@ def prepare_run(paths, config, review_date, snapshot_end=None):
                "original_digests": originals, "completion_example": example,
                "task": str(REPO / "tasks" / "daily-review" / "TASK.md")}
     write_json(run_dir / "context.json", context)
+    (run_dir / "prompt.md").write_text(prompt_for(run_dir), encoding="utf-8")
     blocked = [name for name, spec in sources.items() if spec["required"] and spec["status"] == "unavailable"]
     status = "blocked" if blocked else ("prepared" if total else "empty")
     state(run_dir, status, run_id=run_id, date=review_date, source_diagnostics=source_diagnostics)
-    result = {"status": status, "run_id": run_id, "run_dir": str(run_dir), "entries": total}
+    result = {"date": review_date, "status": status, "run_id": run_id,
+              "run_dir": str(run_dir), "entries": total, "prompt_path": str(run_dir / "prompt.md")}
     if blocked:
         result["blocked_sources"] = blocked
         state(run_dir, status, run_id=run_id, date=review_date,
@@ -390,7 +392,7 @@ def post_review_prompt(action_dir):
 
 
 def finish_actions(config, run_dir, context, profile):
-    from .analyzers import codex
+    """Prepare the current Agent's next task, or validate its completed receipt."""
     post = profile["post_review"]
     action_dir = run_dir / "actions"
     action_dir.mkdir(exist_ok=True, mode=0o700)
@@ -405,38 +407,25 @@ def finish_actions(config, run_dir, context, profile):
                       "outputs": context["final_output_paths"], "receipt_path": str(receipt_path),
                       "action_receipt_example": example}
     write_json(action_dir / "context.json", action_context)
-
-    def validate_receipt():
-        receipt = read_object(receipt_path)
-        if any(receipt.get(key) != value for key, value in example.items()):
-            raise ValueError("Post-review action receipt does not match this run")
-        run_validation(post["validation_command"], action_dir, context["date"], "action-validation")
-
-    # A complete receipt can survive a crash before the completion ledger write.
+    prompt_path = action_dir / "prompt.md"
+    prompt_path.write_text(post_review_prompt(action_dir), encoding="utf-8")
     if receipt_path.exists():
         try:
-            validate_receipt()
-        except (ValueError, OSError, KeyError, TypeError, subprocess.TimeoutExpired):
-            previous = action_dir / ("previous-receipt-" + uuid.uuid4().hex[:8] + ".json")
-            os.replace(receipt_path, previous)
-        else:
-            state(action_dir, "completed", run_id=context["run_id"], date=context["date"])
-            return
+            receipt = read_object(receipt_path)
+            if any(receipt.get(key) != value for key, value in example.items()):
+                raise ValueError("Post-review action receipt does not match this run")
+            run_validation(post["validation_command"], action_dir, context["date"], "action-validation")
+        except (ValueError, OSError, KeyError, TypeError, subprocess.TimeoutExpired) as error:
+            state(action_dir, "failed", run_id=context["run_id"], date=context["date"], error=str(error))
+            raise
+        state(action_dir, "completed", run_id=context["run_id"], date=context["date"])
+        return None
     for name in post["write_paths"]:
         Path(name).mkdir(parents=True, exist_ok=True, mode=0o700)
-    previous_state = read_object(action_dir / "state.json") if (action_dir / "state.json").exists() else {}
-    attempt = previous_state.get("attempt", 0) + 1
-    if previous_state:
-        write_json(action_dir / f"attempt-{attempt - 1}.json", previous_state)
-    state(action_dir, "running", run_id=context["run_id"], date=context["date"], attempt=attempt)
-    try:
-        codex.launch(config["codex"], action_dir, post_review_prompt(action_dir), write_paths=post["write_paths"])
-        validate_receipt()
-    except BaseException as error:
-        state(action_dir, "failed", run_id=context["run_id"], date=context["date"],
-              attempt=attempt, error=str(error))
-        raise
-    state(action_dir, "completed", run_id=context["run_id"], date=context["date"], attempt=attempt)
+    state(action_dir, "pending", run_id=context["run_id"], date=context["date"])
+    return {"date": context["date"], "status": "actions-pending", "run_dir": str(run_dir),
+            "outputs": context["final_output_paths"], "action_dir": str(action_dir),
+            "prompt_path": str(prompt_path)}
 
 
 def finish_run(paths, config, run_dir):
@@ -502,7 +491,9 @@ def finish_run(paths, config, run_dir):
         update_completion(paths, review_date, entry)
         state(run_dir, "actions-pending", run_id=context["run_id"], date=review_date, outputs=finals)
         try:
-            finish_actions(config, run_dir, context, profile)
+            pending = finish_actions(config, run_dir, context, profile)
+            if pending is not None:
+                return pending
         except BaseException as error:
             state(run_dir, "actions-failed", run_id=context["run_id"], date=review_date,
                   outputs=finals, error=str(error))
@@ -510,7 +501,7 @@ def finish_run(paths, config, run_dir):
     entry.update(status="completed", completed_at=now().isoformat())
     update_completion(paths, review_date, entry)
     state(run_dir, "completed", run_id=context["run_id"], date=review_date, outputs=finals)
-    return {"status": "completed", "run_dir": str(run_dir), "outputs": finals}
+    return {"date": review_date, "status": "completed", "run_dir": str(run_dir), "outputs": finals}
 
 
 def prompt_for(run_dir):
@@ -554,7 +545,6 @@ def completed(paths, config, review_date):
 
 
 def analyze(paths, config, review_date, *, allow_empty=False, skip_completed=False, snapshot_end=None):
-    from .analyzers import codex
     with lock(paths, review_date):
         requested_end = snapshot_window(review_date, config["day_start_hour"], snapshot_end)[1]
         entry = day_entry(paths, review_date)
@@ -562,7 +552,7 @@ def analyze(paths, config, review_date, *, allow_empty=False, skip_completed=Fal
         snapshot_matches = (snapshot_end is None or
                             (previous_end is not None and datetime.fromisoformat(previous_end) == requested_end))
         if skip_completed and snapshot_matches and completed(paths, config, review_date):
-            return {"status": "already-completed"}
+            return {"date": review_date, "status": "already-completed", "run_dir": entry.get("run_dir")}
         profile = load_profile(config)
         expected = [item["final"] for item in output_layout(config, review_date, paths.state, profile)]
         if (entry.get("status") == "actions-pending" and profile and profile["post_review"]
@@ -576,15 +566,10 @@ def analyze(paths, config, review_date, *, allow_empty=False, skip_completed=Fal
             return prepared
         if prepared["status"] == "empty" and not allow_empty:
             return prepared
-        run_dir = Path(prepared["run_dir"])
-        state(run_dir, "analyzing", run_id=prepared["run_id"], date=review_date)
-        try:
-            codex.launch(config["codex"], run_dir, prompt_for(run_dir))
-            return finish_run(paths, config, run_dir)
-        except BaseException as error:
-            if not (run_dir / "publication.json").exists():
-                state(run_dir, "failed", run_id=prepared["run_id"], date=review_date, error=str(error))
-            raise
+        if prepared["status"] == "empty" and allow_empty:
+            prepared.update(status="prepared", allow_empty=True)
+            state(Path(prepared["run_dir"]), "prepared", run_id=prepared["run_id"], date=review_date)
+        return prepared
 
 
 def due(paths, config, max_days):
@@ -595,7 +580,8 @@ def due(paths, config, max_days):
     for offset in reversed(range(max_days)):
         review_date = (latest - timedelta(days=offset)).isoformat()
         if completed(paths, config, review_date):
-            results.append({"date": review_date, "status": "already-completed"})
+            results.append({"date": review_date, "status": "already-completed",
+                            "run_dir": day_entry(paths, review_date).get("run_dir")})
             continue
         result = analyze(paths, config, review_date, skip_completed=True)
         results.append({"date": review_date, **result})

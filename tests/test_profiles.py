@@ -359,60 +359,63 @@ class ProfileTests(unittest.TestCase):
     def test_analyze_forwards_fixed_snapshot_to_prepare_and_completion(self):
         start, _ = runner.window(DAY, self.settings["day_start_hour"])
         cutoff = start + timedelta(hours=12)
-
-        def complete_review(settings, run_dir, prompt):
-            self.write_drafts(Path(run_dir), runner.read_object(Path(run_dir) / "context.json"))
-
-        with patch("my_big_brother.analyzers.codex.launch", side_effect=complete_review):
+        with patch("my_big_brother.analyzers.codex.launch") as launch:
             result = runner.analyze(self.paths, self.settings, DAY, snapshot_end=cutoff)
+        launch.assert_not_called()
+        run_dir = Path(result["run_dir"])
+        context = runner.read_object(run_dir / "context.json")
+        self.write_drafts(run_dir, context)
+        runner.finish_run(self.paths, self.settings, run_dir)
         self.assertEqual(datetime.fromisoformat(runner.day_entry(self.paths, DAY)["window"]["end"]), cutoff)
         self.assertFalse(runner.completed(self.paths, self.settings, DAY))
-        self.assertEqual(runner.read_object(Path(result["run_dir"]) / "state.json")["status"], "completed")
+        self.assertEqual(runner.read_object(run_dir / "state.json")["status"], "completed")
+
+    def finish_current_actions(self, run_dir):
+        self.complete_actions(self.settings, run_dir / "actions", "", write_paths=[str(self.write_root)])
+        return runner.finish_run(self.paths, self.settings, run_dir)
 
     def test_post_actions_run_after_publication_with_explicit_writable_roots(self):
         self.select_profile(post=True)
         run_dir, context = self.staged()
-        with patch("my_big_brother.analyzers.codex.launch", side_effect=self.complete_actions) as launch:
-            result = runner.finish_run(self.paths, self.settings, run_dir)
+        with patch("my_big_brother.analyzers.codex.launch") as launch:
+            pending = runner.finish_run(self.paths, self.settings, run_dir)
+            self.assertEqual(pending["status"], "actions-pending")
+            self.assertEqual(pending["action_dir"], str(run_dir / "actions"))
+            self.assertTrue(Path(pending["prompt_path"]).is_file())
+            result = self.finish_current_actions(run_dir)
+        launch.assert_not_called()
         self.assertEqual(result["status"], "completed")
-        self.assertEqual(launch.call_count, 1)
         self.assertTrue(runner.completed(self.paths, self.settings, DAY))
         self.assertEqual(runner.read_object(run_dir / "actions/state.json")["status"], "completed")
 
     def test_failed_actions_resume_same_run_without_rewriting_reports(self):
         self.select_profile(post=True)
         run_dir, context = self.staged()
-        with patch("my_big_brother.analyzers.codex.launch", side_effect=ValueError("interrupted operations")):
-            with self.assertRaisesRegex(ValueError, "interrupted operations"):
-                runner.finish_run(self.paths, self.settings, run_dir)
+        runner.finish_run(self.paths, self.settings, run_dir)
         self.assertFalse(runner.completed(self.paths, self.settings, DAY))
         self.assertEqual(runner.day_entry(self.paths, DAY)["status"], "actions-pending")
         final = Path(context["final_output_paths"][0])
         final.write_text("Human addition after review publication\n", encoding="utf-8")
-        with patch.object(runner, "latest_closed_date", return_value=DAY):
-            with patch("my_big_brother.analyzers.codex.launch", side_effect=self.complete_actions) as launch:
-                results = runner.due(self.paths, self.settings, 1)
-        self.assertEqual(launch.call_count, 1)
-        self.assertEqual(Path(launch.call_args.args[1]), run_dir / "actions")
+        with patch.object(runner, "latest_closed_date", return_value=DAY), \
+             patch("my_big_brother.analyzers.codex.launch") as launch:
+            results = runner.due(self.paths, self.settings, 1)
+            self.assertEqual(results[0]["status"], "actions-pending")
+            self.finish_current_actions(run_dir)
+        launch.assert_not_called()
         self.assertEqual(results[0]["run_dir"], str(run_dir))
         self.assertEqual(final.read_text(), "Human addition after review publication\n")
-        self.assertEqual(runner.read_object(run_dir / "actions/state.json")["attempt"], 2)
-        self.assertEqual(runner.read_object(run_dir / "actions/attempt-1.json")["status"], "failed")
 
     def test_same_fixed_snapshot_resumes_pending_actions_across_offsets(self):
         self.select_profile(post=True)
         start, _ = runner.window(DAY, self.settings["day_start_hour"])
         cutoff = start + timedelta(hours=12)
         run_dir, _ = self.staged(snapshot_end=cutoff)
-        with patch("my_big_brother.analyzers.codex.launch", side_effect=ValueError("interrupted operations")):
-            with self.assertRaises(ValueError):
-                runner.finish_run(self.paths, self.settings, run_dir)
+        runner.finish_run(self.paths, self.settings, run_dir)
         with patch.object(runner, "prepare_run") as prepare:
-            with patch("my_big_brother.analyzers.codex.launch", side_effect=self.complete_actions) as launch:
-                result = runner.analyze(self.paths, self.settings, DAY,
-                                        snapshot_end=cutoff.astimezone(SHANGHAI))
+            result = runner.analyze(self.paths, self.settings, DAY,
+                                    snapshot_end=cutoff.astimezone(SHANGHAI))
         prepare.assert_not_called()
-        self.assertEqual(launch.call_count, 1)
+        self.assertEqual(result["status"], "actions-pending")
         self.assertEqual(result["run_dir"], str(run_dir))
 
     def test_changed_fixed_snapshot_creates_review_instead_of_resuming_old_actions(self):
@@ -420,55 +423,50 @@ class ProfileTests(unittest.TestCase):
         start, _ = runner.window(DAY, self.settings["day_start_hour"])
         cutoff = start + timedelta(hours=12)
         old_run, _ = self.staged(snapshot_end=cutoff)
-        with patch("my_big_brother.analyzers.codex.launch", side_effect=ValueError("interrupted operations")):
-            with self.assertRaises(ValueError):
-                runner.finish_run(self.paths, self.settings, old_run)
-
-        def complete_both(settings, target, prompt, **keywords):
-            if Path(target).name == "actions":
-                self.complete_actions(settings, target, prompt, **keywords)
-            else:
-                self.write_drafts(Path(target), runner.read_object(Path(target) / "context.json"))
-
-        with patch("my_big_brother.analyzers.codex.launch", side_effect=complete_both) as launch:
-            result = runner.analyze(self.paths, self.settings, DAY, snapshot_end=cutoff + timedelta(hours=1))
-        self.assertEqual(launch.call_count, 2)
+        runner.finish_run(self.paths, self.settings, old_run)
+        result = runner.analyze(self.paths, self.settings, DAY, snapshot_end=cutoff + timedelta(hours=1))
+        self.assertEqual(result["status"], "prepared")
         self.assertNotEqual(result["run_dir"], str(old_run))
-        self.assertEqual(datetime.fromisoformat(runner.day_entry(self.paths, DAY)["window"]["end"]),
-                         cutoff + timedelta(hours=1))
-        self.assertEqual(runner.read_object(old_run / "actions/state.json")["status"], "failed")
+        context = runner.read_object(Path(result["run_dir"]) / "context.json")
+        self.assertEqual(datetime.fromisoformat(context["window"]["end"]), cutoff + timedelta(hours=1))
+        self.assertEqual(runner.read_object(old_run / "actions/state.json")["status"], "pending")
 
     def test_successful_action_receipt_is_validated_without_repeating_actions(self):
         self.select_profile(post=True)
-        run_dir, _ = self.staged()
-        with patch("my_big_brother.analyzers.codex.launch", side_effect=self.complete_actions):
-            runner.finish_run(self.paths, self.settings, run_dir)
+        run_dir, context = self.staged()
+        runner.finish_run(self.paths, self.settings, run_dir)
+        self.finish_current_actions(run_dir)
+        final = Path(context["final_output_paths"][0])
+        final.write_text("Manual post-publication correction\n", encoding="utf-8")
         with patch("my_big_brother.analyzers.codex.launch") as launch:
             runner.finish_run(self.paths, self.settings, run_dir)
         launch.assert_not_called()
+        self.assertEqual(final.read_text(), "Manual post-publication correction\n")
 
     def test_wrong_action_receipt_cannot_complete_day(self):
         self.select_profile(post=True)
         run_dir, _ = self.staged()
-
-        def wrong_receipt(settings, action_dir, prompt, *, write_paths):
-            config.write_json(Path(action_dir) / "action_receipt.json",
-                              {"run_id": "wrong", "date": DAY, "status": "completed"})
-
-        with patch("my_big_brother.analyzers.codex.launch", side_effect=wrong_receipt):
-            with self.assertRaisesRegex(ValueError, "action receipt"):
-                runner.finish_run(self.paths, self.settings, run_dir)
+        runner.finish_run(self.paths, self.settings, run_dir)
+        receipt = run_dir / "actions/action_receipt.json"
+        config.write_json(receipt, {"run_id": "wrong", "date": DAY, "status": "completed"})
+        with self.assertRaisesRegex(ValueError, "action receipt"):
+            runner.finish_run(self.paths, self.settings, run_dir)
         self.assertFalse(runner.completed(self.paths, self.settings, DAY))
+        self.assertEqual(runner.read_object(receipt)["run_id"], "wrong")
+        self.assertEqual(runner.read_object(run_dir / "actions/state.json")["status"], "failed")
+        self.assertEqual(self.finish_current_actions(run_dir)["status"], "completed")
 
     def test_post_validator_failure_keeps_day_pending(self):
         self.select_profile(post=True)
         self.profile["post_review"]["validation_command"].append("reject")
         config.write_json(self.profile_path, self.profile)
         run_dir, _ = self.staged()
-        with patch("my_big_brother.analyzers.codex.launch", side_effect=self.complete_actions):
-            with self.assertRaisesRegex(ValueError, "action-validation failed"):
-                runner.finish_run(self.paths, self.settings, run_dir)
+        runner.finish_run(self.paths, self.settings, run_dir)
+        self.complete_actions(self.settings, run_dir / "actions", "", write_paths=[str(self.write_root)])
+        with self.assertRaisesRegex(ValueError, "action-validation failed"):
+            runner.finish_run(self.paths, self.settings, run_dir)
         self.assertFalse(runner.completed(self.paths, self.settings, DAY))
+        self.assertTrue((run_dir / "actions/action_receipt.json").exists())
 
     def test_publication_retry_recovers_own_partial_file_replacements(self):
         run_dir, context = self.staged()

@@ -2,7 +2,6 @@
 
 import argparse
 import json
-import shutil
 import subprocess
 import sys
 from datetime import datetime
@@ -22,7 +21,7 @@ def parser():
     init.add_argument("--results-root")
     init.add_argument("--raw-logs-root")
     commands.add_parser("paths", help="Show resolved paths without changing them")
-    commands.add_parser("doctor", help="Check configuration and installed inputs/analyzer")
+    commands.add_parser("doctor", help="Check configuration and input paths")
     for name in ("prepare", "analyze"):
         command = commands.add_parser(name)
         command.add_argument("--date", help="Review date YYYY-MM-DD, default last closed logical day")
@@ -31,7 +30,7 @@ def parser():
             command.add_argument("--allow-empty", action="store_true", help="Explicitly analyze a day with no evidence")
     finish = commands.add_parser("finish", help="Validate and publish a review from the current Agent")
     finish.add_argument("--run-dir", required=True)
-    due = commands.add_parser("due", help="Analyze missing completed days with evidence using Codex")
+    due = commands.add_parser("due", help="Prepare missing daily reviews for the current Agent")
     due.add_argument("--max-days", type=int, default=7)
     return result
 
@@ -66,14 +65,13 @@ def main(argv=None):
             if args.command == "doctor":
                 native = {name: spec.get("path") or str(raw_logs_root(paths))
                           for name, spec in settings["sources"].items() if spec.get("enabled", True)}
-                executable = shutil.which(settings["codex"]["executable"])
                 value = {"paths": resolved(paths, settings), "python": sys.version.split()[0],
-                         "analyzer_executable": executable,
+                         "analyzer": settings["analyzer"],
                          "sources": {name: {"path": path, "exists": Path(path).exists()}
                                      for name, path in native.items() if path is not None},
-                         "note": "Source presence does not verify supported contents or Codex login. Run prepare, then analyze."}
+                         "note": "Source presence does not verify supported contents. Run analyze and inspect its task ticket."}
                 print(json.dumps(value, indent=2, ensure_ascii=False))
-                return 0 if executable else 1
+                return 0
             elif args.command == "prepare":
                 review_date = args.date or runner.latest_closed_date(settings["day_start_hour"])
                 with runner.lock(paths, review_date):

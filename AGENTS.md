@@ -9,6 +9,9 @@ Do not treat this file as the daily analysis task itself.
 - Keep shared preparation and run management in `my_big_brother/`.
 - Keep semantic analysis rules in `tasks/`. Agents lead the interpretation.
 - Treat source adapters and analyzer launchers as independent capabilities.
+- Keep Agent invocation only in independent startup entries. Common review
+  scripts never launch a harness. The executing Agent follows AUTOMATION.md
+  and performs both review and configured post-review itself.
 - Keep collectors limited to recording activity in their host environment.
 - Keep user configuration, logs, results, and state outside the repository.
 - Keep the core standard-library only. Recommend Python 3.11+.

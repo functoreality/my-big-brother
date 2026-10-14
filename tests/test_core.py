@@ -90,7 +90,7 @@ class CoreTests(unittest.TestCase):
     def test_invalid_config_is_reported(self):
         for field, value in (("day_start_hour", True), ("day_start_hour", 24),
                              ("results_root", "relative"), ("outputs", ["typo"]),
-                             ("analyzer", "opencode"), ("unexpected", True)):
+                             ("analyzer", " "), ("unexpected", True)):
             settings = dict(self.settings)
             settings[field] = value
             config.write_json(self.paths.config / "config.json", settings)
@@ -167,17 +167,52 @@ class CoreTests(unittest.TestCase):
         self.assertEqual(result["status"], "empty")
         launch.assert_not_called()
 
-    def test_backend_failure_keeps_stable_results_and_diagnostics(self):
+    def test_prepare_ticket_keeps_stable_results_until_agent_completes(self):
         self.evidence()
         final = Path(self.settings["results_root"]) / "records/worklog/2020-01-15.md"
         final.parent.mkdir(parents=True, exist_ok=True)
         final.write_text("Existing report\n", encoding="utf-8")
-        with patch("my_big_brother.analyzers.codex.launch", side_effect=ValueError("test failure")):
-            with self.assertRaisesRegex(ValueError, "test failure"):
-                runner.analyze(self.paths, self.settings, "2020-01-15")
+        with patch("my_big_brother.analyzers.codex.launch") as launch:
+            result = runner.analyze(self.paths, self.settings, "2020-01-15")
+        launch.assert_not_called()
         self.assertEqual(final.read_text(), "Existing report\n")
-        states = list((self.paths.state / "runs").rglob("state.json"))
-        self.assertEqual(runner.read_object(states[0])["status"], "failed")
+        self.assertEqual(result["status"], "prepared")
+        run = Path(result["run_dir"])
+        self.assertEqual(runner.read_object(run / "state.json")["status"], "prepared")
+        self.assertTrue(Path(result["prompt_path"]).is_file())
+        self.assertFalse((run / "completion.json").exists())
+
+    def test_custom_agent_configuration_and_doctor_need_no_codex(self):
+        self.settings["analyzer"] = "a-user-selected-agent"
+        self.settings["codex"] = {"unused_other_launcher_option": True}
+        config.write_json(self.paths.config / "config.json", self.settings)
+        loaded = config.load(self.paths)
+        self.assertEqual(loaded["analyzer"], "a-user-selected-agent")
+        with patch.object(cli, "discover", return_value=self.paths), \
+             patch("shutil.which", return_value=None), contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(cli.main(["doctor"]), 0)
+        self.evidence()
+        result = runner.analyze(self.paths, loaded, "2020-01-15")
+        self.assertEqual(result["status"], "prepared")
+
+    def test_due_returns_bounded_tickets_oldest_first_without_launch(self):
+        self.evidence("2020-01-14")
+        self.evidence("2020-01-15")
+        with patch.object(runner, "latest_closed_date", return_value="2020-01-15"), \
+             patch("my_big_brother.analyzers.codex.launch") as launch:
+            tickets = runner.due(self.paths, self.settings, 3)
+        self.assertEqual([item["date"] for item in tickets], ["2020-01-13", "2020-01-14", "2020-01-15"])
+        self.assertEqual([item["status"] for item in tickets], ["empty", "prepared", "prepared"])
+        launch.assert_not_called()
+        for limit in (0, 32):
+            with self.assertRaises(ValueError):
+                runner.due(self.paths, self.settings, limit)
+
+    def test_explicit_empty_review_produces_a_task_ticket(self):
+        ticket = runner.analyze(self.paths, self.settings, "2020-01-15", allow_empty=True)
+        self.assertEqual(ticket["status"], "prepared")
+        self.assertTrue(ticket["allow_empty"])
+        self.assertEqual(ticket["entries"], 0)
 
     def test_successful_due_is_skipped_without_account_usage(self):
         self.evidence()

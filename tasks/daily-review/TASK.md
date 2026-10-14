@@ -6,7 +6,7 @@ The program prepares evidence and checks publication, rather than prescribing
 each semantic step.
 
 Read `INPUTS.md`, `OUTPUTS.md`, and `WORKFLOW.md` in this directory first.
-Then read the run's `context.json` and `manifest.json` supplied by the launcher.
+Then read the prepared run's `context.json` and `manifest.json`.
 Use their resolved paths, date, language, time window, and selected outputs.
 Do not infer configuration from another installation or the working directory.
 When `context.profile` is configured, read its explicit instruction files and
