@@ -65,6 +65,60 @@ class SourceTests(unittest.TestCase):
         self.assertEqual(len([r for r in rows if r["role"] == "user"]), 2)
         self.assertEqual(len([r for r in rows if r["role"] == "assistant_final"]), 1)
 
+    def test_codex_mirrors_with_distinct_ids_preserve_repeated_requests(self):
+        events = []
+        for number, seconds in enumerate((0, 2)):
+            timestamp = (self.start + timedelta(seconds=seconds)).isoformat()
+            events.extend([
+                self.response("user", "Run again", f"msg-{number}", timestamp=timestamp),
+                {"timestamp": timestamp, "type": "event_msg", "payload": {
+                    "type": "item_completed", "item": {"type": "UserMessage",
+                        "id": f"item-{number}", "content": [{"type": "text", "text": "Run again"}]}}},
+            ])
+        self.write_events("distinct-mirrors.jsonl", events)
+        rows = codex.collect(self.root, self.start, self.end).rows
+        self.assertEqual(len(rows), 2)
+        self.assertEqual([row["message_id"] for row in rows], ["msg-0", "msg-1"])
+
+    def test_codex_same_id_mirror_does_not_hide_next_event_request(self):
+        events = [self.response("user", "Run again", "first")]
+        for identifier, seconds in (("first", 0), ("second", 2)):
+            events.append({"timestamp": (self.start + timedelta(seconds=seconds)).isoformat(),
+                "type": "event_msg", "payload": {"type": "item_completed", "item": {
+                    "type": "UserMessage", "id": identifier,
+                    "content": [{"type": "text", "text": "Run again"}]}}})
+        self.write_events("same-id-mirror.jsonl", events)
+        rows = codex.collect(self.root, self.start, self.end).rows
+        self.assertEqual([row["message_id"] for row in rows], ["first", "second"])
+
+    def test_codex_injected_context_metadata_is_not_user_activity(self):
+        events = []
+        for kinds in (["environments.environment_context"],
+                      ["agents_md.instructions", "environments.environment_context"]):
+            event = self.response("user", "Host context")
+            event["payload"]["internal_chat_message_metadata_passthrough"] = {
+                "content_item_kinds": kinds}
+            events.append(event)
+        event = self.response("user", "Host context", "actual-user")
+        event["payload"]["internal_chat_message_metadata_passthrough"] = {
+            "content_item_kinds": ["user.text"]}
+        events.append(event)
+        self.write_events("host-context.jsonl", events)
+        rows = codex.collect(self.root, self.start, self.end).rows
+        self.assertEqual([row["message_id"] for row in rows], ["actual-user"])
+
+    def test_codex_unknown_or_mixed_metadata_preserves_user_text(self):
+        events = []
+        for number, kinds in enumerate(([], ["future.kind"],
+                                       ["environments.environment_context", "user.text"],
+                                       {"unexpected": "shape"})):
+            event = self.response("user", f"Request {number}")
+            event["payload"]["internal_chat_message_metadata_passthrough"] = {
+                "content_item_kinds": kinds}
+            events.append(event)
+        self.write_events("unknown-metadata.jsonl", events)
+        self.assertEqual(len(codex.collect(self.root, self.start, self.end).rows), 4)
+
     def test_codex_window_boundary_and_partial_line(self):
         path = self.write_events("session.jsonl", [
             self.response("user", "Before", timestamp=(self.start - timedelta(seconds=1)).isoformat()),

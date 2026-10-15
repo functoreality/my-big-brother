@@ -29,14 +29,18 @@ for one pass, read it in complete consecutive blocks and record progress.
 The adapter reads native session JSONL, retaining user requests and assistant
 final text from supported user sessions. System and developer messages, tool
 calls, tool results, and identified child sessions are excluded.
+Host-injected AGENTS and environment context identified by native content-kind
+metadata are excluded even when stored with the user role. Unknown or mixed
+metadata remains evidence. Message wording alone is not an exclusion rule.
 Native histories remain at their configured location and are not moved into
 this project's raw log directory.
 
 Supported JSONL representations include `response_item` messages and known
 `event_msg` user/final-assistant forms. Unmarked assistant response items are
 excluded with a gap, because their final-result status cannot be established.
-Known mirrored representations are deduplicated, while repeated user messages
-are preserved. Identified review runs are excluded from the user's activity.
+Known mirrored representations are deduplicated even when their native IDs
+differ, while repeated user messages are preserved. Identified review runs
+are excluded from the user's activity.
 
 User text establishes a request or decision, not necessarily its completion.
 Assistant final text can establish a reported result, with that limitation.

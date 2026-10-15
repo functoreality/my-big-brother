@@ -22,6 +22,15 @@ def _candidate(event: dict) -> tuple[str, str, str | None, str] | None:
     representation = event.get("type")
     if representation == "response_item" and payload.get("type") == "message":
         if payload.get("role") == "user":
+            metadata = payload.get("internal_chat_message_metadata_passthrough")
+            kinds = metadata.get("content_item_kinds") if isinstance(metadata, dict) else None
+            # The harness stores injected instructions as user-role messages.
+            # Exclude identified host context, never text by its wording.
+            if isinstance(kinds, list) and kinds and all(
+                kind in ("agents_md.instructions", "environments.environment_context")
+                for kind in kinds
+            ):
+                return None
             role = "user"
         elif payload.get("role") == "assistant" and (
             payload.get("phase") in ("final_answer", "final")
@@ -107,28 +116,29 @@ def collect(path: Path, start: datetime, end: datetime) -> SourceResult:
         if excluded:
             continue
         gaps.extend(session_gaps)
-        seen_ids = set()
+        seen_ids = {}
         mirrored = {}
         for timestamp, ordinal, role, content, identifier, representation in candidates:
             if identifier and (role, identifier) in seen_ids:
+                seen_ids[(role, identifier)]["representations"].add(representation)
                 continue
-            # Older logs mirror messages without IDs. Match only different
-            # representations nearby, so repeated human messages remain intact.
+            # IDs can differ between wire representations of one message.
+            # Pair nearby mirrors once per representation, preserving repeated
+            # requests within the same representation.
             fingerprint = (role, content)
             previous_messages = mirrored.setdefault(fingerprint, [])
             duplicate = next((previous for previous in reversed(previous_messages)
                 if representation not in previous["representations"]
-                and abs((timestamp - previous["timestamp"]).total_seconds()) <= 5
-                and not (identifier and previous["id"] and identifier != previous["id"])), None)
+                and abs((timestamp - previous["timestamp"]).total_seconds()) <= 5), None)
             if duplicate is not None:
                 duplicate["representations"].add(representation)
                 if identifier:
-                    seen_ids.add((role, identifier))
+                    seen_ids[(role, identifier)] = duplicate
                 continue
+            message = {"timestamp": timestamp, "representations": {representation}}
             if identifier:
-                seen_ids.add((role, identifier))
-            previous_messages.append({"timestamp": timestamp, "id": identifier,
-                "representations": {representation}})
+                seen_ids[(role, identifier)] = message
+            previous_messages.append(message)
             rows.append({
                 "timestamp": timestamp.isoformat(), "role": role, "content": content,
                 "thread_source": thread_source, "session_path": str(session_path),
