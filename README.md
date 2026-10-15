@@ -40,9 +40,11 @@ separate capabilities, as noted below.
   recorder, and Vim/Neovim sessions collected by the separate
   [session-recorder.vim](https://github.com/functoreality/session-recorder.vim)
   plugin. **Planned** VS Code and additional application collectors/readers.
-- **Screenshots:** **Available** reading of existing captures and generation
-  of contact sheets with optional Pillow. **Planned** a packaged portable
-  capture setup. The reader does not start a screenshot loop.
+- **Periodic screenshots: Planned.** An official periodic capture tool and
+  portable capture setup are not yet provided, so recording is not ready to
+  start out of the box. If your own collector already takes periodic captures,
+  **Available** readers can process those images and generate contact sheets
+  with optional Pillow. Neither installation nor the reader starts capture.
 - **Browser activity:** **Planned** collection and reading of browsing records.
 
 Have another source in mind? Open an [issue](https://github.com/functoreality/my-big-brother/issues)

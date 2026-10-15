@@ -37,8 +37,10 @@ Agent 负责理解记录，也可以通过显式个人配置维护长期背景�
   以及由独立插件
   [session-recorder.vim](https://github.com/functoreality/session-recorder.vim)
   采集的 Vim/Neovim 会话。**计划中**：VS Code 和更多软件的采集器、读取器。
-- **屏幕截图：已支持**读取已有截图，并通过可选依赖 Pillow 生成联系表。
-  **计划中**：打包好的跨平台截图采集配置。读取器本身不会启动截图循环。
+- **周期性屏幕截图：计划中**。尚未提供官方周期截图采集器与跨平台采集配置，
+  因此不能直接开始持续采集。如果你已用自己的程序定期截图，
+  当前读取器**已支持**处理这些已有截图，并通过可选依赖 Pillow 生成联系表。
+  安装本项目或启用读取器都不会启动截图循环。
 - **浏览器使用记录：计划中**采集和读取浏览活动记录。
 
 欢迎通过 [issue](https://github.com/functoreality/my-big-brother/issues)
