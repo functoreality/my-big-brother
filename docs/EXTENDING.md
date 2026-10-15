@@ -40,11 +40,17 @@ task input rules, and synthetic format tests. The current registration is
 explicit. There is no third-party plugin loader or universal activity schema.
 Document supported versions and represent parsing failures as coverage gaps.
 
-Read upstream histories without changing them. For new collectors, use the
-optional `C/storage.json` root override and register a calendar date before writing
-`raw-logs/YYYY-MM-DD/<source>/`. Honor discarded dates instead of recreating
-missing directories. See [Storage v2](STORAGE.md). Collectors do not read
-`results_root`.
+Read upstream histories without changing them. Independent collectors use
+`C/raw-logs-path.txt` or the platform default, then write
+`raw-logs/YYYY-MM-DD/<source>/`. They do not require `storage.json`, runtime
+registration or `results_root`. Keep their path selection simple. Bash, Vim
+and screenshot source roots must contain the date/source structure, even
+when explicitly configured. Do not add old-layout discovery or migration.
+
+Managed application helpers, such as `capture-path` and `record-screenshot`,
+use the storage protocol to register dates and honor discarded workspaces.
+This does not impose the runtime protocol on independent recorders.
+See [Storage](STORAGE.md).
 
 Choose a recording's date and path when it begins, then keep that location.
 Do not rotate a Bash or editor session at midnight or a review boundary.

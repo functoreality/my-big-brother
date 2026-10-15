@@ -1,6 +1,6 @@
 """Storage v2 protocol for managed application writes.
 
-This module uses only the standard library and has no package imports.
+Persistent storage is separate from the independent recorder path contract.
 All writers register a calendar date before creating it. Missing registered
 workspaces are abandoned, even if a review or a collector failed.
 """
@@ -9,7 +9,7 @@ import json
 import os
 import uuid
 from contextlib import contextmanager
-from datetime import date, datetime, time, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 from .collector_paths import capture_root, platform_paths
@@ -74,18 +74,6 @@ def timestamp(value=None):
     return result.astimezone()
 
 
-def managed_layout(raw_logs_root):
-    root = Path(raw_logs_root)
-    marker = root.parent / 'memory/_system/identity.json'
-    if root.name != 'raw-logs' or not marker.exists():
-        return None
-    result = Layout(read_json(marker))
-    result.check()
-    if result.raw_logs.resolve() != root.resolve():
-        raise ValueError('Raw-log directory does not match its persistent storage contract')
-    return result
-
-
 class Layout:
     def __init__(self, value, raw_logs_root=None):
         if (set(value) != {"schema_version", "data_root"}
@@ -105,12 +93,10 @@ class Layout:
             raise ValueError('Capture storage and permanent memory must not overlap')
 
     @classmethod
-    def load(cls, config_dir, *, required=True, default_data_root=None):
+    def load(cls, config_dir, *, default_data_root=None):
         path = Path(config_dir) / "storage.json"
         if not path.exists():
-            if required:
-                raise ValueError("Storage v2 is not initialized. Run init.")
-            return None
+            raise ValueError("Storage v2 is not initialized. Run init.")
         settings = read_json(path)
         default = platform_paths()[1] if default_data_root is None else default_data_root
         result = cls(settings, capture_root(config_dir, default))
@@ -180,16 +166,14 @@ class Layout:
         launch.mkdir(parents=True, mode=0o700)
         return launch
 
-    def bounds(self, day):
+    def validate_day(self, day):
         parsed = date.fromisoformat(day)
         if parsed.isoformat() != day:
             raise ValueError("Dates must use YYYY-MM-DD")
-        return (datetime.combine(parsed, time()).astimezone(),
-                datetime.combine(parsed + timedelta(days=1), time()).astimezone())
 
     def _record(self, day):
         self.check()
-        self.bounds(day)
+        self.validate_day(day)
         path = self.system / "days" / (day + ".json")
         value = read_json(path) if path.exists() else None
         if value is not None:
@@ -206,23 +190,21 @@ class Layout:
 
     def record(self, day):
         self.check()
-        self.bounds(day)
+        self.validate_day(day)
         with file_lock(self.system / "locks" / "storage" / (day + ".lock")):
             return self._record(day)
 
     def ensure_day(self, day, *, recreate=False):
         self.check()
-        self.bounds(day)
+        self.validate_day(day)
         with file_lock(self.system / "locks" / "storage" / (day + ".lock")):
             record = self._record(day)
             if record and record["disposition"] == "discarded" and not recreate:
                 raise DiscardedDay("Day workspace was discarded: " + day)
             directory = self.raw_logs / day
             if record is None or record["disposition"] == "discarded":
-                start, end = self.bounds(day)
                 record = {"date": day, "workspace_id": uuid.uuid4().hex,
-                          "disposition": "retained", "review": (record or {}).get("review", {}),
-                          "window": {"start": start.isoformat(), "end": end.isoformat()}}
+                          "disposition": "retained", "review": (record or {}).get("review", {})}
                 write_json(self.system / "days" / (day + ".json"), record)
                 directory.mkdir(parents=True, exist_ok=True, mode=0o700)
                 write_json(directory / "_workspace.json", {"workspace_id": record["workspace_id"]})
@@ -230,7 +212,7 @@ class Layout:
 
     def update_review(self, day, review):
         self.check()
-        self.bounds(day)
+        self.validate_day(day)
         with file_lock(self.system / "locks" / "storage" / (day + ".lock")):
             value = self._record(day)
             if value is None or value["disposition"] == "discarded":

@@ -27,9 +27,9 @@ Do not treat this file as the daily analysis task itself.
   the full input starts executing. Boundary-event `cwd` describes the boundary
   instant. Do not add separate before/after directory fields or substitute
   first-simple-command capture. JSONL includes inputs excluded by native
-  history filters and supports zero history size and disabled history-file persistence. Preserve native
-  history contents and execution settings. `set +o history` remains an explicit
-  unresolved capture gap. See docs/BASH.md before changing this behavior.
+  history filters and supports zero history size and disabled history-file
+  persistence. Preserve native history contents and execution settings.
+  `set +o history` remains an explicit unresolved capture gap. See docs/BASH.md before changing this behavior.
 - Treat source adapters and analyzer launchers as independent capabilities.
 - Keep Agent invocation only in independent startup entries. Common review
   scripts never launch a harness. The executing Agent follows AUTOMATION.md
@@ -48,6 +48,9 @@ Do not treat this file as the daily analysis task itself.
   See `docs/STORAGE.md` before changing paths or adding a collector.
   Bash and Vim readers search all retained date trees and filter by actual
   event time or session overlap. Window-date directories alone are insufficient.
+  Bash, Vim and screenshots accept only date/source trees beneath the source
+  root, even with an explicit path. Do not restore flat layouts, source-first
+  layouts, old-root guessing or migration tools.
 - Keep the core standard-library only. Recommend Python 3.11+.
 - Prefer syntax and standard-library APIs available in Python 3.7 unless the
   equivalent would noticeably complicate the implementation. Do not introduce

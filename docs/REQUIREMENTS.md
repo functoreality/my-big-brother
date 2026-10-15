@@ -90,6 +90,9 @@ Formal reports remain in `memory` or explicitly selected permanent targets.
   `C/raw-logs-path.txt`, then the platform data directory's `raw-logs`. It does
   not register dates or vendor the shared runtime protocol. All selections
   use `YYYY-MM-DD/vim/<session>/` without old-layout or migration fallbacks.
+- Bash, Vim and screenshot source adapters accept only date/source layouts
+  beneath their configured root. Explicit paths do not enable flat layouts,
+  source-first directories, old-root guessing or migration.
 - Collectors do not launch an analysis Agent or read its personal policies.
 
 ## Manual cleanup

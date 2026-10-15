@@ -41,11 +41,15 @@ def collect(path: Path, start: datetime, end: datetime) -> SourceResult:
 请说明支持的版本，并把解析失败表示为证据覆盖缺口。
 
 读取上游历史时，不要修改原始文件。
-新增采集器默认独立运行，可用可选的 `C/storage.json` 指定共享数据根。
-登记后写入
-`raw-logs/YYYY-MM-DD/<source>/`，按本机自然日期归档。
-已放弃的日期不得重建，记录自身带时间戳。完整协议见[存储 v2](STORAGE.md)。
-采集器不读取 `results_root`。
+独立采集器通过 `C/raw-logs-path.txt` 或平台默认值选择根目录，
+写入 `raw-logs/YYYY-MM-DD/<source>/`。它们不依赖 `storage.json`、
+运行登记或 `results_root`，应保持路径选择简单。
+Bash、Vim 和截图来源即使明确配置根路径，也必须采用日期/来源结构。
+不要添加旧目录探测或迁移。
+
+主项目管理的 `capture-path`、`record-screenshot` 等辅助命令，
+使用存储协议登记日期并尊重已放弃的工作区，
+但这不要求独立采集器依赖运行时协议。详见[存储说明](STORAGE.md)。
 每份记录开始时确定日期和路径，之后保持位置不变。
 不要因午夜或复盘分界而拆分 Bash、编辑器会话。
 读取器必须能从较早启动日期下找到当前事件。

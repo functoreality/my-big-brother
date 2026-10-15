@@ -1,11 +1,10 @@
 """Discover machine-local paths independently of the checkout location."""
 
-import os
-import sys
 from dataclasses import dataclass
 from pathlib import Path
 
 from .storage import Layout
+from .collector_paths import platform_paths
 
 
 @dataclass(frozen=True)
@@ -31,25 +30,7 @@ class Paths:
 
 
 def discover(*, system=None, home=None, environ=None) -> Paths:
-    system = sys.platform if system is None else system
-    home = Path.home() if home is None else Path(home)
-    environ = os.environ if environ is None else environ
-    if system == "darwin":
-        base = home / "Library" / "Application Support" / "my-big-brother"
-        return Paths(base / "configs", base / "data")
-    if system == "win32":
-        base = Path(environ.get("LOCALAPPDATA") or home / "AppData" / "Local")
-        base = base / "my-big-brother"
-        return Paths(base / "configs", base / "data")
-
-    def xdg(name, fallback):
-        value = Path(environ.get(name, ""))
-        return value if value.is_absolute() else fallback
-
-    return Paths(
-        xdg("XDG_CONFIG_HOME", home / ".config") / "my-big-brother",
-        xdg("XDG_DATA_HOME", home / ".local" / "share") / "my-big-brother",
-    )
+    return Paths(*platform_paths(system, home, environ))
 
 
 def absolute(value, name) -> Path:
