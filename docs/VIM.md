@@ -48,15 +48,22 @@ let g:vim_session_recorder#config = {
 
 ## Share the shared storage
 
-The plugin works independently with platform defaults. Optional
-`C/storage.json` selects a custom data root. It registers the session's local
-start date and writes one session under `daily/YYYY-MM-DD/vim/` per editor
-process. The directory stays under that start date even across midnight.
-No extra Vim path variable is needed.
-`record_dir` is an explicit standalone override and opts out of this lifecycle.
-Ask before removing it or changing editor configuration. Preserve old records.
-Update the complete plugin, including `python/storage.py`, before enabling v2.
-See [Storage v2](STORAGE.md). Never use permanent results as a capture target.
+The plugin resolves its recording root once at startup:
+
+1. Vim `record_dir`, if explicitly configured.
+2. `C/raw-logs-path.txt`, containing one UTF-8 absolute path.
+3. The platform data directory followed by `daily`.
+
+All roots use `YYYY-MM-DD/vim/<session>/`. The TXT file names the root before
+the date, so sharing a custom main-application data root means putting its
+`daily` path in the locator. Keep `sources.vim.path` pointed at that same root
+if it differs from the main application's daily directory.
+The plugin does not read `storage.json` or participate in date registration.
+It creates the session folder at startup and uses that exact folder at exit,
+without reloading configuration, rotating or recreating a removed folder.
+There is no managed/standalone split, migration or legacy-layout discovery.
+Update the whole plugin. Preserve exclusions and existing records, and ask
+before changing the user's editor configuration or recording destination.
 Ensure GUI editors, shells and schedulers use the same account and location
 settings. WSL and remote editors have their own environments.
 

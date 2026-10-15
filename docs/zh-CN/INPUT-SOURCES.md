@@ -49,15 +49,12 @@ daily/YYYY-MM-DD/vim/session/<modification diff artifacts>
 跨午夜也不分段。已有文件打开当下保存原始快照，退出时生成最终 diff 和
 `record.json`。共享存储不要求午夜分段、定时或事件触发的检查点。
 
-读取器递归查找全部保留日期中的 Vim manifest，
-再按真实会话区间与复盘窗口是否重叠筛选。
-明确配置的独立 Vim 来源同样递归查找。
-不能只查窗口覆盖的日期目录，否则会漏掉更早启动的跨日会话。
-
-历史记录可能带有 `segment_open` 或 `boundary_diff_file`，读取器可保留兼容。
-这些字段不代表新会话必须采用分段或检查点行为。
-旧 `segment_open` 表示活动检查点，不证明编辑器已经退出。
-旧边界 diff 跨越未观察区间，不能将变化全部归到新一天。
+Vim 只读取 `<根目录>/YYYY-MM-DD/vim/<会话>/record.json` 这一种结构。
+先查找全部保留日期，再按真实会话区间筛选。
+插件只在启动时通过 `record_dir`、纯路径 TXT 或平台默认值确定根目录。
+需要时将 `sources.vim.path` 显式设为同一根目录。
+不读取旧平铺目录、`root/vim`，也不通过其他目录搜索来兜底。
+已移除的日分段字段不改变整场会话的解释。
 
 每条 manifest 都需要 `vim_start`。
 旧记录中的开放会话可以没有 `vim_close`。

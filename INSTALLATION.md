@@ -156,9 +156,11 @@ Plug 'functoreality/session-recorder.vim'
 
 Adapt the declaration for another manager or Neovim Lua configuration.
 Do not replace the entire vimrc or assume a fixed configuration path.
-Use the shared storage configuration. No extra path variable is normally needed.
-An explicit `record_dir` override selects standalone recording.
-Ask before removing it to enable the shared calendar-date lifecycle.
+The plugin resolves `record_dir`, then the one-path UTF-8 file
+`C/raw-logs-path.txt`, then the platform data directory's `daily` at startup.
+For a custom data root, configure that TXT to contain the same `daily` path
+used by the enabled Vim source, unless an intentional `record_dir` overrides it.
+It does not read `storage.json`, register dates or migrate previous records.
 Preserve exclusions and specify the intended native Python when needed.
 
 Ask the user to restart their editor, then check `:RecorderStatus`.

@@ -52,16 +52,12 @@ opened, and the final diff and `record.json` are written at exit. Shared
 storage does not require midnight segments or periodic or event-driven
 checkpoints.
 
-Preparation recursively searches all retained Vim date trees for manifests,
-then selects sessions whose actual intervals overlap the review window.
-Standalone sources are also scanned recursively. Searching only the window's
-date directories would miss sessions started on an earlier date.
-
-Historical records may contain `segment_open` or `boundary_diff_file`.
-Readers may retain compatibility with them, but they are not required fields
-or required recording behavior for new sessions. An old `segment_open` record
-is a checkpoint, not evidence of editor exit. A historical boundary diff must
-not be attributed entirely to the new day.
+Vim roots have one supported layout: `<root>/YYYY-MM-DD/vim/<session>/record.json`.
+Preparation searches all retained date folders before filtering actual intervals.
+The plugin selects its root once using `record_dir`, the one-path TXT locator,
+or the platform default. Set `sources.vim.path` to that same root when needed.
+Old flat session roots, `root/vim` and automatic root-search fallbacks are not
+supported. Removed day-segment fields do not change whole-session semantics.
 
 Each manifest needs `vim_start`. Historical open-session manifests may omit
 `vim_close`.

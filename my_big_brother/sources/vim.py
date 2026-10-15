@@ -10,25 +10,13 @@ from pathlib import Path, PureWindowsPath
 
 from . import SourceResult, parse_timestamp
 from ..paths import is_within
-from ..storage import managed_layout
 
 
 def _record_paths(root: Path) -> tuple[list[Path], bool]:
-    layout = managed_layout(root)
-    # A completed session can live under a much earlier opening date.
-    # Discover every retained Vim directory before filtering actual timestamps.
-    directories = sorted(path for path in root.glob("*/vim") if path.is_dir())
-    for relative in ("vim",):
-        directory = root / relative
-        if directory.is_dir() and directory not in directories:
-            directories.append(directory)
-    # An explicitly configured Vim source root has session folders directly
-    # below it. Do not fall back across other sources in a shared capture tree.
-    shared_tree = any(path.is_dir() for pattern in ("*/bash", "*/screenshots", "bash", "screenshots") for path in root.glob(pattern))
-    if layout is None and not directories and not shared_tree:
-        records = sorted(root.rglob("record.json"))
-        return records, bool(records) or root.name in ("vim", "vim-records")
-    return sorted({path for directory in directories for path in directory.rglob("record.json")}), layout is not None or bool(directories)
+    # Sessions remain under their start dates, which can precede the window.
+    directories = [path for path in root.glob("*/vim") if path.is_dir()]
+    return sorted(path for directory in directories
+                  for path in directory.glob("*/record.json")), bool(directories)
 
 
 def _artifact_metadata(directory: Path) -> list[dict]:
@@ -67,8 +55,8 @@ def _artifact_reference(directory: Path, value: object) -> dict:
 def collect(source_root: Path, start: datetime, end: datetime) -> SourceResult:
     """Index whole sessions intersecting the analysis window across start dates.
 
-    Explicit standalone roots are discovered recursively. Naive historical
-    timestamps use the host local zone. The complete original manifest stays
+    Source roots use DATE/vim/SESSION/record.json exclusively. Local timestamps
+    use the host local zone. The complete original manifest stays
     in ``record_metadata``.
     """
     if not source_root.is_dir():
@@ -123,11 +111,6 @@ def collect(source_root: Path, start: datetime, end: datetime) -> SourceResult:
         if local_naive:
             gaps.append(f"Vim legacy naive timestamp assumes host local timezone, DST may be ambiguous: {record_path}")
         session_status = "closed" if session_end is not None else "open"
-        if payload.get("storage_version") == 2 and "segment_open" in payload:
-            if payload.get("segment_open") is True:
-                session_status = "checkpoint"
-            if payload.get("boundary_gap"):
-                gaps.append(f"Vim day rollover has an unobserved interval: {record_path}")
         if session_end is None:
             gaps.append(f"Vim session is open at snapshot, complete diff unavailable: {record_path}")
         opened = payload.get("opened_files", [])
@@ -165,7 +148,7 @@ def collect(source_root: Path, start: datetime, end: datetime) -> SourceResult:
                 if item.get("snapshot_status") != "ok":
                     gaps.append(f"Vim snapshot unavailable ({item.get('snapshot_status', 'missing status')}): {record_path} entry {ordinal}")
                 if item.get("diff_generated") is not True:
-                    gaps.append(f"Vim comparison unavailable ({item.get('diff_status', item.get('snapshot_status', 'unknown'))}): {record_path} entry {ordinal}")
+                    gaps.append(f"Vim comparison unavailable ({item.get('error', item.get('snapshot_status', 'unknown'))}): {record_path} entry {ordinal}")
                 for key, output_key in (("original_file", "original_artifact"), ("diff_file", "diff_artifact")):
                     expected = key in item or (key == "original_file" and item.get("snapshot_status") == "ok") or (key == "diff_file" and item.get("diff_generated") is True and modified is True)
                     if not expected:
@@ -194,8 +177,6 @@ def collect(source_root: Path, start: datetime, end: datetime) -> SourceResult:
             "diff_scope": "Whole-session diff. Changes cannot be attributed to a clipped window interval." if session_start < start else "Whole-session diff, not individual edit timestamps.",
             "timestamp_timezone": "host_local_assumed" if local_naive else "explicit_offset",
         })
-        if payload.get("storage_version") == 2 and "segment_open" in payload:
-            rows[-1]["diff_scope"] = "Independent calendar-date segment through checkpoint, not individual edit timestamps."
     rows.sort(key=lambda row: (parse_timestamp(row["timestamp"]), row["record_path"]))
     status = "unavailable" if record_paths and valid_records == 0 else ("partial" if gaps else "ok")
     return SourceResult(rows, status, gaps)

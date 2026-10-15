@@ -64,13 +64,16 @@ Formal reports remain in `memory` or explicitly selected permanent targets.
 
 - Installing the main application or preparing its configuration is optional
   for using the Bash collector or the independent Vim plugin.
-- A missing `C/storage.json` selects platform-default data storage.
+- The main application and Bash use platform defaults when `C/storage.json`
+  is missing. Vim does not read this file.
 - An optional shared file selects a custom `data_root` and layout version.
   It contains no review settings. A present malformed file reports an error.
-- Runtime date-registration metadata is created automatically. It is separate
+- The main application and Bash create date-registration metadata. It is separate
   from optional user configuration and preserves deletion decisions.
-- Vim's explicit `record_dir` supports standalone session output for other
-  tools. It does not require shared configuration or the main application.
+- Vim selects its root once: `record_dir`, then the one-path UTF-8
+  `C/raw-logs-path.txt`, then the platform data directory's `daily`. It does
+  not register dates or vendor the shared runtime protocol. All selections
+  use `YYYY-MM-DD/vim/<session>/` without old-layout or migration fallbacks.
 - Collectors do not launch an analysis Agent or read its personal policies.
 
 ## Manual cleanup

@@ -53,12 +53,17 @@ Main application initialization writes optional collector configuration
 `C/storage.json` with `schema_version: 2` and `data_root`. Review settings,
 including `day_start_hour`, belong only to `C/config.json`.
 
-Recorders also work without the main application or either user configuration
-file. They use platform defaults when `C/storage.json` is missing and create
-runtime metadata automatically. An optional valid shared configuration selects
-a different data root. A malformed existing file or damaged runtime registry
-is an error. Runtime `memory/_system/identity.json` records storage identity,
-not a review calendar. No collector writes a user configuration file.
+The Bash collector works without the main application or either user
+configuration file. It uses platform defaults when `C/storage.json` is
+missing and creates runtime metadata automatically. An optional valid shared
+configuration selects a different data root. Malformed configuration or a
+damaged registry is an error. No collector writes user configuration.
+
+The independent Vim plugin uses a smaller path contract: `record_dir`, then
+`C/raw-logs-path.txt` containing only an absolute capture-root path, then the
+platform data directory's `daily`. It reads that choice once at startup.
+It does not load `storage.json`, vendor the storage protocol or maintain a day
+registry. Its final diff and JSON use the saved session folder at exit.
 
 Default C and D discovery is documented in [INSTALLATION.md](../INSTALLATION.md).
 Changing an existing data root in place is unsupported.
@@ -92,7 +97,7 @@ You can delete inactive old date directories directly, including failed runs.
 No status-file inspection is required. This abandons automatic recovery.
 See [Manual cleanup](CLEANUP.md).
 
-Every writer registers a day before creating it. Missing registered workspaces
+Writers using the shared runtime protocol register a day before creating it. Missing registered workspaces
 are marked discarded in small durable per-day records. Review, collection and
 import must not recreate them. The completion fact and workspace disposition
 are separate. Deleting a completed day's inputs does not erase its reports.
@@ -111,10 +116,10 @@ add this option themselves. Ordinary `--date` does not restore deleted dates.
 ## Collector and extension contract
 
 The canonical standard-library implementation is `my_big_brother/storage.py`.
-The Bash collector and independent Vim plugin vendor the same protocol so
-the plugin can still run without installing the main package. First writers
-coordinate using shared persistent locks. No collector needs a second user
-copy of the root in shell/editor settings. No analysis calendar is shared.
+The Bash collector vendors the same protocol. Protocol writers coordinate
+using shared persistent locks. Vim uses only the one-path locator described
+above and does not register or check date dispositions. A removed active Vim
+session folder is not recreated at exit. No analysis calendar is shared.
 
 For an already configured capture program, `capture-path --source screenshots`
 returns a registered destination. `record-screenshot --image /absolute/image.jpg`

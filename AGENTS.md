@@ -14,7 +14,9 @@ Do not treat this file as the daily analysis task itself.
   Vim keeps one session per editor process under its start date, even across
   midnight. Snapshot existing files when opened and publish diff/JSON at exit.
   Never add date rotation or timer, read/write, or focus checkpoints to satisfy
-  storage rules. Shared storage controls paths and lifecycle, not capture behavior.
+  storage rules. Vim resolves its root once using `record_dir`, then
+  `C/raw-logs-path.txt`, then the platform data directory's `daily`. It does
+  not load `storage.json`, register dates or vendor the runtime protocol.
   Review boundaries such as 04:00 belong only to analysis, never collectors.
   Recorders work with platform defaults when shared configuration is absent.
 - Keep shared preparation and run management in `my_big_brother/`.
@@ -33,8 +35,8 @@ Do not treat this file as the daily analysis task itself.
   workflow. Never loop or retry by launching another Agent from driver code.
 - Keep collectors limited to recording activity in their host environment.
 - Keep user configuration, logs, results, and state outside the repository.
-- Use the shared storage protocol for all managed writers. Register dates
-  before creating them. Never automatically recreate a discarded date.
+- Use the shared storage protocol for managed writers other than Vim.
+  Register dates before creating them. Never automatically recreate a discarded date.
   Keep disposable material inside `daily/DATE` and durable facts in `memory`.
   See `docs/STORAGE.md` before changing paths or adding a collector.
   Bash and Vim readers search all retained date trees and filter by actual

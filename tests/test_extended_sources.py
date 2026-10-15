@@ -136,7 +136,7 @@ class VimSourceTests(unittest.TestCase):
 
     def test_legacy_naive_times_are_local_and_reported_as_ambiguous(self):
         local_start = self.start.astimezone().replace(tzinfo=None)
-        self.record("viewed/session", start=local_start, close=local_start + timedelta(minutes=1))
+        self.record("2026-06-20/vim/viewed", start=local_start, close=local_start + timedelta(minutes=1))
         result = vim.collect(self.root, self.start, self.end)
         self.assertEqual(len(result.rows), 1)
         self.assertEqual(result.rows[0]["timestamp_timezone"], "host_local_assumed")
@@ -168,7 +168,14 @@ class VimSourceTests(unittest.TestCase):
         result = vim.collect(self.root, self.start, self.end)
         self.assertEqual(result.status, "ok")
         self.assertEqual(result.rows, [])
-        self.assertEqual(vim.collect(directory, self.start, self.end).status, "ok")
+        self.assertEqual(vim.collect(directory, self.start, self.end).status, "unavailable")
+
+    def test_old_directory_layouts_are_not_discovered(self):
+        for relative in ("flat-session", "vim/session", "2026-06-20/session"):
+            self.record(relative)
+        result = vim.collect(self.root, self.start, self.end)
+        self.assertEqual(result.status, "unavailable")
+        self.assertEqual(result.rows, [])
 
     def test_entirely_malformed_records_make_source_unavailable(self):
         self.record("2026-06-20/vim/bad", vim_start="not-a-time")

@@ -134,7 +134,7 @@ class StorageTests(unittest.TestCase):
         self.assertIn('clipped window', row['diff_scope'])
         self.assertFalse((self.layout.daily / '2020-01-14').exists())
 
-    def test_vim_historical_day_segments_remain_readable(self):
+    def test_vim_day_segment_fields_do_not_change_whole_session_meaning(self):
         start, end = runner.window('2020-01-14', 4)
         directory = self.layout.ensure_day('2020-01-14') / 'vim' / 'historical-segment'
         write_json(directory / 'record.json', {
@@ -144,8 +144,8 @@ class StorageTests(unittest.TestCase):
             'opened_files': [], 'storage_version': 2, 'segment_open': True,
         })
         row = vim.collect(self.layout.daily, start, end).rows[0]
-        self.assertEqual(row['session_status'], 'checkpoint')
-        self.assertIn('segment', row['diff_scope'])
+        self.assertEqual(row['session_status'], 'closed')
+        self.assertIn('Whole-session', row['diff_scope'])
 
     def test_deleted_failed_day_stays_discarded_until_explicit_restore(self):
         first = runner.prepare_run(self.paths, self.settings, '2020-01-15')
