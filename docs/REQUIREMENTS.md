@@ -94,3 +94,12 @@ No collector must introduce a review-specific calendar to implement cleanup.
 
 See [Storage](STORAGE.md), [Cleanup](CLEANUP.md), and
 [Input sources](INPUT-SOURCES.md) for the current interfaces.
+
+## Python implementation baseline
+
+Prefer syntax and standard-library APIs available in Python 3.7 when the
+alternative remains simple. Avoid newer features introduced only for style.
+This is a development preference, not a guarantee that the whole application
+runs on 3.7. Python 3.11+ remains recommended. Older runtimes are unverified
+unless separately tested. Do not expand a targeted collector change into an
+unrelated repository-wide compatibility rewrite.

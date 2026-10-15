@@ -47,8 +47,10 @@ Do not treat this file as the daily analysis task itself.
   Bash and Vim readers search all retained date trees and filter by actual
   event time or session overlap. Window-date directories alone are insufficient.
 - Keep the core standard-library only. Recommend Python 3.11+.
-- Avoid recent-only syntax and APIs when a small equivalent works on older
-  Python. Older versions are unverified, not guaranteed compatible.
+- Prefer syntax and standard-library APIs available in Python 3.7 unless the
+  equivalent would noticeably complicate the implementation. Do not introduce
+  newer features merely for style. Older versions are unverified, not guaranteed
+  compatible. Do not claim Python 3.7 support without runtime verification.
 - Update user documentation when command behavior or configuration changes.
 - Keep English and `zh-CN` reader documentation consistent. Agent task and
   installation instructions remain shared English files. Translate report
