@@ -2,9 +2,9 @@
 
 English | [简体中文](zh-CN/BASH.md)
 
-The Bash collector records interactive command activity without reading or
-changing Bash history. It works independently of `HISTCONTROL`, `HISTIGNORE`,
-and whether history is enabled. Repeated commands produce repeated records.
+The Bash collector records interactive history input, with session start,
+command completion, and normal session end events. It preserves complete
+compound input instead of recording only the first executed simple command.
 
 This collector is opt-in. Agent session history alone is sufficient to use the
 MVP. Do not install it in someone else's shell without their permission.
@@ -65,103 +65,87 @@ The directory hint is the initial cwd's basename. Unsafe filename characters
 become `_`. Names longer than 28 characters keep the first 18 and last 8,
 separated by `..`. A 64-byte UTF-8 limit also preserves both ends without
 splitting characters. An empty hint or a path-length restriction omits it.
-Full startup time with UTC offset and initial cwd remain in the JSONL.
-The stable `session_id` is independent of the display filename.
-New log files use POSIX mode `0600`.
-The recorder does not change the caller's umask or existing file permissions.
+The initial full path and startup timestamp are written once in `session_start`.
+There is no per-command session ID, PID, or repeated session metadata.
+New log files use POSIX mode `0600`. The recorder does not change the caller's
+umask or existing file permissions.
 
-Each JSONL record contains `event: "command"`, `session_id`, `session_started_at`,
-`session_cwd`, `session_pid`, `started_at`,
-`completed_at`, `cwd`, `command`, `exit_status`, `capture_scope`, and `redacted`.
-Timestamps include a local UTC offset. `cwd` is the directory before execution.
-The collector does not capture command output or terminal screenshots.
-The reader searches all retained start-date folders and filters commands by
-their actual completion timestamps. It never limits discovery to the review's
-calendar dates. Open a new shell after upgrading the recorder.
+## Events and timing
 
-## What is captured
+- `session_start`: `event`, `started_at`, and initial `cwd`. Written as soon
+  as recording starts, even if the first command then runs for hours.
+- `command`: `event`, `started_at`, `completed_at`, `cwd`, `command`, and
+  `exit_status`. Start time comes from Bash history and has second precision.
+  Completion is observed at the next prompt or normal shell exit. As in the
+  original recorder, `cwd` is the directory after execution, including for `cd`.
+- `session_end`: `event`, `ended_at`, and final `cwd`. Written on normal exit.
+  A recorded `exit 7` command retains status 7 before the end event.
 
-This is a lightweight activity trace, not a terminal transcript. A DEBUG hook
-captures the first simple command encountered after a prompt. The next prompt
-records its start time and the submitted command line's final exit status.
-Every record explicitly declares `capture_scope: "first-simple-command"`.
+Timestamps use actual local time with a UTC offset. A file identifies its
+session. The reader searches every retained start-date folder, filters events
+by actual time, and can attach an earlier session-start event as context.
+It does not copy old commands into a later day's activity.
+A killed process, crash, or power loss may prevent command completion and
+session-end events. This is not a terminal transcript or a live command-start
+stream. Command output is not recorded.
 
-For `printf first; printf second`, the command field is only `printf first`.
-The status describes the entire line, including `printf second`. Pipelines,
-conditional expressions, functions, aliases, loops, and multiline inputs can
-likewise produce partial or expanded command text. Never interpret the field
-as a complete original input line, or the status as necessarily belonging to
-the captured first command. Function bodies and subprocess activity are not
-fully traced. An Analyzer should state these evidence limits when relevant.
+## History compatibility
 
-Commands that exit or kill the shell before another prompt are not flushed.
-There is no guaranteed session-end event. Bash's `exit` command is generally
-absent for this reason. The recorder leaves EXIT traps untouched.
+Repeated commands are recorded under `ignoredups`, `ignoreboth`, `erasedups`,
+and the duplicate-only `&` pattern in `HISTIGNORE`. Your native history still
+applies its original rules. Other `HISTIGNORE` patterns and leading-space
+exclusion under `ignorespace` or `ignoreboth` continue to exclude input.
+Disabled history or `HISTSIZE=0` produces no command events, while session
+boundaries are still recorded. The recorder does not enable history.
 
-The DEBUG hook gets its own timestamp before execution. This requires a small
-Python subprocess at command start and another at the following prompt. It can
-add noticeable overhead to very short commands.
+To observe duplicates, the hook temporarily relaxes duplicate suppression
+while waiting for input. Before execution it restores the original settings
+and passes the full input through Bash's own history builtin. It does not use
+`BASH_COMMAND` as the recorded text. Prompt hooks run with the original settings.
+The JSONL format does not change with your history policy.
 
-## Hook compatibility
+When the history list reaches `HISTSIZE`, temporarily reserving one slot and
+restoring the limit can renumber history entries. History content and duplicate
+policy are preserved, but numeric expansion such as `!123` may refer to a
+different entry. Do not install this recorder if stable history numbers are
+required. This tradeoff avoids dropping an old history entry just to observe
+a duplicate. Commands or extensions that manipulate history can have additional
+interactions. Test your own integrations before relying on them.
 
-Existing scalar or array `PROMPT_COMMAND` hooks retain their order and receive
-the preceding command's exit status. The recorder does not change history
-options, history entries, EXIT traps, or the shell's umask. Sourcing the recorder
-twice does not attach a second hook.
-Array prompt hooks require Bash 5.1 or newer. Older Bash can use scalar hooks.
+## Hooks and disabling
 
-The recorder declines attachment when any of these are present:
+Existing scalar or array `PROMPT_COMMAND` hooks keep their order and receive
+the preceding command's exit status. Existing DEBUG and EXIT actions are
+chained, not discarded. `PS0`, functrace and repeated sourcing are covered by
+isolated Linux tests. Array prompt hooks require Bash 5.1 or newer.
+A readonly `PROMPT_COMMAND` prevents installation. Dynamic replacement of
+prompt or trap integrations after loading is unsupported. Open a new shell
+after changing integrations or upgrading the recorder.
 
-- An existing DEBUG trap, including integrations based on bash-preexec.
-- `functrace` (`set -T`), which changes DEBUG inheritance.
-- A nonempty `PS0` pre-command integration.
-- A readonly `PROMPT_COMMAND`.
+`HISTCONTROL`, `HISTIGNORE`, and finite `HISTSIZE` must be writable for temporary
+duplicate observation. Continuous recording remains opt-in. To pause command
+recording, set `MBB_BASH_RECORDING=0`, then restore it to `1` when wanted.
+Session-end events still identify normal closure. To disable a new session,
+export `MBB_BASH_RECORDING=0` before sourcing. To uninstall, remove the source
+line and open a new shell. This does not delete existing captures.
 
-It prints a recoverable diagnostic and leaves the existing integration active.
-Bash temporarily hides a caller's DEBUG trap inside a sourced file. To avoid
-overwriting such a trap, the check and attachment are deferred to the next
-top-level prompt. A diagnostic may therefore appear after sourcing finishes.
+## Privacy
 
-Installing other prompt or DEBUG integrations after this recorder can disable
-or conflict with recording. Source the recorder last. Dynamically changing
-`functrace`, `PS0`, or prompt hooks during a session is unsupported. Start a new
-shell after changing integrations.
-
-## Privacy and disabling
-
-Commands may contain private paths, project names, credentials, or personal
-text. Files stay local, but selected raw evidence may later be sent to your
-configured Analyzer provider. Enable this collector only where appropriate.
-
-The helper replaces the entire command with a redaction marker when it detects
-common password, token, secret, API-key, Authorization, sshpass, or URL-password
-patterns. This is best-effort filtering. Arbitrary positional secrets, unusual
-formats, encoded values, and other private text can still be recorded. Existing
-history privacy options do not apply because this recorder does not use history.
-
-Disable recording before entering sensitive commands:
-
-```bash
-MBB_BASH_RECORDING=0
-# Enter sensitive commands here.
-MBB_BASH_RECORDING=1
-```
-
-To disable it for a new shell, export `MBB_BASH_RECORDING=0` before sourcing.
-To uninstall, remove the source line and open a new shell. There is no automatic
-capture deletion in this MVP.
+The recorder keeps the original best-effort redaction rule. Commands containing
+assignments to token, secret, password or API-key names, `sshpass`, or
+`Authorization:` are replaced with `<redacted:possible-secret>`.
+Other secrets and private text may still be recorded. Use history exclusions
+or pause recording before entering sensitive input. Selected evidence can be
+sent to the configured Analyzer provider. File names also reveal directory hints.
 
 ## Tests
 
-Run the isolated compatibility suite from the project root:
-
-```bash
+```sh
 python3 -m unittest discover -s tests -p test_bash_recorder.py -v
 ```
 
-The Linux tests use temporary home/config/data directories, interactive Bash
-subprocesses, and one pseudo-terminal session. They cover duplicate commands,
-history filtering and disabling, scalar and array prompt hooks, exit-status
-preservation, existing DEBUG and EXIT traps, umask preservation, redaction,
-opt-out, shared storage validation, and duplicate attachment. Tests use isolated
-subprocesses and do not install a recorder into your shell.
+The isolated Linux suite covers native-history comparisons, duplicate policies,
+privacy exclusions, compound and multiline input, event fields, existing hooks,
+exit status, permissions, fixed start-date paths, and a real pseudo-terminal.
+It checks that a session-start event exists before a blocking command finishes.
+No real shell configuration, history, or schedule is changed.

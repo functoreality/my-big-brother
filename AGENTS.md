@@ -19,6 +19,11 @@ Do not treat this file as the daily analysis task itself.
   Recorders work with platform defaults when shared configuration is absent.
 - Keep shared preparation and run management in `my_big_brother/`.
 - Keep semantic analysis rules in `tasks/`. Agents lead the interpretation.
+- Preserve Bash's full history-input semantics and compact `session_start`,
+  `command`, `session_end` format. Session metadata belongs in the boundary
+  events, not repeated on commands. Do not substitute first-simple-command
+  capture or bypass history privacy exclusions. Duplicate-policy compatibility
+  must retain the user's native history contents and restore execution settings.
 - Treat source adapters and analyzer launchers as independent capabilities.
 - Keep Agent invocation only in independent startup entries. Common review
   scripts never launch a harness. The executing Agent follows AUTOMATION.md

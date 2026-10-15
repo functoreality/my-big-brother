@@ -84,10 +84,14 @@ def main():
     Path(paths["config"]).write_text(json.dumps(settings, indent=2) + "\n", encoding="utf-8")
     bash_directory = Path(paths["daily"]) / DAY / "bash"
     bash_directory.mkdir(parents=True)
-    bash = {"event": "command", "session_id": "synthetic-shell", "command": "python -m unittest",
-            "command_scope": "first-simple-command", "cwd": "/synthetic/orders-project",
-            "started_at": timestamp("10:07:00"), "completed_at": timestamp("10:08:00"), "exit_status": 0}
-    (bash_directory / "synthetic.jsonl").write_text(json.dumps(bash) + "\n", encoding="utf-8")
+    bash = [
+        {"event": "session_start", "started_at": timestamp("09:45:00"), "cwd": "/synthetic/orders-project"},
+        {"event": "command", "command": "python -m unittest", "cwd": "/synthetic/orders-project",
+         "started_at": timestamp("10:07:00"), "completed_at": timestamp("10:08:00"), "exit_status": 0},
+        {"event": "session_end", "ended_at": timestamp("10:09:00"), "cwd": "/synthetic/orders-project"},
+    ]
+    (bash_directory / "synthetic.jsonl").write_text(
+        ''.join(json.dumps(event) + '\n' for event in bash), encoding='utf-8')
     if args.with_post_review:
         rules = root / "rules"
         rules.mkdir()

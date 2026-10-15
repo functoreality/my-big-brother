@@ -19,18 +19,11 @@ def locations():
     return _storage.platform_paths()
 
 
-def daily_root():
-    return _storage.Layout.for_collector(*locations()).daily
-
-
-SECRET = re.compile(
-    r"(?i)(?:password|passwd|secret|token|api[_-]?key)\s*(?:=|:|\s)|"
-    r"authorization\s*:|\bsshpass\b|https?://[^\s/@]+:[^\s/@]+@"
-)
+SECRET = re.compile(r'(?i)(?:token|secret|password|api_?key)\s*=|sshpass|authorization:')
 
 
 def now():
-    return dt.datetime.now().astimezone().isoformat(timespec="microseconds")
+    return dt.datetime.now().astimezone().isoformat(timespec="seconds")
 
 
 def directory_label(cwd):
@@ -60,7 +53,9 @@ def new_session(pid, cwd):
         filename = clock + '_' + (label + '_' if label else '') + pid + suffix + '.jsonl'
         try:
             descriptor = os.open(directory / filename, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
-            os.close(descriptor)
+            with os.fdopen(descriptor, 'w', encoding='utf-8') as stream:
+                stream.write(json.dumps({'event': 'session_start', 'started_at': started,
+                                         'cwd': cwd}, ensure_ascii=False) + '\n')
             break
         except FileExistsError:
             counter += 1
@@ -70,8 +65,7 @@ def new_session(pid, cwd):
                 raise
             label = ''
     return {
-        'session_id': started + '-' + pid + suffix,
-        'session_started_at': started, 'session_cwd': cwd, 'session_pid': int(pid),
+        'date': day,
         'filename': filename, 'storage_settings': layout.settings,
         'workspace_id': layout.record(day)['workspace_id'],
     }
@@ -79,9 +73,9 @@ def new_session(pid, cwd):
 
 def record():
     fields = sys.stdin.buffer.read().split(b"\0")
-    if len(fields) != 6 or fields[-1]:
+    if len(fields) != 7 or fields[-1]:
         raise ValueError("invalid recorder payload")
-    context, started, cwd, status, command = [
+    context, event, cwd, command, status, started = [
         value.decode("utf-8", errors="replace") for value in fields[:-1]
     ]
     session = json.loads(context)
@@ -89,24 +83,17 @@ def record():
     if (not filename.endswith('.jsonl') or Path(filename).name != filename
             or '\\' in filename):
         raise ValueError('invalid session filename')
-    completed = now()
-    redacted = bool(SECRET.search(command))
-    row = {
-        "event": "command",
-        "session_id": session['session_id'],
-        "session_started_at": session['session_started_at'],
-        "session_cwd": session['session_cwd'],
-        "session_pid": session['session_pid'],
-        "started_at": started,
-        "completed_at": completed,
-        "cwd": cwd,
-        "command": "<redacted: possible secret>" if redacted else command,
-        "exit_status": int(status),
-        "capture_scope": "first-simple-command",
-        "redacted": redacted,
-    }
+    if event not in ('command', 'session_end'):
+        raise ValueError('invalid recorder event')
+    row = {'event': event, 'cwd': cwd,
+           'completed_at' if event == 'command' else 'ended_at': now()}
+    if event == 'command':
+        command = command.lstrip()
+        row.update(command='<redacted:possible-secret>' if SECRET.search(command) else command,
+                   exit_status=int(status),
+                   started_at=dt.datetime.fromtimestamp(int(started)).astimezone().isoformat())
     layout = _storage.Layout(session['storage_settings'])
-    day = session['session_started_at'][:10]
+    day = session['date']
     state = layout.record(day)
     if (not state or state['disposition'] == 'discarded'
             or state['workspace_id'] != session['workspace_id']):
@@ -121,12 +108,8 @@ def record():
 
 def main():
     operation = sys.argv[1]
-    if operation == "check":
-        daily_root()
-    elif operation == "session":
+    if operation == "session":
         print(json.dumps(new_session(sys.argv[2], sys.argv[3]), ensure_ascii=False))
-    elif operation == "time":
-        print(now())
     elif operation == "record":
         record()
     else:

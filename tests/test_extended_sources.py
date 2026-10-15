@@ -292,7 +292,7 @@ class BashSessionContextTests(unittest.TestCase):
         self.assertEqual(len(result.rows), 1)
         row = result.rows[0]
         self.assertEqual(row["session_context"]["started_at"], session_start.isoformat())
-        self.assertEqual(row["session_context"]["session_key"], "legacy-session")
+        self.assertEqual(row["session_context"]["session_key"], str(self.root / "legacy-session.jsonl"))
         self.assertIn("Coverage cannot be inferred", row["capture_scope_note"])
 
     def test_modern_commands_without_session_start_do_not_invent_context(self):

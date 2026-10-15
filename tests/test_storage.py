@@ -221,7 +221,8 @@ class StorageTests(unittest.TestCase):
         with patch.object(recorder, 'locations', return_value=(self.paths.config, self.paths.data)), \
              patch.object(recorder, 'now', return_value=datetime(2020, 1, 14, 23).astimezone().isoformat()):
             session = recorder.new_session('12345', str(self.root))
-        fields = [json.dumps(session), clock, str(self.root), '0', 'synthetic command', '']
+        fields = [json.dumps(session), 'command', str(self.root), 'synthetic command', '0',
+                  str(int(datetime.fromisoformat(clock).timestamp())), '']
         payload = '\0'.join(fields).encode()
         with patch.object(recorder, 'locations', return_value=(self.paths.config, self.paths.data)), \
              patch.object(recorder, 'now', return_value=clock), \
@@ -229,7 +230,7 @@ class StorageTests(unittest.TestCase):
             recorder.record()
         log = next((self.layout.daily / '2020-01-14/bash').glob('*.jsonl'))
         self.assertEqual(log.name, session['filename'])
-        self.assertEqual(json.loads(log.read_text())['command'], 'synthetic command')
+        self.assertEqual(json.loads(log.read_text().splitlines()[1])['command'], 'synthetic command')
         self.discard('2020-01-14')
         with patch.object(recorder, 'locations', return_value=(self.paths.config, self.paths.data)), \
              patch.object(recorder, 'now', return_value=clock), \

@@ -16,8 +16,9 @@ The Bash adapter reads dated `YYYY-MM-DD/bash/*.jsonl` files and explicitly
 configured flat session roots. Activity rows always stay within the
 review window. Each Bash process keeps one file under its start date for its
 entire lifetime. The adapter searches every retained start-date folder, even
-months before the review. Command rows preserve `session_started_at` and
-`session_cwd` when present, independently of each command's time and cwd.
+months before the review. The bundled recorder writes compact `session_start`,
+`command` and `session_end` events. Startup time and directory appear once in
+the start event. Files identify sessions without per-command session IDs.
 For a command or session end whose start was recorded earlier,
 the adapter attaches the nearest prior start as `session_context`, including
 `outside_window: true`, the actual start timestamp, original start fields,
@@ -27,7 +28,8 @@ Historical commands and other sessions' out-of-window commands are not copied in
 index. Command timestamps, directories, and recorded capture or timestamp
 scope are preserved. A missing capture scope is explicitly marked as unknown
 coverage. A modern command's `started_at` is not invented as a shell
-session start. See [Bash recording](BASH.md) for collector limitations.
+session start. The bundled command cwd is observed after execution, and its
+start time comes from history. See [Bash recording](BASH.md) for limitations.
 
 ## Vim sessions
 

@@ -171,9 +171,12 @@ An open session may have no final manifest. Do not close unsaved user work.
 
 Offer the bundled recorder only when the user wants future shell activity
 recorded. With consent, follow [BASH.md](docs/BASH.md), back up the active
-`.bashrc` and preserve prompt hooks, traps and history settings.
-It records the first simple command and the line's status independently of
-history exclusions, so leading spaces or HISTIGNORE do not hide commands.
+`.bashrc` and preserve prompt hooks, traps and native history contents.
+It records complete history input and session boundaries. History privacy
+exclusions remain active, and repeated executions are captured while native
+history applies its original duplicate policy. Explain that a full history
+list can be renumbered, affecting numeric expansion such as `!123`, as
+documented in BASH.md. Do not enable it for users requiring stable numbers.
 Use redaction and exclusions as appropriate. Do not source it in a different
 shell or treat it as a PowerShell recorder.
 

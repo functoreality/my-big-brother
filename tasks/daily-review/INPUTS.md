@@ -69,7 +69,8 @@ When enabled and installed, the bundled recorder writes local JSONL below
 date when recording starts, equivalent to `date +%F` then. It never rotates,
 including after months of uptime. The preparer searches all retained start-date
 folders and selects activity by actual event time, not the directory date.
-`session_started_at` and `session_cwd` describe the recording's initial state.
+`session_start` records the initial time and directory once. A file identifies
+the session without a repeated per-command session ID.
 Removed managed dates must never be recreated to recover evidence.
 
 Command events are clues about actions and working directories. Their
@@ -77,14 +78,17 @@ timestamps and status do not constitute a complete shell audit, prove file
 contents, or establish focused work for the whole command duration.
 Background jobs can outlive a foreground command.
 
-The bundled recorder bypasses history, so `HISTIGNORE`, leading-space policies, and
-history being disabled do not hide commands from it. It captures the first
-simple command after a prompt rather than necessarily the complete input line.
-Its recorded exit status belongs to that line, which can contain additional
-commands. Commands without a following prompt, including shell exit, may be
-absent. Preserve these recorder limitations when they affect a conclusion.
+The bundled recorder captures complete history entries, including compound
+and multiline input. Privacy exclusions from HISTIGNORE and leading-space
+policies remain active. Disabled history provides no command events.
+Command `started_at` comes from second-resolution history time. `completed_at`
+is observed at the prompt or normal exit, and `cwd` is the directory after
+execution. Status belongs to the submitted input as a whole. Session start is
+written immediately, with normal session end and `exit` input captured at exit.
+An interrupted process can lack completion and end events. Preserve these
+limits rather than inferring attention from a shell's whole lifetime.
 Never reproduce sensitive command arguments in formal outputs.
-Other explicitly configured recorders can use history-input semantics.
+Other explicitly configured recorders can use different capture semantics.
 Preserve their declared scope, timing, and working-directory meanings rather
 than assuming every Bash source has the bundled collector's behavior.
 

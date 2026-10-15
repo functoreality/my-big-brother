@@ -36,7 +36,7 @@ def _events(path: Path, gaps: list[str]):
 
 def _session_key(event: dict, path: Path) -> str:
     identifier = event.get("session_id")
-    return identifier if isinstance(identifier, str) and identifier else path.stem
+    return identifier if isinstance(identifier, str) and identifier else str(path)
 
 
 def collect(path: Path, start: datetime, end: datetime) -> SourceResult:
@@ -62,7 +62,7 @@ def collect(path: Path, start: datetime, end: datetime) -> SourceResult:
             if event_type == "command":
                 row["content"] = event.get("command", "")
                 if not any(field in event for field in ("capture_scope", "timestamps_scope", "timestamp_scope")):
-                    row["capture_scope_note"] = "Legacy history has no recorded capture scope. Coverage cannot be inferred."
+                    row["capture_scope_note"] = "History input is not a complete terminal transcript. Coverage cannot be inferred."
             rows.append(row)
     for row in rows:
         if row["event"] == "session_start":

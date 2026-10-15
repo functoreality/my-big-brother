@@ -30,6 +30,16 @@ tasks. Read this before changing dates, paths or recorder dependencies.
 - Shared storage governs paths, date registration and deletion. It does not
   change a collector's capture behavior to make records available sooner.
 
+## Preserve Bash recording behavior
+
+Bash preserves history-input recording: full compound input, history-based
+command start time, completion time, exit status and post-command cwd.
+Write `session_start` immediately and `session_end` on normal exit.
+Do not repeat session IDs, PIDs or session-start metadata on every command.
+Preserve history privacy exclusions and the user's native duplicate policy
+while recording repeated executions. See [Bash](BASH.md) for the accepted
+history-numbering limitation and the exact compact event fields.
+
 ## Review windows belong to analysis
 
 `config.json` may select `day_start_hour`, such as 4. This affects preparation
