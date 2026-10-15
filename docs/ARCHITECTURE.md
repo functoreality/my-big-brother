@@ -50,7 +50,7 @@ C/
   storage.json       Optional shared data root, no analysis calendar
   local-tasks/
 D/
-  daily/YYYY-MM-DD/
+  raw-logs/YYYY-MM-DD/
     bash/
     vim/
     screenshots/
@@ -78,7 +78,7 @@ select external permanent targets. See [Storage v2](STORAGE.md).
 1. `prepare` reads enabled sources within a time window. Adapters report
    usable rows and explicit gaps. Full messages become excerpts, while compact
    indexes help the Agent navigate them.
-2. A run under `D/daily/DATE/_analysis/` contains `manifest.json`, `context.json`,
+2. A run under `D/raw-logs/DATE/_analysis/` contains `manifest.json`, `context.json`,
    indexes, excerpts, drafts, and diagnostics. The context resolves the date,
    language, selected outputs, staging paths, and completion receipt format.
 3. The Agent follows `tasks/daily-review/TASK.md`. Existing reports are copied

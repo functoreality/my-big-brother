@@ -40,13 +40,13 @@ source "/absolute/path/to/my-big-brother/collectors/bash/session-recorder.sh"
 ## 保存位置与格式
 
 每个开启记录的 Bash 进程只对应一个 JSONL，保存到
-`daily/YYYY-MM-DD/bash/`。日期取启用采集器时的本机自然日期。
+`raw-logs/YYYY-MM-DD/bash/`。日期取启用采集器时的本机自然日期。
 启动时创建文件，之后不因跨午夜、持续数月、执行 `cd`，
 或共享位置配置改变而更换路径。命令起止时间始终记录真实时间。
 文件或父目录被删除后停止追加，不重建它，也不改写到今天的目录。
 
 采集器只需要 Python 标准库，可以独立使用，不要求安装主项目。
-启动时读取一次 `C/raw-logs-path.txt`，缺失时使用平台数据目录下的 `daily`。
+启动时读取一次 `C/raw-logs-path.txt`，缺失时使用平台数据目录下的 `raw-logs`。
 TXT 只保存一行 UTF-8 绝对路径，不加引号、注释，不展开变量。
 允许末尾一个 LF 或 CRLF，保留路径中的空格，已有文件格式错误时报告错误。
 它不读取 `storage.json`，也不创建运行登记或用户配置。

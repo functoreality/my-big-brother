@@ -48,11 +48,11 @@ let g:vim_session_recorder#config = {
 
 1. Vim 配置中的 `record_dir`。
 2. `C/raw-logs-path.txt` 中的一条 UTF-8 绝对路径。
-3. 平台默认数据目录下的 `daily`。
+3. 平台默认数据目录下的 `raw-logs`。
 
 三者都使用 `YYYY-MM-DD/vim/<会话>/` 结构，TXT 指定日期层之前的根目录。
-要共用主项目的自定义数据根，将其 `daily` 路径写入 TXT。
-若根目录不同于主项目的 `daily`，同时显式设置 `sources.vim.path` 指向同一位置。
+要共用主项目的自定义数据根，将其 `raw-logs` 路径写入 TXT。
+若根目录不同于主项目的 `raw-logs`，同时显式设置 `sources.vim.path` 指向同一位置。
 插件不读取 `storage.json`，也不参与日期登记。
 仅在启动时建立会话目录，退出时仍写该目录，不重载路径配置、不轮转，
 也不重建被移除的会话目录。不区分共享或独立模式，不迁移或搜索旧布局。

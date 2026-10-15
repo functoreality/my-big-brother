@@ -5,9 +5,18 @@
 The personal data root has two areas. It is separate from the source checkout
 and from the platform-discovered configuration directory C.
 
+`raw-logs` contains disposable review material: captures, preprocessing results,
+indexes, screenshot sheets, Agent drafts and execution logs. It can include
+AI-generated material. The boundary is whether material belongs to a dated
+working area or is published for long-term retention, not whether AI has read
+or generated it. Keep published reports and accumulated knowledge in `memory`
+or explicitly configured permanent destinations.
+
+The `paths` command reports the disposable root as `raw_logs`.
+
 ```text
 data-root/
-  daily/
+  raw-logs/
     YYYY-MM-DD/
       bash/
       vim/
@@ -45,12 +54,12 @@ python -m my_big_brother paths
 
 `--data-root /absolute/path` selects the whole data root on first installation.
 `--results-root` may select a separate permanent output root. It cannot overlap
-disposable daily storage. Atomic publication keeps its temporary copy inside
-the dated run, so formal outputs and `daily` must share a filesystem.
+disposable raw-log storage. Atomic publication keeps its temporary copy inside
+the dated run, so formal outputs and `raw-logs` must share a filesystem.
 Cross-filesystem publication stops before replacing any output.
 
 `C/raw-logs-path.txt` is the shared capture-root locator. It contains one
-UTF-8 absolute path, normally D/daily, with an optional final LF or CRLF.
+UTF-8 absolute path, normally D/raw-logs, with an optional final LF or CRLF.
 Do not quote it, add comments or expand variables when reading it. Preserve
 spaces. A missing locator uses the platform default. A malformed existing
 locator reports an error. Bash, Vim and the main application's capture and
@@ -71,7 +80,7 @@ session file and stops appending if that file or its parent is removed.
 
 The independent Vim plugin uses a smaller path contract: `record_dir`, then
 `C/raw-logs-path.txt` containing only an absolute capture-root path, then the
-platform data directory's `daily`. It reads that choice once at startup.
+platform data directory's `raw-logs`. It reads that choice once at startup.
 It does not load `storage.json`, vendor the storage protocol or maintain a day
 registry. Its final diff and JSON use the saved session folder at exit.
 
@@ -84,7 +93,7 @@ See the product [Requirements](REQUIREMENTS.md) before changing this contract.
 Capture ownership uses the recording's local creation date, equivalent to
 `date +%F` at startup. Bash creates one JSONL under its start date and appends
 there for the shell's entire lifetime. A shell started on 14 October still
-writes into `daily/2026-10-14/bash/` on 15 October or months later.
+writes into `raw-logs/2026-10-14/bash/` on 15 October or months later.
 No midnight or logical-day boundary changes an existing recording's path.
 Original event timestamps are never shifted. Screenshots are independent
 captures and use their capture date. Vim uses the session's local start date

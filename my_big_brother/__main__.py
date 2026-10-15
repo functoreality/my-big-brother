@@ -61,7 +61,7 @@ def resolved(paths, settings=None):
             "local_profile": profile["path"] if profile else None,
             "output_overrides": profile["output_paths"] if profile else {},
             "storage_config": str(paths.config / "storage.json"),
-            "daily": str(paths.daily), "memory": str(paths.memory),
+            "raw_logs": str(paths.raw_logs), "memory": str(paths.memory),
             "results": settings["results_root"],
             "state": str(paths.state), "checkout": str(runner.REPO)}
 
@@ -90,7 +90,7 @@ def main(argv=None):
         else:
             settings = config.load(paths)
             if args.command == "doctor":
-                native = {name: spec.get("path") or str(paths.daily)
+                native = {name: spec.get("path") or str(paths.raw_logs)
                           for name, spec in settings["sources"].items() if spec.get("enabled", True)}
                 value = {"paths": resolved(paths, settings), "python": sys.version.split()[0],
                          "analyzer": settings["analyzer"],

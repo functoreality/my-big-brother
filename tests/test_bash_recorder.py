@@ -50,7 +50,7 @@ class BashSessionNamingTests(unittest.TestCase):
 
     def test_existing_filename_is_not_overwritten_or_shared(self):
         first = self.session()
-        logfile = self.data / 'daily/2026-10-15/bash' / Path(first['path']).name
+        logfile = self.data / 'raw-logs/2026-10-15/bash' / Path(first['path']).name
         logfile.write_text('existing session content')
         second = self.session()
         self.assertNotEqual(Path(first['path']).name, Path(second['path']).name)
@@ -63,7 +63,7 @@ class BashSessionNamingTests(unittest.TestCase):
         self.assertLessEqual(len(label.encode('utf-8')), 64)
         self.assertTrue(label.startswith('首'))
         self.assertTrue(label.endswith('尾'))
-        event = json.loads((self.data / 'daily/2026-10-15/bash' / Path(session['path']).name).read_text())
+        event = json.loads((self.data / 'raw-logs/2026-10-15/bash' / Path(session['path']).name).read_text())
         self.assertEqual(event['cwd'], str(self.root / name))
         self.assertEqual(recorder.directory_label(self.root / 'a:b?c*'), 'a_b_c_')
         self.assertEqual(recorder.directory_label(Path('/')), '')
@@ -80,7 +80,7 @@ class BashSessionNamingTests(unittest.TestCase):
                  patch.object(recorder, 'locations', side_effect=AssertionError('must keep startup storage')), \
                  patch.object(recorder.sys, 'stdin', SimpleNamespace(buffer=io.BytesIO(payload))):
                 recorder.record()
-        logs = list((self.data / 'daily').rglob('*.jsonl'))
+        logs = list((self.data / 'raw-logs').rglob('*.jsonl'))
         self.assertEqual(len(logs), 1)
         self.assertEqual(logs[0].parent.parent.name, '2026-10-15')
         rows = [json.loads(line) for line in logs[0].read_text().splitlines()]
@@ -90,7 +90,7 @@ class BashSessionNamingTests(unittest.TestCase):
         self.assertTrue(all(row['cwd'] == str(self.root / 'another-project') for row in rows[1:]))
         start = recorder.dt.datetime.fromisoformat('2027-01-15T04:00:00+08:00')
         end = recorder.dt.datetime.fromisoformat('2027-01-16T04:00:00+08:00')
-        result = bash.collect(self.data / 'daily', start, end)
+        result = bash.collect(self.data / 'raw-logs', start, end)
         self.assertEqual(result.status, 'ok')
         self.assertEqual(len(result.rows), 1)
         self.assertEqual(result.rows[0]['completed_at'], rows[-1]['completed_at'])
@@ -376,7 +376,7 @@ class BashRecorderTests(unittest.TestCase):
             data = root / 'data'
             with patch.object(recorder, 'locations', return_value=(config, data)):
                 first = Path(recorder.new_session('12345', str(root))['path'])
-                self.assertEqual(first.parents[2], data / 'daily')
+                self.assertEqual(first.parents[2], data / 'raw-logs')
                 self.assertFalse(config.exists())
                 self.assertFalse((data / 'memory').exists())
                 config.mkdir()

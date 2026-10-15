@@ -96,14 +96,14 @@ WSL and remote machines have their own environments.
 
 Initialization writes `C/raw-logs-path.txt`, containing the resolved capture
 root as one UTF-8 absolute path, unless the locator already exists. Bash, Vim,
-capture helpers and analysis daily storage use this path. Missing TXT means
+capture helpers and analysis workspace storage use this path. Missing TXT means
 platform defaults. Malformed TXT is an error. Main application `C/storage.json`
 selects permanent memory/system storage and its registry. Bash and Vim do not
 read that JSON or maintain registries and work without application setup.
 Capture dates use each recording's creation date. Bash and Vim keep their
 start-date paths across midnight and months of uptime, while individual
 screenshots use their own capture dates. Disposable
-captures and analysis live in `D/daily/YYYY-MM-DD/`. Permanent records and
+captures and analysis live in `D/raw-logs/YYYY-MM-DD/`. Permanent records and
 minimal system facts live in `D/memory/`. Native Agent histories remain with
 their applications. Do not hand-create only the shared config file.
 Confirm every active collector supports v2 before promising date-only cleanup.
@@ -160,15 +160,15 @@ Plug 'functoreality/session-recorder.vim'
 Adapt the declaration for another manager or Neovim Lua configuration.
 Do not replace the entire vimrc or assume a fixed configuration path.
 The plugin resolves `record_dir`, then the one-path UTF-8 file
-`C/raw-logs-path.txt`, then the platform data directory's `daily` at startup.
-For a custom data root, configure that TXT to contain the same `daily` path
+`C/raw-logs-path.txt`, then the platform data directory's `raw-logs` at startup.
+For a custom data root, configure that TXT to contain the same `raw-logs` path
 used by the enabled Vim source, unless an intentional `record_dir` overrides it.
 It does not read `storage.json`, register dates or migrate previous records.
 Preserve exclusions and specify the intended native Python when needed.
 
 Ask the user to restart their editor, then check `:RecorderStatus`.
 Test a disposable file by opening, changing, saving and exiting normally.
-Verify its manifest, original snapshot and diff under the shared daily directory,
+Verify its manifest, original snapshot and diff under the shared raw-log directory,
 then enable `sources.vim` and prepare a date containing that closed session.
 An open session may have no final manifest. Do not close unsaved user work.
 

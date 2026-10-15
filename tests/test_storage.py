@@ -32,7 +32,7 @@ class StorageTests(unittest.TestCase):
         self.layout = self.paths.layout
 
     def discard(self, day):
-        directory = self.layout.daily / day
+        directory = self.layout.raw_logs / day
         directory.rename(self.root / ('discarded-' + day))
 
     def test_collectors_use_system_calendar_dates(self):
@@ -44,12 +44,12 @@ class StorageTests(unittest.TestCase):
     def test_default_collectors_need_no_application_configuration(self):
         paths = Paths(self.root / 'standalone-config', self.root / 'standalone-data')
         result = capture.directory(paths, 'bash', datetime(2020, 1, 15, 3).astimezone())
-        self.assertEqual(Path(result['directory']), paths.data / 'daily/2020-01-15/bash')
+        self.assertEqual(Path(result['directory']), paths.data / 'raw-logs/2020-01-15/bash')
         self.assertFalse(paths.config.exists())
         layout = Layout.for_collector(paths.config, paths.data)
-        (layout.daily / '2020-01-15').rename(self.root / 'removed-default-date')
+        (layout.raw_logs / '2020-01-15').rename(self.root / 'removed-default-date')
         self.assertEqual(capture.directory(paths, 'bash', datetime(2020, 1, 15, 3).astimezone())['status'], 'discarded')
-        self.assertFalse((layout.daily / '2020-01-15').exists())
+        self.assertFalse((layout.raw_logs / '2020-01-15').exists())
         (layout.system / 'identity.json').rename(self.root / 'saved-identity.json')
         with self.assertRaisesRegex(ValueError, 'Do not reset'):
             Layout.for_collector(paths.config, paths.data)
@@ -82,7 +82,7 @@ class StorageTests(unittest.TestCase):
             image = self.root / ('frame-' + instant.strftime('%d-%H') + '.png')
             screenshots.Image.new('RGB', (16, 16), 'red').save(image)
             capture.screenshot(self.paths, image, instant)
-        result = screenshots.collect(self.layout.daily, start, end)
+        result = screenshots.collect(self.layout.raw_logs, start, end)
         self.assertEqual(len(result.rows), 2)
         self.assertEqual({Path(row['path']).parents[1].name for row in result.rows}, {'2020-01-14', '2020-01-15'})
 
@@ -106,9 +106,9 @@ class StorageTests(unittest.TestCase):
                 'opened_files': [], 'storage_version': 2, 'calendar_date': instant.strftime('%Y-%m-%d'),
                 'segment_open': False,
             })
-        rows = bash.collect(self.layout.daily, start, end).rows
+        rows = bash.collect(self.layout.raw_logs, start, end).rows
         self.assertEqual([row['command'] for row in rows], ['sample-1', 'sample-2'])
-        sessions = vim.collect(self.layout.daily, start, end).rows
+        sessions = vim.collect(self.layout.raw_logs, start, end).rows
         self.assertEqual(len(sessions), 2)
         self.assertEqual({Path(row['record_path']).parents[2].name for row in sessions}, {'2020-01-14', '2020-01-15'})
 
@@ -123,7 +123,7 @@ class StorageTests(unittest.TestCase):
             'opened_files': [],
         }
         write_json(directory / 'record.json', payload)
-        result = vim.collect(self.layout.daily, start, end)
+        result = vim.collect(self.layout.raw_logs, start, end)
         self.assertEqual(result.status, 'ok')
         self.assertEqual(len(result.rows), 1)
         row = result.rows[0]
@@ -132,7 +132,7 @@ class StorageTests(unittest.TestCase):
         self.assertEqual(row['session_status'], 'closed')
         self.assertIn('Whole-session', row['diff_scope'])
         self.assertIn('clipped window', row['diff_scope'])
-        self.assertFalse((self.layout.daily / '2020-01-14').exists())
+        self.assertFalse((self.layout.raw_logs / '2020-01-14').exists())
 
     def test_vim_day_segment_fields_do_not_change_whole_session_meaning(self):
         start, end = runner.window('2020-01-14', 4)
@@ -143,7 +143,7 @@ class StorageTests(unittest.TestCase):
             'vim_close': (start + timedelta(hours=1)).isoformat(),
             'opened_files': [], 'storage_version': 2, 'segment_open': True,
         })
-        row = vim.collect(self.layout.daily, start, end).rows[0]
+        row = vim.collect(self.layout.raw_logs, start, end).rows[0]
         self.assertEqual(row['session_status'], 'closed')
         self.assertIn('Whole-session', row['diff_scope'])
 
@@ -153,7 +153,7 @@ class StorageTests(unittest.TestCase):
         self.discard('2020-01-15')
         self.assertEqual(runner.analyze(self.paths, self.settings, '2020-01-15')['status'], 'discarded')
         self.assertEqual(runner.prepare_run(self.paths, self.settings, '2020-01-15')['status'], 'discarded')
-        self.assertFalse((self.layout.daily / '2020-01-15').exists())
+        self.assertFalse((self.layout.raw_logs / '2020-01-15').exists())
         restored = runner.analyze(self.paths, self.settings, '2020-01-15', recreate_deleted=True)
         self.assertNotEqual(restored['run_dir'], first['run_dir'])
         self.assertNotEqual(self.layout.record('2020-01-15')['workspace_id'], workspace)
@@ -228,7 +228,7 @@ class StorageTests(unittest.TestCase):
              patch.object(recorder, 'now', return_value=clock), \
              patch.object(recorder.sys, 'stdin', SimpleNamespace(buffer=io.BytesIO(payload))):
             recorder.record()
-        log = next((self.layout.daily / '2020-01-14/bash').glob('*.jsonl'))
+        log = next((self.layout.raw_logs / '2020-01-14/bash').glob('*.jsonl'))
         self.assertEqual(log.name, Path(session['path']).name)
         self.assertEqual(json.loads(log.read_text().splitlines()[1])['command'], 'synthetic command')
         self.discard('2020-01-14')
@@ -236,13 +236,13 @@ class StorageTests(unittest.TestCase):
              patch.object(recorder, 'now', return_value=clock), \
              patch.object(recorder.sys, 'stdin', SimpleNamespace(buffer=io.BytesIO(payload))):
             recorder.record()
-        self.assertFalse((self.layout.daily / '2020-01-14').exists())
+        self.assertFalse((self.layout.raw_logs / '2020-01-14').exists())
 
         self.layout.ensure_day('2020-01-14', recreate=True)
         with patch.object(recorder, 'now', return_value=clock), \
              patch.object(recorder.sys, 'stdin', SimpleNamespace(buffer=io.BytesIO(payload))):
             recorder.record()
-        self.assertFalse((self.layout.daily / '2020-01-14/bash').exists())
+        self.assertFalse((self.layout.raw_logs / '2020-01-14/bash').exists())
 
     def test_vendored_locator_matches_canonical_source(self):
         root = Path(__file__).parents[1]
@@ -254,7 +254,7 @@ class StorageTests(unittest.TestCase):
 
         target = self.root / 'shared captures'
         (self.paths.config / 'raw-logs-path.txt').write_text(str(target) + '\n')
-        self.assertEqual(self.paths.daily, target)
+        self.assertEqual(self.paths.raw_logs, target)
         self.assertEqual(capture_root(self.paths.config, self.paths.data), target)
         instant = datetime(2020, 1, 15, 3).astimezone()
         selected = capture.directory(self.paths, 'screenshots', instant)
@@ -262,18 +262,18 @@ class StorageTests(unittest.TestCase):
         ticket = runner.prepare_run(self.paths, self.settings, '2020-01-15')
         self.assertEqual(Path(ticket['run_dir']).parents[2], target)
         self.assertEqual(self.paths.memory, self.paths.data / 'memory')
-        self.assertFalse((self.paths.data / 'daily/2020-01-15').exists())
+        self.assertFalse((self.paths.data / 'raw-logs/2020-01-15').exists())
 
     def test_initialization_publishes_or_preserves_the_text_locator(self):
         from my_big_brother.collector_paths import capture_root
 
-        self.assertEqual(capture_root(self.paths.config, self.paths.data), self.paths.daily)
+        self.assertEqual(capture_root(self.paths.config, self.paths.data), self.paths.raw_logs)
         fresh = Paths(self.root / 'fresh-config', self.root / 'fresh-data')
         fresh.config.mkdir()
         target = self.root / 'selected-captures'
         (fresh.config / 'raw-logs-path.txt').write_bytes((str(target) + '\r\n').encode())
         config.initialize(fresh, sources=['bash'], data_root=self.root / 'selected-data')
-        self.assertEqual(fresh.daily, target)
+        self.assertEqual(fresh.raw_logs, target)
         self.assertEqual((fresh.config / 'raw-logs-path.txt').read_bytes(), (str(target) + '\r\n').encode())
         self.assertEqual(fresh.memory, self.root / 'selected-data/memory')
         (fresh.config / 'raw-logs-path.txt').write_text(str(fresh.memory))
@@ -291,14 +291,14 @@ class StorageTests(unittest.TestCase):
         self.assertEqual(metadata['captured_at'], instant.isoformat())
         self.discard('2020-01-15')
         self.assertEqual(capture.screenshot(self.paths, source, instant)['status'], 'discarded')
-        self.assertFalse((self.layout.daily / '2020-01-15').exists())
+        self.assertFalse((self.layout.raw_logs / '2020-01-15').exists())
 
     def test_log_fallback_does_not_resurrect_target_day(self):
         self.layout.ensure_day('2020-01-15')
         self.discard('2020-01-15')
         launch = self.layout.launch_directory('2020-01-15')
         self.assertEqual(launch.parent.parent.name, self.layout.day())
-        self.assertFalse((self.layout.daily / '2020-01-15').exists())
+        self.assertFalse((self.layout.raw_logs / '2020-01-15').exists())
 
     def test_failed_publication_leaves_large_temporary_copy_only_in_daily(self):
         self.settings['outputs'] = ['worklog']

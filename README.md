@@ -132,7 +132,7 @@ personal history inside Git.
 - Optional `raw-logs-path.txt` shares one capture-root path across applications.
   Recorders work with platform defaults. Main application `storage.json` selects
   permanent data storage. Capture dates use the natural calendar.
-- `daily/DATE/` holds disposable captures, drafts, sheets and execution logs.
+- `raw-logs/DATE/` holds disposable captures, drafts, sheets and execution logs.
 - `memory/` holds published reports, directly visible user/machine knowledge,
   and minimal durable system facts. Delete inactive old dates without reading
   state files. Removed dates are not automatically recreated.

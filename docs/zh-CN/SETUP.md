@@ -37,7 +37,7 @@ python -m my_big_brother doctor
 
 ## 配置个人安装
 
-`paths` 显示 `config.json`、`storage.json`、daily、memory 和持久化状态的位置。
+`paths` 显示 `config.json`、`storage.json`、`raw_logs`、memory 和持久化状态的位置。
 它们都位于仓库之外。
 编辑生成的 JSON 配置，可以选择输入源、输出类型、报告语言，
 或自定义绝对路径 `results_root`。

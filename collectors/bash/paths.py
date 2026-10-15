@@ -27,7 +27,7 @@ def platform_paths(system=None, home=None, environ=None):
 def capture_root(config_dir, data_dir):
     locator = Path(config_dir) / 'raw-logs-path.txt'
     if not locator.exists():
-        return Path(data_dir) / 'daily'
+        return Path(data_dir) / 'raw-logs'
     value = locator.read_bytes().decode('utf-8')
     if value.endswith('\r\n'):
         value = value[:-2]

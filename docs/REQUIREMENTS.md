@@ -5,13 +5,22 @@
 These are product requirements for collectors, source adapters and review
 tasks. Read this before changing dates, paths or recorder dependencies.
 
+## Disposable material and permanent memory
+
+Use `raw-logs/YYYY-MM-DD/` for captures and all disposable review material,
+including preprocessing, indexes, Agent drafts and run logs. Raw material is
+not restricted to bytes that no tool or AI has processed. Published reports,
+long-term knowledge and minimal persistent system facts stay in `memory` or
+explicit permanent output destinations. Cleanup follows this retention
+boundary, not whether AI has handled the content.
+
 ## Natural dates belong to collection
 
 - Record timestamps as actual system time with the UTC offset. Vim keeps
   its original local `YYYY-MM-DD HH:MM:SS` format as an exception. Its reader
   reports the local-timezone assumption. Other sources still require offsets.
 - Name session directories using the local system date when recording starts,
-  equivalent to `date +%F`: `daily/YYYY-MM-DD/<source>/`.
+  equivalent to `date +%F`: `raw-logs/YYYY-MM-DD/<source>/`.
   The date belongs to the recording's creation, not each subsequent write.
   Calendar and logical-day changes never move or split an existing recording.
 - The Python equivalent is local `strftime("%Y-%m-%d")`. Do not require a
@@ -61,7 +70,7 @@ A long session's final diff cannot be split reliably into daily activity.
 Until exit, its original snapshots exist but no `record.json` is available
 to the reader. This limitation does not require live checkpoint recording.
 
-Review material under `daily/DATE/_analysis/` uses the reviewed date label.
+Review material under `raw-logs/DATE/_analysis/` uses the reviewed date label.
 That label does not change the natural-date ownership of its input captures.
 Formal reports remain in `memory` or explicitly selected permanent targets.
 
@@ -70,15 +79,15 @@ Formal reports remain in `memory` or explicitly selected permanent targets.
 - Installing the main application or preparing its configuration is optional
   for using the Bash collector or the independent Vim plugin.
 - `C/raw-logs-path.txt` is the shared one-line UTF-8 absolute capture-root
-  locator. Without it, recorders use the platform data directory's `daily`.
-  Bash, Vim and the main application's daily storage use this same path.
+  locator. Without it, recorders use the platform data directory's `raw-logs`.
+  Bash, Vim and the main application's raw-log storage use this same path.
   A present malformed locator is an error. Never silently choose another root.
 - Bash and Vim do not read `storage.json` or maintain day registries.
   The main application uses `storage.json` for its permanent data root and
   maintains minimal date-registration metadata for analysis and managed writes.
   This does not impose that protocol on independent recorders.
 - Vim selects its root once: `record_dir`, then the one-path UTF-8
-  `C/raw-logs-path.txt`, then the platform data directory's `daily`. It does
+  `C/raw-logs-path.txt`, then the platform data directory's `raw-logs`. It does
   not register dates or vendor the shared runtime protocol. All selections
   use `YYYY-MM-DD/vim/<session>/` without old-layout or migration fallbacks.
 - Collectors do not launch an analysis Agent or read its personal policies.

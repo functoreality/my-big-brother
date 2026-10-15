@@ -65,7 +65,7 @@ ambiguity rather than inventing a request.
 ## Bash
 
 When enabled and installed, the bundled recorder writes local JSONL below
-`daily/YYYY-MM-DD/bash/`. Each shell keeps one file under the local natural
+`raw-logs/YYYY-MM-DD/bash/`. Each shell keeps one file under the local natural
 date when recording starts, equivalent to `date +%F` then. It never rotates,
 including after months of uptime. The preparer searches all retained start-date
 folders and selects activity by actual event time, not the directory date.

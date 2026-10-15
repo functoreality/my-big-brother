@@ -132,7 +132,7 @@ def digest(path):
 
 def review_configuration(paths, config):
     return {"language": config["language"], "day_start_hour": config["day_start_hour"],
-            "sources": config["sources"], "daily": str(paths.daily)}
+            "sources": config["sources"], "raw_logs": str(paths.raw_logs)}
 
 
 def state(run_dir, status, **details):
@@ -167,7 +167,7 @@ def prepare_run(paths, config, review_date, snapshot_end=None, *, recreate_delet
         if not spec.get("enabled", True):
             continue
         adapter = None
-        source_path = Path(spec["path"]) if spec.get("path") else paths.daily
+        source_path = Path(spec["path"]) if spec.get("path") else paths.raw_logs
         try:
             adapter = importlib.import_module(f"my_big_brother.sources.{name}")
             result = adapter.collect(source_path, start, end)
@@ -236,7 +236,7 @@ def prepare_run(paths, config, review_date, snapshot_end=None, *, recreate_delet
                "language": config["language"], "outputs": config["outputs"],
                "paths": {"run_dir": str(run_dir), "results_root": config["results_root"],
                          "config": str(paths.config / "config.json"),
-                         "daily": str(paths.daily)},
+                         "raw_logs": str(paths.raw_logs)},
                "output_paths": stage_paths, "final_output_paths": final_paths,
                "output_mapping": layout, "output_kinds": {item["staged"]: item["kind"] for item in layout},
                "profile": profile, "profile_digest": profile["digest"] if profile else None,
@@ -349,7 +349,7 @@ def publish_outputs(run_dir, context, layout, profile_digest, file_mode=None):
         target = Path(item["final"])
         target.parent.mkdir(parents=True, exist_ok=True)
         if target.parent.stat().st_dev != run_dir.stat().st_dev:
-            raise ValueError("Atomic publication requires formal outputs and daily storage "
+            raise ValueError("Atomic publication requires formal outputs and raw-log storage "
                              "on the same filesystem: " + str(target))
         current = digest(Path(item["final"]))
         staged = stage_digests[item["staged"]]

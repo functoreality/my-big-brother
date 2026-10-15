@@ -198,7 +198,7 @@ Source configuration also accepts `required: true`. An enabled required
 source marked `unavailable` blocks analysis. `partial` retains usable records
 and visible gaps, including legitimate boundary exclusions. A readable empty
 source is different from an unavailable one. Optional Vim and screenshot
-sources are disabled by default and use the shared daily directory unless their
+sources are disabled by default and use the shared raw-log directory unless their
 configuration names an explicit `path`.
 Unexpected collection or asset-preparation errors also mark that source
 `unavailable`, preserving the error and traceback in `logs/<source>-error.json`.
@@ -224,6 +224,6 @@ full logs and candidate backups in the dated run. Deletion abandons pending
 work without undoing applied changes. Extensions must honor discarded days
 and verify their own idempotence.
 
-Formal output overrides must be outside `daily` and on the same filesystem
-as daily storage so publication can atomically replace them using dated
+Formal output overrides must be outside `raw-logs` and on the same filesystem
+as raw-log storage so publication can atomically replace them using dated
 temporary files. See [Storage](STORAGE.md).

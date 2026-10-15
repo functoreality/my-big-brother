@@ -22,8 +22,8 @@ class Paths:
         return Layout.load(self.config, default_data_root=self.data)
 
     @property
-    def daily(self):
-        return self.layout.daily
+    def raw_logs(self):
+        return self.layout.raw_logs
 
     @property
     def memory(self):

@@ -43,7 +43,7 @@ def collect(path: Path, start: datetime, end: datetime) -> SourceResult:
 读取上游历史时，不要修改原始文件。
 新增采集器默认独立运行，可用可选的 `C/storage.json` 指定共享数据根。
 登记后写入
-`daily/YYYY-MM-DD/<source>/`，按本机自然日期归档。
+`raw-logs/YYYY-MM-DD/<source>/`，按本机自然日期归档。
 已放弃的日期不得重建，记录自身带时间戳。完整协议见[存储 v2](STORAGE.md)。
 采集器不读取 `results_root`。
 每份记录开始时确定日期和路径，之后保持位置不变。

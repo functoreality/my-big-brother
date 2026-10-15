@@ -15,7 +15,7 @@ Do not treat this file as the daily analysis task itself.
   midnight. Snapshot existing files when opened and publish diff/JSON at exit.
   Never add date rotation or timer, read/write, or focus checkpoints to satisfy
   storage rules. Vim resolves its root once using `record_dir`, then
-  `C/raw-logs-path.txt`, then the platform data directory's `daily`. It does
+  `C/raw-logs-path.txt`, then the platform data directory's `raw-logs`. It does
   not load `storage.json`, register dates or vendor the runtime protocol.
   Review boundaries such as 04:00 belong only to analysis, never collectors.
   Recorders work with platform defaults when shared configuration is absent.
@@ -39,12 +39,12 @@ Do not treat this file as the daily analysis task itself.
   workflow. Never loop or retry by launching another Agent from driver code.
 - Keep collectors limited to recording activity in their host environment.
 - Keep user configuration, logs, results, and state outside the repository.
-- Bash and Vim read `C/raw-logs-path.txt`, falling back to platform `daily`.
+- Bash and Vim read `C/raw-logs-path.txt`, falling back to platform `raw-logs`.
   They do not read `storage.json` or maintain runtime registries. The main
-  application uses the same locator for daily capture and analysis storage.
+  application uses the same locator for raw-log and analysis storage.
 - Use the shared storage protocol for managed application writers.
   Register dates before creating them. Never automatically recreate a discarded date.
-  Keep disposable material inside `daily/DATE` and durable facts in `memory`.
+  Keep disposable material inside `raw-logs/DATE` and durable facts in `memory`.
   See `docs/STORAGE.md` before changing paths or adding a collector.
   Bash and Vim readers search all retained date trees and filter by actual
   event time or session overlap. Window-date directories alone are insufficient.

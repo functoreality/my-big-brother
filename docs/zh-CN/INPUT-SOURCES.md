@@ -40,9 +40,9 @@ Bash 每个进程的整个生命周期只使用启动日期下的一个文件。
 共享存储结构如下：
 
 ```text
-daily/YYYY-MM-DD/vim/session/record.json
-daily/YYYY-MM-DD/vim/session/<snapshot artifacts>
-daily/YYYY-MM-DD/vim/session/<modification diff artifacts>
+raw-logs/YYYY-MM-DD/vim/session/record.json
+raw-logs/YYYY-MM-DD/vim/session/<snapshot artifacts>
+raw-logs/YYYY-MM-DD/vim/session/<modification diff artifacts>
 ```
 
 目录日期取会话启动时的本机自然日期，一个编辑器进程对应一个会话，
@@ -114,8 +114,8 @@ Vim 只读取 `<根目录>/YYYY-MM-DD/vim/<会话>/record.json` 这一种结构�
 共享存储结构如下：
 
 ```text
-daily/YYYY-MM-DD/screenshots/capture.png
-daily/YYYY-MM-DD/screenshots/manifest.json
+raw-logs/YYYY-MM-DD/screenshots/capture.png
+raw-logs/YYYY-MM-DD/screenshots/manifest.json
 ```
 
 支持 JPEG、PNG 和 WebP。共享存储只使用 `YYYY-MM-DD/screenshots/`。

@@ -68,10 +68,10 @@ class CoreTests(unittest.TestCase):
             self.assertEqual(cli.main(['due']), 1)
 
     def test_shared_storage_supports_spaces_and_rejects_missing_configuration(self):
-        self.assertEqual(self.paths.daily, self.paths.layout.daily)
+        self.assertEqual(self.paths.raw_logs, self.paths.layout.raw_logs)
         (self.paths.config / "storage.json").rename(self.paths.config / "saved-storage.json")
         with self.assertRaisesRegex(ValueError, 'not initialized'):
-            self.paths.daily
+            self.paths.raw_logs
 
     def test_init_preserves_existing_settings_and_storage(self):
         self.settings["language"] = "zh"

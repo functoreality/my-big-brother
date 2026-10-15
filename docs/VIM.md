@@ -52,12 +52,12 @@ The plugin resolves its recording root once at startup:
 
 1. Vim `record_dir`, if explicitly configured.
 2. `C/raw-logs-path.txt`, containing one UTF-8 absolute path.
-3. The platform data directory followed by `daily`.
+3. The platform data directory followed by `raw-logs`.
 
 All roots use `YYYY-MM-DD/vim/<session>/`. The TXT file names the root before
 the date, so sharing a custom main-application data root means putting its
-`daily` path in the locator. Keep `sources.vim.path` pointed at that same root
-if it differs from the main application's daily directory.
+`raw-logs` path in the locator. Keep `sources.vim.path` pointed at that same root
+if it differs from the main application's raw-log directory.
 The plugin does not read `storage.json` or participate in date registration.
 It creates the session folder at startup and uses that exact folder at exit,
 without reloading configuration, rotating or recreating a removed folder.

@@ -74,20 +74,20 @@ def timestamp(value=None):
     return result.astimezone()
 
 
-def managed_layout(daily_root):
-    root = Path(daily_root)
+def managed_layout(raw_logs_root):
+    root = Path(raw_logs_root)
     marker = root.parent / 'memory/_system/identity.json'
-    if root.name != 'daily' or not marker.exists():
+    if root.name != 'raw-logs' or not marker.exists():
         return None
     result = Layout(read_json(marker))
     result.check()
-    if result.daily.resolve() != root.resolve():
-        raise ValueError('Daily directory does not match its persistent storage contract')
+    if result.raw_logs.resolve() != root.resolve():
+        raise ValueError('Raw-log directory does not match its persistent storage contract')
     return result
 
 
 class Layout:
-    def __init__(self, value, daily_root=None):
+    def __init__(self, value, raw_logs_root=None):
         if (set(value) != {"schema_version", "data_root"}
                 or type(value["schema_version"]) is not int or value["schema_version"] != 2):
             raise ValueError("storage.json requires the version 2 storage contract")
@@ -97,11 +97,11 @@ class Layout:
             raise ValueError("storage.data_root must be an absolute path")
         self.settings = value
         self.root = Path(root)
-        self.daily = Path(daily_root) if daily_root is not None else self.root / "daily"
+        self.raw_logs = Path(raw_logs_root) if raw_logs_root is not None else self.root / "raw-logs"
         self.memory = self.root / "memory"
         self.system = self.memory / "_system"
-        daily, memory = self.daily.resolve(), self.memory.resolve()
-        if daily == memory or daily in memory.parents or memory in daily.parents:
+        raw_logs, memory = self.raw_logs.resolve(), self.memory.resolve()
+        if raw_logs == memory or raw_logs in memory.parents or memory in raw_logs.parents:
             raise ValueError('Capture storage and permanent memory must not overlap')
 
     @classmethod
@@ -131,7 +131,7 @@ class Layout:
         locator = Path(config_dir) / 'raw-logs-path.txt'
         if not locator.exists():
             with locator.open('x', encoding='utf-8', newline='\n') as stream:
-                stream.write(str(result.daily) + '\n')
+                stream.write(str(result.raw_logs) + '\n')
             locator.chmod(0o600)
         return result
 
@@ -155,7 +155,7 @@ class Layout:
                 return self
             if any(path.name != "locks" for path in self.system.iterdir()):
                 raise ValueError("Existing persistent storage has no marker. Do not reset it.")
-            self.daily.mkdir(parents=True, exist_ok=True, mode=0o700)
+            self.raw_logs.mkdir(parents=True, exist_ok=True, mode=0o700)
             (self.system / "days").mkdir(mode=0o700)
             write_json(marker, self.settings)
         return self
@@ -196,7 +196,7 @@ class Layout:
             if (value.get("date") != day or value.get("disposition") not in ("retained", "discarded")
                     or not isinstance(value.get("workspace_id"), str)):
                 raise ValueError("Invalid persistent day record: " + str(path))
-            marker = self.daily / day / "_workspace.json"
+            marker = self.raw_logs / day / "_workspace.json"
             missing = not marker.exists()
             mismatched = not missing and read_json(marker).get("workspace_id") != value["workspace_id"]
             if value["disposition"] == "retained" and (missing or mismatched):
@@ -217,7 +217,7 @@ class Layout:
             record = self._record(day)
             if record and record["disposition"] == "discarded" and not recreate:
                 raise DiscardedDay("Day workspace was discarded: " + day)
-            directory = self.daily / day
+            directory = self.raw_logs / day
             if record is None or record["disposition"] == "discarded":
                 start, end = self.bounds(day)
                 record = {"date": day, "workspace_id": uuid.uuid4().hex,
@@ -240,7 +240,7 @@ class Layout:
 
     def check_run(self, run_dir, workspace_id=None):
         directory = Path(run_dir).resolve()
-        parts = directory.relative_to(self.daily.resolve()).parts
+        parts = directory.relative_to(self.raw_logs.resolve()).parts
         if len(parts) != 3 or parts[1] != "_analysis":
             raise ValueError("Not a storage v2 review run")
         record = self.record(parts[0])

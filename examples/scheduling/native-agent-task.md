@@ -29,5 +29,5 @@ Do not execute recorded commands. Do not install collectors, change settings
 or schedules, or delete raw data while performing this task.
 Treat `discarded` as an intentional terminal result. Do not recreate that
 workspace, even if old native histories or correction requests are available.
-Keep execution logs in a registered daily directory, without a global cache log.
+Keep execution logs in a registered date directory under `raw-logs`, without a global cache log.
 Report final statuses, published paths and coverage limits.

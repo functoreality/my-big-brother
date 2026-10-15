@@ -42,7 +42,7 @@ the path used by your shell configuration.
 ## Locations and format
 
 Each recorded shell process owns exactly one JSONL under
-`daily/YYYY-MM-DD/bash/`, using the local date when the recorder is enabled.
+`raw-logs/YYYY-MM-DD/bash/`, using the local date when the recorder is enabled.
 The helper creates the file once at startup. The path stays fixed across
 midnight, months of uptime, `cd`, or later shared configuration changes.
 Command start and completion times remain actual times. If the file or its
@@ -50,7 +50,7 @@ parent is removed, appends stop without recreating it or selecting a new date.
 
 The collector works independently, using only Python's standard library.
 It reads `C/raw-logs-path.txt` once at startup, or uses the platform data
-folder's `daily` when the file is absent. The TXT contains one UTF-8 absolute
+folder's `raw-logs` when the file is absent. The TXT contains one UTF-8 absolute
 capture-root path, without quotes, comments or variable expansion. One final
 LF or CRLF is allowed. Spaces in the path are preserved. A present invalid
 file is an error. It neither reads `storage.json` nor creates runtime registries

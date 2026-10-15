@@ -2,7 +2,7 @@
 
 [简体中文](zh-CN/CLEANUP.md)
 
-For storage v2, open the `daily` directory reported by:
+For storage v2, open the `raw-logs` directory reported by:
 
 ```sh
 python -m my_big_brother paths

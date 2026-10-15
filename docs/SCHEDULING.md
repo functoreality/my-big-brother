@@ -81,8 +81,8 @@ Before installing a timer:
   Carry any required absolute XDG settings on Linux.
 - Test account access, network access, and the command from the scheduler's
   environment. Do not assume interactive aliases or shell startup files load.
-- The launcher writes logs inside registered daily directories. Do not add
-  a permanent aggregate log outside daily. Pre-log setup errors may only be
+- The launcher writes logs inside registered date directories under `raw-logs`. Do not add
+  a permanent aggregate log outside `raw-logs`. Pre-log setup errors may only be
   available as stderr or the host scheduler's own diagnostics.
 - Allow enough time for several reviews. `codex.timeout_seconds` applies to
   the entire Agent session, including all selected dates and post-review work.

@@ -2,7 +2,7 @@
 
 [English](../CLEANUP.md)
 
-存储 v2 只需要清理一个地方。运行下面的只读命令找到 `daily`：
+存储 v2 只需要清理一个地方。运行下面的只读命令找到 `raw-logs`：
 
 ```sh
 python -m my_big_brother paths

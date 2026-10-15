@@ -81,10 +81,10 @@ def writable_roots(paths, settings):
     from .. import config, runner
     profile = config.load_profile(settings)
     result_root = Path(settings["results_root"]).resolve()
-    daily = paths.daily.resolve()
-    if result_root == daily or daily in result_root.parents:
-        raise ValueError("Formal results overlap disposable daily storage: " + str(result_root))
-    roots = [paths.state, paths.daily, Path(settings["results_root"])]
+    raw_logs = paths.raw_logs.resolve()
+    if result_root == raw_logs or raw_logs in result_root.parents:
+        raise ValueError("Formal results overlap disposable raw-log storage: " + str(result_root))
+    roots = [paths.state, paths.raw_logs, Path(settings["results_root"])]
     if profile:
         for template in profile["output_paths"].values():
             prefix = template.split("{date}", 1)[0]
@@ -95,10 +95,10 @@ def writable_roots(paths, settings):
     protected = [runner.REPO.resolve(), paths.config.resolve()]
     protected.extend(Path(spec["path"]).resolve() for spec in settings["sources"].values()
                      if spec.get("enabled", True) and spec.get("path")
-                     and Path(spec["path"]).resolve() != paths.daily.resolve())
+                     and Path(spec["path"]).resolve() != paths.raw_logs.resolve())
     for root in roots:
-        if root in paths.daily.resolve().parents:
-            raise ValueError("Writable root contains protected daily storage: " + str(root))
+        if root in paths.raw_logs.resolve().parents:
+            raise ValueError("Writable root contains protected raw-log storage: " + str(root))
         for path in protected:
             if root == path or root in path.parents or path in root.parents:
                 raise ValueError(f"Writable root overlaps protected checkout, configuration or source logs: {root}")

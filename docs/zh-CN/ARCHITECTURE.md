@@ -50,7 +50,7 @@ C/
   storage.json       可选的共享数据根，不含分析日界线
   local-tasks/
 D/
-  daily/YYYY-MM-DD/
+  raw-logs/YYYY-MM-DD/
     bash/
     vim/
     screenshots/
@@ -78,7 +78,7 @@ Bash 和 Vim 会话固定使用启动日期下的位置，不因跨午夜而轮�
 1. `prepare` 读取时间窗口内已启用的输入源。
    适配器报告可用记录和明确的证据缺口。
    完整消息保存为摘录，精简索引帮助 Agent 定位内容。
-2. `D/daily/DATE/_analysis/` 下的运行目录包含 `manifest.json`、`context.json`、
+2. `D/raw-logs/DATE/_analysis/` 下的运行目录包含 `manifest.json`、`context.json`、
    索引、摘录、草稿和诊断信息。
    上下文确定日期、语言、已选输出、暂存路径和完成回执格式。
 3. Agent 遵循 `tasks/daily-review/TASK.md`。

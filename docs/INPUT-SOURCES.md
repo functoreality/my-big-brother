@@ -7,7 +7,7 @@ that evidence means. Adapters never execute commands found in histories.
 
 The Vim and screenshot adapters are optional sources. Enable them explicitly
 in the user configuration. An adapter reads the configured `path`, or the
-shared daily directory when `path` is omitted. They do not install recorders or
+shared raw-log directory when `path` is omitted. They do not install recorders or
 start continuous collection.
 
 ## Bash session context
@@ -41,9 +41,9 @@ Follow [Vim/Neovim recording](VIM.md) for discovery, configuration and verificat
 The shared layout is:
 
 ```text
-daily/YYYY-MM-DD/vim/session/record.json
-daily/YYYY-MM-DD/vim/session/<snapshot artifacts>
-daily/YYYY-MM-DD/vim/session/<modification diff artifacts>
+raw-logs/YYYY-MM-DD/vim/session/record.json
+raw-logs/YYYY-MM-DD/vim/session/<snapshot artifacts>
+raw-logs/YYYY-MM-DD/vim/session/<modification diff artifacts>
 ```
 
 The date is the session's local start date. Each editor process keeps one
@@ -109,7 +109,7 @@ or failed session with no `record.json` is invisible to the adapter. This
 limitation does not require live checkpoints. A recognized, readable Vim
 subtree with no matching records returns an empty successful index. This means only
 that no records were found, not that collection is active or complete.
-A shared daily directory with no Vim subtree returns `unavailable`, as does a missing
+A shared raw-log directory with no Vim subtree returns `unavailable`, as does a missing
 source root or a source containing only unsupported or unreadable records.
 Mixed valid and damaged records return `partial`. A record closing after the
 snapshot produces a limitation without making the source unavailable.
@@ -119,8 +119,8 @@ snapshot produces a limitation without making the source unavailable.
 The shared layout is:
 
 ```text
-daily/YYYY-MM-DD/screenshots/capture.png
-daily/YYYY-MM-DD/screenshots/manifest.json
+raw-logs/YYYY-MM-DD/screenshots/capture.png
+raw-logs/YYYY-MM-DD/screenshots/manifest.json
 ```
 
 JPEG, PNG, and WebP images are supported. Shared storage uses only

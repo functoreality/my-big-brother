@@ -76,8 +76,8 @@ def load(paths: Paths):
         raise ValueError("day_start_hour must be an integer from 0 to 23")
     absolute(config["results_root"], "results_root")
     result_root = Path(config["results_root"])
-    if is_within(result_root, layout.daily) or is_within(layout.daily, result_root):
-        raise ValueError("Formal results must be outside disposable daily storage")
+    if is_within(result_root, layout.raw_logs) or is_within(layout.raw_logs, result_root):
+        raise ValueError("Formal results must be outside disposable raw-log storage")
     outputs = config["outputs"]
     if not isinstance(outputs, list) or not outputs or any(x not in OUTPUTS for x in outputs):
         raise ValueError(f"outputs must be a nonempty list of {', '.join(OUTPUTS)}")
@@ -98,9 +98,9 @@ def load(paths: Paths):
         if set(spec) - {"enabled", "path", "required"}:
             raise ValueError(f"Invalid fields for sources.{name}")
     profile = load_profile(config)
-    if profile and any(is_within(Path(name.format(date="2020-01-15")), layout.daily)
+    if profile and any(is_within(Path(name.format(date="2020-01-15")), layout.raw_logs)
                        for name in profile["output_paths"].values()):
-        raise ValueError("Profile output paths must be outside disposable daily storage")
+        raise ValueError("Profile output paths must be outside disposable raw-log storage")
     return config
 
 
@@ -234,6 +234,6 @@ def initialize(paths, *, sources=None, results_root=None, data_root=None, day_st
     elif sources is not None or results_root:
         raise ValueError("Existing config preserved. Edit config.json to change settings.")
     config = load(paths)
-    for directory in (paths.daily, Path(config["results_root"]), paths.state):
+    for directory in (paths.raw_logs, Path(config["results_root"]), paths.state):
         directory.mkdir(parents=True, exist_ok=True, mode=0o700)
     return config

@@ -38,8 +38,8 @@ another Agent from using `prepare` and `finish`.
 
 ## Configure your own installation
 
-`paths` reports the locations of `config.json`, `storage.json`, daily storage, results,
-and runtime state. They live outside the repository. Edit the generated JSON
+`paths` reports the `raw_logs` directory and the locations of `config.json`,
+`storage.json`, results and runtime state. They live outside the repository. Edit the generated JSON
 configuration to select sources, output types, report language, or a custom
 absolute `results_root`.
 

@@ -42,7 +42,7 @@ Document supported versions and represent parsing failures as coverage gaps.
 
 Read upstream histories without changing them. For new collectors, use the
 optional `C/storage.json` root override and register a calendar date before writing
-`daily/YYYY-MM-DD/<source>/`. Honor discarded dates instead of recreating
+`raw-logs/YYYY-MM-DD/<source>/`. Honor discarded dates instead of recreating
 missing directories. See [Storage v2](STORAGE.md). Collectors do not read
 `results_root`.
 
