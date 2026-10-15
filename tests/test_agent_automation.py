@@ -135,7 +135,7 @@ class AutomationTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "blocked"):
                 codex.automate(self.paths, self.settings, review_date=DAY)
         launch.assert_called_once()
-        states = list((self.paths.state / "launches").glob("*/state.json"))
+        states = list(self.paths.daily.glob("*/_launches/*/state.json"))
         self.assertEqual(runner.read_object(states[0])["status"], "failed")
 
     def bad_agent(self, status, *, wrong_id=False, fake_empty=False, wrong_order=False):
@@ -237,7 +237,7 @@ class AutomationTests(unittest.TestCase):
         with patch.object(codex, "launch", side_effect=subprocess.TimeoutExpired("fixture", 1)):
             with self.assertRaises(subprocess.TimeoutExpired):
                 codex.automate(self.paths, self.settings, review_date=DAY)
-        launch_dir = next((self.paths.state / "launches").iterdir())
+        launch_dir = next(self.paths.daily.glob("*/_launches/*"))
         self.assertTrue((launch_dir / "context.json").is_file())
         self.assertEqual(runner.read_object(launch_dir / "state.json")["status"], "failed")
 

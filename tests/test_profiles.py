@@ -327,6 +327,10 @@ class ProfileTests(unittest.TestCase):
 
     def test_fixed_snapshot_is_offset_aware_and_half_open(self):
         self.settings["day_start_hour"] = 4
+        calendar = dict(self.paths.layout.settings, day_start_hour=4)
+        marker = self.paths.state / "storage.json"
+        config.write_json(marker, calendar)
+        config.write_json(self.paths.config / "storage.json", calendar)
         start, full_end = runner.window(DAY, 4)
         cutoff = (start + timedelta(hours=6)).astimezone(SHANGHAI)
         with patch.object(runner, "now", return_value=full_end + timedelta(days=1)):
@@ -486,7 +490,8 @@ class ProfileTests(unittest.TestCase):
         with patch.object(runner.os, "replace", side_effect=fail_second_file):
             with self.assertRaisesRegex(OSError, "interrupted publication"):
                 runner.finish_run(self.paths, self.settings, run_dir)
-        self.assertEqual(runner.read_object(run_dir / "publication.json")["status"], "publishing")
+        journal = Path(runner.read_object(run_dir / "context.json")["publication_journal"])
+        self.assertEqual(runner.read_object(journal)["status"], "publishing")
         result = runner.finish_run(self.paths, self.settings, run_dir)
         self.assertEqual(result["status"], "completed")
         self.assertTrue(all(Path(name).is_file() for name in context["final_output_paths"]))

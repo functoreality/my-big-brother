@@ -81,9 +81,9 @@ class KnowledgeOutputTests(unittest.TestCase):
         first = runner.output_layout(self.settings, DAY, self.paths.state, None)
         second = runner.output_layout(self.settings, NEXT_DAY, self.paths.state, None)
         self.assertEqual(len(first), 7)
-        expected = {"user_model": "USER-MODEL.md", "machine_context": "SOURCES.md"}
+        expected = {"user_model": "USER-MODEL.md", "machine_context": "MACHINE-CONTEXT.md"}
         for item in first[-2:]:
-            relative = "records/knowledge/" + expected[item["kind"]]
+            relative = expected[item["kind"]]
             self.assertEqual(item["final"], str(Path(self.settings["results_root"]) / relative))
             self.assertEqual(item["staged"], str(self.paths.state / "drafts" / relative))
         self.assertEqual([item["final"] for item in first[-2:]],
@@ -145,12 +145,12 @@ class KnowledgeOutputTests(unittest.TestCase):
         self.drafts(directory, context, addition="Stale new observation.\n")
         item = self.knowledge_items(context)[0]
         final = Path(item["final"])
-        final.parent.mkdir(parents=True)
+        final.parent.mkdir(parents=True, exist_ok=True)
         final.write_text("Human correction after preparation.\n", encoding="utf-8")
         with self.assertRaisesRegex(ValueError, "Result changed after prepare"):
             runner.finish_run(self.paths, self.settings, directory)
         self.assertEqual(final.read_text(), "Human correction after preparation.\n")
-        self.assertFalse((directory / "publication.json").exists())
+        self.assertFalse(Path(context["publication_journal"]).exists())
         self.assertFalse(Path(context["final_output_paths"][0]).exists())
 
     def test_later_updates_keep_prior_day_and_automation_completion_valid(self):

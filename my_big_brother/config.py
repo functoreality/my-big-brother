@@ -7,7 +7,8 @@ import tempfile
 from pathlib import Path
 from string import Formatter
 
-from .paths import Paths, absolute, raw_logs_root
+from .paths import Paths, absolute, raw_logs_root, is_within
+from .storage import Layout
 
 DEFAULT_OUTPUTS = ("worklog", "time-use", "insights", "time-estimates")
 OUTPUTS = DEFAULT_OUTPUTS + ("user-model", "machine-context")
@@ -39,7 +40,7 @@ def defaults(paths: Paths):
         "analyzer": "codex",
         "language": "en",
         "day_start_hour": 0,
-        "results_root": str(paths.data / "results"),
+        "results_root": str(paths.data / "memory"),
         "local_profile": None,
         "sources": {
             "codex": {"enabled": True, "path": str(codex_home / "sessions")},
@@ -65,6 +66,9 @@ def load(paths: Paths):
         raise ValueError(f"Unknown configuration fields: {', '.join(sorted(unknown))}")
     config = defaults(paths)
     config.update(value)
+    layout = paths.layout
+    if config["day_start_hour"] != layout.hour:
+        raise ValueError("day_start_hour differs from the fixed shared storage calendar")
     if not isinstance(config["analyzer"], str) or not config["analyzer"].strip():
         raise ValueError("analyzer must be a nonempty Agent name")
     if not isinstance(config["language"], str) or not config["language"].strip():
@@ -73,6 +77,9 @@ def load(paths: Paths):
     if type(hour) is not int or not 0 <= hour <= 23:
         raise ValueError("day_start_hour must be an integer from 0 to 23")
     absolute(config["results_root"], "results_root")
+    result_root = Path(config["results_root"])
+    if is_within(result_root, layout.daily) or is_within(layout.daily, result_root):
+        raise ValueError("Formal results must be outside disposable daily storage")
     outputs = config["outputs"]
     if not isinstance(outputs, list) or not outputs or any(x not in OUTPUTS for x in outputs):
         raise ValueError(f"outputs must be a nonempty list of {', '.join(OUTPUTS)}")
@@ -93,7 +100,10 @@ def load(paths: Paths):
         if set(spec) - {"enabled", "path", "required"}:
             raise ValueError(f"Invalid fields for sources.{name}")
     raw_logs_root(paths)
-    load_profile(config)
+    profile = load_profile(config)
+    if profile and any(is_within(Path(name.format(date="2020-01-15")), layout.daily)
+                       for name in profile["output_paths"].values()):
+        raise ValueError("Profile output paths must be outside disposable daily storage")
     return config
 
 
@@ -201,12 +211,24 @@ def load_profile(config):
     return profile
 
 
-def initialize(paths, *, sources=None, results_root=None, raw_root=None):
+def initialize(paths, *, sources=None, results_root=None, raw_root=None, data_root=None, day_start_hour=0):
     paths.config.mkdir(parents=True, exist_ok=True, mode=0o700)
     config_path = paths.config / "config.json"
     locator = paths.config / "raw-logs-path.txt"
+    if config_path.exists() and not (paths.config / "storage.json").exists():
+        raise ValueError("Existing v1 configuration preserved. Run migrate-storage first.")
+    if raw_root is not None:
+        raise ValueError("Storage v2 uses --data-root, with a daily child, instead of --raw-logs-root")
+    if (paths.config / "storage.json").exists():
+        layout = paths.layout
+        if data_root is not None and Path(data_root) != layout.root:
+            raise ValueError("Existing storage preserved. Moving it requires migration.")
+    else:
+        layout = Layout.install(paths.config, data_root or paths.data, day_start_hour)
     if not config_path.exists():
         config = defaults(paths)
+        config["day_start_hour"] = layout.hour
+        config["results_root"] = str(layout.memory)
         enabled = SOURCES if sources is None else sources
         config["sources"] = {name: spec for name, spec in config["sources"].items() if name in enabled}
         if sources is not None:
@@ -217,14 +239,6 @@ def initialize(paths, *, sources=None, results_root=None, raw_root=None):
         write_json(config_path, config)
     elif sources is not None or results_root:
         raise ValueError("Existing config preserved. Edit config.json to change settings.")
-    if locator.exists():
-        if raw_root:
-            raise ValueError("Existing raw-logs-path.txt preserved. Edit it to move logs.")
-        raw_logs_root(paths)
-    else:
-        root = absolute(raw_root, "raw_root") if raw_root else paths.data / "raw-logs"
-        with locator.open("x", encoding="utf-8", newline="\n") as handle:
-            handle.write(str(root) + "\n")
     config = load(paths)
     for directory in (raw_logs_root(paths), Path(config["results_root"]), paths.state):
         directory.mkdir(parents=True, exist_ok=True, mode=0o700)

@@ -7,7 +7,6 @@ import signal
 import shutil
 import subprocess
 import sys
-import uuid
 from datetime import datetime
 from pathlib import Path
 
@@ -80,9 +79,12 @@ def launch(settings, run_dir, prompt, *, write_paths=(), environment=None):
 def writable_roots(paths, settings):
     """Expose only runtime destinations selected by this installation."""
     from .. import config, runner
-    from ..paths import raw_logs_root
     profile = config.load_profile(settings)
-    roots = [paths.state, Path(settings["results_root"])]
+    result_root = Path(settings["results_root"]).resolve()
+    daily = paths.daily.resolve()
+    if result_root == daily or daily in result_root.parents:
+        raise ValueError("Formal results overlap disposable daily storage: " + str(result_root))
+    roots = [paths.state, paths.daily, Path(settings["results_root"])]
     if profile:
         for template in profile["output_paths"].values():
             prefix = template.split("{date}", 1)[0]
@@ -90,10 +92,13 @@ def writable_roots(paths, settings):
         if profile["post_review"]:
             roots.extend(Path(name) for name in profile["post_review"]["write_paths"])
     roots = sorted(set(path.resolve() for path in roots))
-    protected = [runner.REPO.resolve(), paths.config.resolve(), raw_logs_root(paths).resolve()]
+    protected = [runner.REPO.resolve(), paths.config.resolve()]
     protected.extend(Path(spec["path"]).resolve() for spec in settings["sources"].values()
-                     if spec.get("enabled", True) and spec.get("path"))
+                     if spec.get("enabled", True) and spec.get("path")
+                     and Path(spec["path"]).resolve() != paths.daily.resolve())
     for root in roots:
+        if root in paths.daily.resolve().parents:
+            raise ValueError("Writable root contains protected daily storage: " + str(root))
         for path in protected:
             if root == path or root in path.parents or path in root.parents:
                 raise ValueError(f"Writable root overlaps protected checkout, configuration or source logs: {root}")
@@ -129,9 +134,8 @@ def automate(paths, settings, *, review_date=None, max_days=7, snapshot_end=None
         root.mkdir(parents=True, exist_ok=True, mode=0o700)
         if str(root) not in write_paths:
             write_paths.append(str(root))
-    invocation_id = uuid.uuid4().hex
-    launch_dir = paths.state / "launches" / invocation_id
-    launch_dir.mkdir(parents=True, mode=0o700)
+    launch_dir = paths.layout.launch_directory(review_date)
+    invocation_id = launch_dir.name
     (launch_dir / "logs").mkdir(mode=0o700)
     context = {"invocation_id": invocation_id, "checkout": str(runner.REPO),
                "python_executable": sys.executable, "config": str(paths.config / "config.json"),
@@ -149,6 +153,9 @@ def automate(paths, settings, *, review_date=None, max_days=7, snapshot_end=None
     (launch_dir / "prompt.md").write_text(prompt, encoding="utf-8")
     environment = dict(os.environ)
     environment.update(PYTHONPATH=str(runner.REPO), PYTHONDONTWRITEBYTECODE="1")
+    temporary_root = launch_dir / "tmp"
+    temporary_root.mkdir(mode=0o700)
+    environment.update(TMPDIR=str(temporary_root), TMP=str(temporary_root), TEMP=str(temporary_root))
     runner.state(launch_dir, "running", invocation_id=invocation_id)
     try:
         launch(backend, launch_dir, prompt, write_paths=write_paths, environment=environment)

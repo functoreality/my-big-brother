@@ -8,6 +8,11 @@ from pathlib import Path
 import re
 import sys
 import uuid
+import importlib.util
+
+_spec = importlib.util.spec_from_file_location("mbb_storage", Path(__file__).with_name("storage.py"))
+_storage = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(_storage)
 
 
 def locations():
@@ -31,6 +36,9 @@ def locations():
 
 def raw_root():
     config, data = locations()
+    layout = _storage.Layout.load(config, required=False)
+    if layout is not None:
+        return layout.daily
     pointer = config / "raw-logs-path.txt"
     if not pointer.exists():
         return data / "raw-logs"
@@ -77,7 +85,14 @@ def record():
         "capture_scope": "first-simple-command",
         "redacted": redacted,
     }
-    directory = raw_root() / completed[:10] / "bash"
+    layout = _storage.Layout.load(locations()[0], required=False)
+    if layout is not None:
+        try:
+            directory = layout.ensure_day(layout.day(completed)) / "bash"
+        except _storage.DiscardedDay:
+            return
+    else:
+        directory = raw_root() / completed[:10] / "bash"
     directory.mkdir(parents=True, exist_ok=True, mode=0o700)
     flags = os.O_CREAT | os.O_APPEND | os.O_WRONLY
     flags |= getattr(os, "O_NOFOLLOW", 0)

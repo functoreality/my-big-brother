@@ -129,7 +129,7 @@ def main():
         assert len(context["final_output_paths"]) == (7 if args.with_knowledge else 5)
         for output in context["final_output_paths"]:
             assert Path(output).is_file(), output
-        worklog = Path(paths["results"]) / "records/worklog" / (DAY + ".md")
+        worklog = Path(paths["results"]) / "records" / DAY / "worklog.md"
         text = worklog.read_text(encoding="utf-8").lower()
         assert "csv" in text and "installation" in text, "Reports must describe fixture work"
         if args.with_post_review:

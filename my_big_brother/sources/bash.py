@@ -5,6 +5,7 @@ from datetime import datetime
 from pathlib import Path
 
 from . import SourceResult, parse_timestamp
+from ..storage import managed_layout
 
 
 TIME_FIELDS = {"session_start": "started_at", "command": "completed_at", "session_end": "ended_at"}
@@ -45,7 +46,11 @@ def collect(path: Path, start: datetime, end: datetime) -> SourceResult:
     files = list(path.glob("*.jsonl"))
     # Legacy recorders can retain their session-start directory for days.
     # Select by event time even when the containing date precedes this window.
-    files.extend(path.glob("????-??-??/bash/*.jsonl"))
+    layout = managed_layout(path)
+    if layout is None:
+        files.extend(path.glob("????-??-??/bash/*.jsonl"))
+    else:
+        files.extend((path / layout.day(start) / 'bash').glob('*.jsonl'))
     rows, gaps, starts = [], [], {}
     files = sorted(set(files))
     for session_path in files:

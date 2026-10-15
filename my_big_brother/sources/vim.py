@@ -10,9 +10,14 @@ from pathlib import Path, PureWindowsPath
 
 from . import SourceResult, parse_timestamp
 from ..paths import is_within
+from ..storage import managed_layout
 
 
-def _record_paths(root: Path) -> tuple[list[Path], bool]:
+def _record_paths(root: Path, start=None) -> tuple[list[Path], bool]:
+    layout = managed_layout(root)
+    if layout is not None and start is not None:
+        directory = root / layout.day(start) / 'vim'
+        return sorted(directory.rglob('record.json')), True
     directories = sorted(path for path in root.glob("*/vim") if path.is_dir())
     for relative in ("vim", "legacy/vim"):
         directory = root / relative
@@ -69,7 +74,7 @@ def collect(raw_root: Path, start: datetime, end: datetime) -> SourceResult:
     """
     if not raw_root.is_dir():
         return SourceResult(status="unavailable", gaps=[f"Vim source unavailable: {raw_root}"])
-    record_paths, source_present = _record_paths(raw_root)
+    record_paths, source_present = _record_paths(raw_root, start)
     if not source_present:
         return SourceResult(status="unavailable", gaps=[f"Vim source directory unavailable within raw root: {raw_root}"])
     rows, gaps, valid_records = [], [], 0
@@ -119,6 +124,11 @@ def collect(raw_root: Path, start: datetime, end: datetime) -> SourceResult:
         if local_naive:
             gaps.append(f"Vim legacy naive timestamp assumes host local timezone, DST may be ambiguous: {record_path}")
         session_status = "closed" if session_end is not None else "open"
+        if payload.get("storage_version") == 2:
+            if payload.get("segment_open") is True:
+                session_status = "checkpoint"
+            if payload.get("boundary_gap"):
+                gaps.append(f"Vim day rollover has an unobserved interval: {record_path}")
         if session_end is None:
             gaps.append(f"Vim session is open at snapshot, complete diff unavailable: {record_path}")
         opened = payload.get("opened_files", [])
@@ -185,6 +195,8 @@ def collect(raw_root: Path, start: datetime, end: datetime) -> SourceResult:
             "diff_scope": "Whole-session diff. Changes cannot be attributed to a clipped window interval." if session_start < start else "Whole-session diff, not individual edit timestamps.",
             "timestamp_timezone": "host_local_assumed" if local_naive else "explicit_offset",
         })
+        if payload.get("storage_version") == 2:
+            rows[-1]["diff_scope"] = "Independent day segment through checkpoint, not individual edit timestamps."
     rows.sort(key=lambda row: (parse_timestamp(row["timestamp"]), row["record_path"]))
     status = "unavailable" if record_paths and valid_records == 0 else ("partial" if gaps else "ok")
     return SourceResult(rows, status, gaps)

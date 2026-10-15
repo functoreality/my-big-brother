@@ -43,7 +43,7 @@ class CoreTests(unittest.TestCase):
             if path.suffix == ".md":
                 path.write_text(f"# {day}\n\nObserved parser review.\n", encoding="utf-8")
             else:
-                key = "samples" if path.parent.name == "time-estimates" else "segments"
+                key = "samples" if path.name == "time-estimates.json" else "segments"
                 config.write_json(path, {"date": day, key: []})
         config.write_json(run / "completion.json", context["completion_example"])
         return run, context
@@ -68,6 +68,9 @@ class CoreTests(unittest.TestCase):
             self.assertEqual(cli.main(['due']), 1)
 
     def test_locator_preserves_spaces_crlf_and_rejects_multiline(self):
+        # Legacy discovery remains readable, but initialized v2 ignores it.
+        self.assertEqual(raw_logs_root(self.paths), self.paths.daily)
+        (self.paths.config / "storage.json").rename(self.paths.config / "storage-v2.json")
         locator = self.paths.config / "raw-logs-path.txt"
         value = str(self.root / "space folder")
         locator.write_bytes((value + "\r\n").encode())
@@ -80,10 +83,10 @@ class CoreTests(unittest.TestCase):
     def test_init_preserves_existing_settings_and_locator(self):
         self.settings["language"] = "zh"
         config.write_json(self.paths.config / "config.json", self.settings)
-        locator = (self.paths.config / "raw-logs-path.txt").read_bytes()
+        locator = (self.paths.config / "storage.json").read_bytes()
         initialized = config.initialize(self.paths)
         self.assertEqual(initialized["language"], "zh")
-        self.assertEqual((self.paths.config / "raw-logs-path.txt").read_bytes(), locator)
+        self.assertEqual((self.paths.config / "storage.json").read_bytes(), locator)
         with self.assertRaises(ValueError):
             config.initialize(self.paths, results_root=str(self.root / "other"))
 
@@ -125,8 +128,7 @@ class CoreTests(unittest.TestCase):
         finished = runner.finish_run(self.paths, self.settings, run)
         self.assertEqual(finished["status"], "completed")
         self.assertTrue(all(Path(x).is_file() for x in context["final_output_paths"]))
-        ledger = runner.read_object(self.paths.state / "completed.json")
-        self.assertTrue(ledger["days"]["2020-01-15"]["closed_day"])
+        self.assertTrue(runner.day_entry(self.paths, "2020-01-15")["closed_day"])
 
     def test_user_edit_after_prepare_prevents_overwrite(self):
         self.evidence()
@@ -169,7 +171,7 @@ class CoreTests(unittest.TestCase):
 
     def test_prepare_ticket_keeps_stable_results_until_agent_completes(self):
         self.evidence()
-        final = Path(self.settings["results_root"]) / "records/worklog/2020-01-15.md"
+        final = Path(self.settings["results_root"]) / "records/2020-01-15/worklog.md"
         final.parent.mkdir(parents=True, exist_ok=True)
         final.write_text("Existing report\n", encoding="utf-8")
         with patch("my_big_brother.analyzers.codex.launch") as launch:
@@ -242,8 +244,8 @@ class CoreTests(unittest.TestCase):
         with ThreadPoolExecutor(max_workers=2) as pool:
             results = list(pool.map(lambda run: runner.finish_run(self.paths, self.settings, run), [first, second]))
         self.assertTrue(all(result["status"] == "completed" for result in results))
-        ledger = runner.read_object(self.paths.state / "completed.json")
-        self.assertEqual(set(ledger["days"]), {"2020-01-15", "2020-01-16"})
+        self.assertTrue(runner.day_entry(self.paths, "2020-01-15")["closed_day"])
+        self.assertTrue(runner.day_entry(self.paths, "2020-01-16")["closed_day"])
 
     def test_analyzer_command_keeps_model_optional_and_prompt_off_argv(self):
         with patch("shutil.which", return_value="/tools/codex"):

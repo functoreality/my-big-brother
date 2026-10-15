@@ -5,6 +5,8 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
+from .storage import Layout
+
 
 @dataclass(frozen=True)
 class Paths:
@@ -13,7 +15,19 @@ class Paths:
 
     @property
     def state(self) -> Path:
-        return self.data / "state"
+        return self.layout.system
+
+    @property
+    def layout(self):
+        return Layout.load(self.config)
+
+    @property
+    def daily(self):
+        return self.layout.daily
+
+    @property
+    def memory(self):
+        return self.layout.memory
 
 
 def discover(*, system=None, home=None, environ=None) -> Paths:
@@ -48,6 +62,8 @@ def absolute(value, name) -> Path:
 
 
 def raw_logs_root(paths: Paths) -> Path:
+    if (paths.config / "storage.json").exists():
+        return paths.layout.daily
     locator = paths.config / "raw-logs-path.txt"
     if not locator.exists():
         return paths.data / "raw-logs"

@@ -74,6 +74,11 @@ def validate_receipt(paths, settings, launch_dir, context):
             if (ticket.get("status") != status or not runner.completed(paths, settings, review_date)
                 or run_dir != runner.day_entry(paths, review_date).get("run_dir")):
                 raise ValueError("Unverified already-completed automation result")
+        elif status == "discarded":
+            record = paths.layout.record(review_date)
+            if (ticket.get("status") != status or run_dir is not None
+                    or not record or record["disposition"] != "discarded"):
+                raise ValueError("Unverified discarded automation result")
         elif status == "completed":
             entry = runner.day_entry(paths, review_date)
             if (ticket.get("status") not in {"prepared", "actions-pending", "completed"}
@@ -104,7 +109,7 @@ def validate_receipt(paths, settings, launch_dir, context):
             if ticket.get("status") != "empty" or ticket.get("run_dir") != run_dir or context["allow_empty"]:
                 raise ValueError("Unverified empty automation result")
             directory = Path(run_dir).resolve()
-            directory.relative_to((paths.state / "runs").resolve())
+            paths.layout.check_run(directory)
             manifest = runner.read_object(directory / "manifest.json")
             review = runner.read_object(directory / "context.json")
             enabled = {name for name, spec in settings["sources"].items() if spec.get("enabled", True)}
