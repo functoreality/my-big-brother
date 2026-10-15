@@ -188,6 +188,25 @@ class SourceTests(unittest.TestCase):
             self.assertEqual(adapter.collect(missing, self.start, self.end).status, "unavailable")
         self.assertFalse(missing.exists())
 
+    def test_bash_old_session_directory_keeps_later_commands(self):
+        earlier = self.start - timedelta(days=3)
+        folder = earlier.astimezone().date().isoformat()
+        path = self.write_events(f"{folder}/bash/persistent-session.jsonl", [
+            {"event": "session_start", "started_at": earlier.isoformat()},
+            {"event": "command", "command": "historical command",
+             "completed_at": (earlier + timedelta(hours=1)).isoformat()},
+            {"event": "command", "command": "current command",
+             "completed_at": (self.start + timedelta(hours=1)).isoformat()},
+            {"event": "session_end", "ended_at": self.end.isoformat()},
+        ])
+        original = path.read_bytes()
+        result = bash.collect(self.root, self.start, self.end)
+        self.assertEqual(result.status, "ok")
+        self.assertEqual([row["content"] for row in result.rows], ["current command"])
+        self.assertEqual(result.rows[0]["session_context_status"], "outside_window")
+        self.assertEqual(result.rows[0]["session_context"]["started_at"], earlier.isoformat())
+        self.assertEqual(path.read_bytes(), original)
+
     def test_bash_date_first_logical_window_and_incomplete_line(self):
         start = self.start + timedelta(hours=4)
         end = start + timedelta(days=1)

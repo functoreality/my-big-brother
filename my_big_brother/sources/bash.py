@@ -1,7 +1,7 @@
 """Read completed Bash recorder events from natural-date directories."""
 
 import json
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 
 from . import SourceResult, parse_timestamp
@@ -43,11 +43,9 @@ def collect(path: Path, start: datetime, end: datetime) -> SourceResult:
     if not path.is_dir():
         return SourceResult(status="unavailable", gaps=[f"Raw logs unavailable: {path}"])
     files = list(path.glob("*.jsonl"))
-    day = start.astimezone().date()
-    last_day = (end - timedelta(microseconds=1)).astimezone().date()
-    while day <= last_day:
-        files.extend((path / day.isoformat() / "bash").glob("*.jsonl"))
-        day += timedelta(days=1)
+    # Legacy recorders can retain their session-start directory for days.
+    # Select by event time even when the containing date precedes this window.
+    files.extend(path.glob("????-??-??/bash/*.jsonl"))
     rows, gaps, starts = [], [], {}
     files = sorted(set(files))
     for session_path in files:

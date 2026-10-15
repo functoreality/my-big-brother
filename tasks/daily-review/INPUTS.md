@@ -62,7 +62,8 @@ ambiguity rather than inventing a request.
 
 When enabled and installed, the bundled recorder writes local JSONL below
 `raw-logs/YYYY-MM-DD/bash/`. Dates are natural dates, independently of the
-analysis day's configured boundary. The preparer selects relevant dates.
+analysis day's configured boundary. The preparer selects by event time, including
+legacy sessions that keep writing in an earlier session-start date directory.
 
 Command events are clues about actions and working directories. Their
 timestamps and status do not constitute a complete shell audit, prove file
