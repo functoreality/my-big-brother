@@ -12,24 +12,26 @@ start continuous collection.
 
 ## Bash session context
 
-The Bash adapter reads dated `YYYY-MM-DD/bash/*.jsonl` files and explicitly
-configured flat session roots. Activity rows always stay within the
-review window. Each Bash process keeps one file under its start date for its
-entire lifetime. The adapter searches every retained start-date folder, even
+The Bash adapter reads only `YYYY-MM-DD/bash/*.jsonl` beneath its source
+root, including when the root is explicitly configured. Activity rows stay
+within the review window. Each Bash process keeps one file under its start
+date for its entire lifetime. The adapter searches every retained start-date folder, even
 months before the review. The bundled recorder writes compact `session_start`,
 `command` and `session_end` events. Startup time and directory appear once in
 the start event. Files identify sessions without per-command session IDs.
 For a command or session end whose start was recorded earlier,
-the adapter attaches the nearest prior start as `session_context`, including
+the adapter attaches the preceding start in that same file as
+`session_context`, including
 `outside_window: true`, the actual start timestamp, original start fields,
 and its source location. This context is not another activity row.
 
-Historical commands and other sessions' out-of-window commands are not copied into the
-index. Command timestamps, directories, and recorded capture or timestamp
-scope are preserved. A missing capture scope is explicitly marked as unknown
-coverage. A modern command's `started_at` is not invented as a shell
-session start. The bundled command cwd is observed before execution, and its
-start time comes from history. See [Bash recording](BASH.md) for limitations.
+Earlier commands and other sessions' out-of-window commands are not copied
+into the index. Command timestamps and directories are preserved. Each indexed
+command carries a note that history input is not a complete terminal transcript
+and cannot establish coverage. A command's `started_at` is not invented as
+a shell session start. Separate files are never joined by a session ID.
+The bundled command cwd is observed before execution, and its start time
+comes from history. See [Bash recording](BASH.md) for limitations.
 
 ## Vim sessions
 
@@ -123,10 +125,10 @@ raw-logs/YYYY-MM-DD/screenshots/capture.png
 raw-logs/YYYY-MM-DD/screenshots/manifest.json
 ```
 
-JPEG, PNG, and WebP images are supported. Shared storage uses only
-`YYYY-MM-DD/screenshots/`. An explicitly configured screenshot source can
-also contain flat image files. The adapter does not search unrelated source
-directories for images.
+JPEG, PNG, and WebP images are supported. The adapter reads only
+`YYYY-MM-DD/screenshots/` beneath its source root, including an explicitly
+configured root. It visits the capture dates intersecting the review window.
+It does not probe flat layouts, unrelated sources or neighboring storage state.
 
 Without a manifest, a frame's filesystem modification time is its capture
 timestamp. Preserve modification times when importing old files. A JSON

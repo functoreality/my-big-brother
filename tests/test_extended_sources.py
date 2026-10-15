@@ -258,59 +258,51 @@ class BashSessionContextTests(unittest.TestCase):
         path.write_text("\n".join(json.dumps(event) for event in events) + "\n", encoding="utf-8")
         return path
 
-    def test_split_date_history_attaches_only_related_prior_start(self):
-        earlier = self.start - timedelta(days=1)
+    def test_start_date_file_supplies_its_own_context_without_old_commands(self):
         recent = self.start - timedelta(hours=2)
         self.write("2026-06-18/bash/target.jsonl", [
-            {"event": "session_start", "session_id": "target", "started_at": earlier.isoformat(), "cwd": "/earlier"}])
+            {"event": "session_start", "started_at": (recent - timedelta(days=1)).isoformat(), "cwd": "/earlier"}])
+        event = {"event": "command", "completed_at": self.start.isoformat(),
+                 "started_at": (self.start - timedelta(seconds=2)).isoformat(),
+                 "command": "window command", "cwd": "/current"}
         previous = self.write("2026-06-19/bash/target.jsonl", [
-            {"event": "session_start", "session_id": "target", "started_at": recent.isoformat(), "cwd": "/synthetic", "timestamps_scope": "legacy-prompt"},
-            {"event": "command", "session_id": "target", "completed_at": recent.isoformat(), "command": "old private command"}])
+            {"event": "session_start", "started_at": recent.isoformat(), "cwd": "/synthetic"},
+            {"event": "command", "completed_at": recent.isoformat(), "command": "old private command"},
+            event,
+            {"event": "session_end", "ended_at": (self.start + timedelta(minutes=1)).isoformat()}])
         self.write("2026-06-19/bash/unrelated.jsonl", [
-            {"event": "session_start", "session_id": "unrelated", "started_at": recent.isoformat(), "cwd": "/unrelated"},
-            {"event": "command", "session_id": "unrelated", "completed_at": recent.isoformat(), "command": "unrelated private command"}])
-        event = {"event": "command", "session_id": "target", "completed_at": self.start.isoformat(),
-            "started_at": (self.start - timedelta(seconds=2)).isoformat(),
-            "command": "window command", "cwd": "/current", "timestamps_scope": "legacy-prompt"}
-        self.write("2026-06-20/bash/target.jsonl", [event,
-            {"event": "session_end", "session_id": "target", "ended_at": (self.start + timedelta(minutes=1)).isoformat()}])
+            {"event": "session_start", "started_at": recent.isoformat(), "cwd": "/unrelated"},
+            {"event": "command", "completed_at": recent.isoformat(), "command": "unrelated private command"}])
         result = bash.collect(self.root, self.start, self.end)
         self.assertEqual(result.status, "ok")
         self.assertEqual(len(result.rows), 2)
         row = result.rows[0]
         self.assertEqual(row["started_at"], event["started_at"])
         self.assertEqual(row["cwd"], event["cwd"])
-        self.assertEqual(row["timestamps_scope"], event["timestamps_scope"])
         self.assertEqual(row["session_context"]["started_at"], recent.isoformat())
         self.assertEqual(row["session_context"]["cwd"], "/synthetic")
         self.assertEqual(row["session_context"]["session_path"], str(previous))
-        self.assertEqual(row["session_context"]["session_id"], "target")
         self.assertTrue(row["session_context"]["outside_window"])
         self.assertTrue(all(self.start <= datetime.fromisoformat(item["timestamp"]) < self.end for item in result.rows))
         self.assertNotIn("private command", json.dumps(result.rows))
 
-    def test_legacy_flat_root_uses_actual_start_and_marks_unknown_scope(self):
-        session_start = self.start - timedelta(days=3)
-        self.write("legacy-session.jsonl", [
-            {"event": "session_start", "started_at": session_start.isoformat(), "cwd": "/legacy"},
-            {"event": "command", "completed_at": self.start.isoformat(), "command": "window command"}])
-        result = bash.collect(self.root, self.start, self.end)
-        self.assertEqual(result.status, "ok")
-        self.assertEqual(len(result.rows), 1)
-        row = result.rows[0]
-        self.assertEqual(row["session_context"]["started_at"], session_start.isoformat())
-        self.assertEqual(row["session_context"]["session_key"], str(self.root / "legacy-session.jsonl"))
-        self.assertIn("Coverage cannot be inferred", row["capture_scope_note"])
+    def test_flat_or_source_first_directories_are_not_read(self):
+        event = {"event": "command", "completed_at": self.start.isoformat(), "command": "old layout"}
+        for name in ('session.jsonl', 'bash/session.jsonl', 'bash/2026-06-20/session.jsonl',
+                     'daily/2026-06-20/bash/session.jsonl'):
+            self.write(name, [event])
+        self.assertEqual(bash.collect(self.root, self.start, self.end).rows, [])
 
-    def test_modern_commands_without_session_start_do_not_invent_context(self):
-        self.write("2026-06-20/bash/modern.jsonl", [
-            {"event": "command", "session_id": "modern", "completed_at": self.start.isoformat(),
-                "started_at": (self.start - timedelta(seconds=2)).isoformat(),
-                "command": "make test", "capture_scope": "first-simple-command"}])
+    def test_same_filename_in_another_date_does_not_supply_missing_context(self):
+        self.write("2026-06-19/bash/session.jsonl", [
+            {"event": "session_start", "started_at": (self.start - timedelta(hours=1)).isoformat()}])
+        self.write("2026-06-20/bash/session.jsonl", [
+            {"event": "command", "completed_at": self.start.isoformat(),
+             "started_at": (self.start - timedelta(seconds=2)).isoformat(), "command": "make test"}])
         result = bash.collect(self.root, self.start, self.end)
         self.assertEqual(result.status, "ok")
         self.assertNotIn("session_context", result.rows[0])
-        self.assertNotIn("capture_scope_note", result.rows[0])
+        self.assertIn("Coverage cannot be inferred", result.rows[0]["capture_scope_note"])
         self.assertEqual(result.rows[0]["session_context_status"], "not_recorded")
 
     def test_window_start_remains_activity_without_outside_context(self):
@@ -344,10 +336,10 @@ class ScreenshotSourceTests(unittest.TestCase):
         os.utime(path, (seconds, seconds))
         return path
 
-    def test_date_first_and_explicit_frames_use_capture_instants(self):
+    def test_only_intersecting_date_directories_supply_capture_frames(self):
         first = self.image("2026-06-20/screenshots/one.png")
         second = self.image("2026-06-21/screenshots/two.png", self.end - timedelta(seconds=1))
-        third = self.image("screenshots/three.png", self.start + timedelta(minutes=5), reverse=True)
+        third = self.image("2026-06-20/screenshots/three.png", self.start + timedelta(minutes=5), reverse=True)
         self.image("2026-06-20/screenshots/before.png", self.start - timedelta(seconds=1))
         self.image("2026-06-21/screenshots/end.png", self.end)
         result = screenshots.collect(self.root, self.start, self.end)
@@ -357,6 +349,25 @@ class ScreenshotSourceTests(unittest.TestCase):
         self.assertEqual(result.rows[1]["seconds_since_previous_capture"], 300)
         self.assertTrue(all(row["hash_algorithm"] == "average_hash_16x16" for row in result.rows))
         self.assertEqual(result.rows[0]["sha256"], hashlib.sha256(first.read_bytes()).hexdigest())
+
+    def test_nonstandard_screenshot_directories_are_not_searched(self):
+        for name in ('frame.png', 'screenshots/frame.png', 'screen_record/frame.png',
+                     'screenshots/2026-06-20/frame.png', '2026-06-20/screen_record/frame.png',
+                     'daily/2026-06-20/screenshots/frame.png'):
+            self.image(name)
+        self.assertEqual(screenshots.collect(self.root, self.start, self.end).rows, [])
+
+    def test_reader_ignores_application_registry_and_outside_window_directories(self):
+        image = self.image('raw-logs/2026-06-20/screenshots/current.png')
+        identity = self.root / 'memory/_system/identity.json'
+        identity.parent.mkdir(parents=True)
+        identity.write_text('{broken application identity')
+        stale = self.root / 'raw-logs/2026-01-01/screenshots'
+        stale.mkdir(parents=True)
+        (stale / 'manifest.json').write_text('{broken unrelated manifest')
+        result = screenshots.collect(self.root / 'raw-logs', self.start, self.end)
+        self.assertEqual(result.status, 'ok')
+        self.assertEqual([row['path'] for row in result.rows], [str(image)])
 
     def test_manifest_time_survives_import_mtime_and_metadata_is_preserved(self):
         path = self.image("2026-06-20/screenshots/captured.png", self.start - timedelta(days=10))
@@ -370,8 +381,8 @@ class ScreenshotSourceTests(unittest.TestCase):
         self.assertEqual(rows[0]["capture_metadata"], capture)
 
     def test_optional_pillow_unavailable_and_corrupt_frame_partial(self):
-        self.image("good.png")
-        invalid = self.root / "invalid.png"
+        self.image("2026-06-20/screenshots/good.png")
+        invalid = self.root / "2026-06-20/screenshots/invalid.png"
         invalid.write_bytes(b"not-an-image")
         os.utime(invalid, (self.start.timestamp(), self.start.timestamp()))
         result = screenshots.collect(self.root, self.start, self.end)
@@ -408,7 +419,7 @@ class ScreenshotSourceTests(unittest.TestCase):
         self.assertTrue(all(cell["scale_x"] == cell["scale_y"] for cell in cells))
 
     def test_changed_source_stays_mapped_as_failed_conversion(self):
-        path = self.image("frame.png")
+        path = self.image("2026-06-20/screenshots/frame.png")
         rows = screenshots.collect(self.root, self.start, self.end).rows
         rows[0]["evidence_id"] = "screenshots-0001"
         path.write_bytes(b"changed")
@@ -426,7 +437,7 @@ class ScreenshotSourceTests(unittest.TestCase):
         self.assertEqual(screenshots.collect(self.root, self.start, self.end).rows, [])
 
     def test_prepare_assets_requires_runner_evidence_ids(self):
-        self.image("frame.png")
+        self.image("2026-06-20/screenshots/frame.png")
         rows = screenshots.collect(self.root, self.start, self.end).rows
         with self.assertRaisesRegex(ValueError, "evidence IDs"):
             screenshots.prepare_assets(rows, self.root / "run")

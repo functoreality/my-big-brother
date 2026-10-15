@@ -14,7 +14,7 @@ from ..paths import is_within
 
 def _record_paths(root: Path) -> tuple[list[Path], bool]:
     # Sessions remain under their start dates, which can precede the window.
-    directories = [path for path in root.glob("*/vim") if path.is_dir()]
+    directories = [path for path in root.glob("????-??-??/vim") if path.is_dir()]
     return sorted(path for directory in directories
                   for path in directory.glob("*/record.json")), bool(directories)
 
@@ -109,7 +109,7 @@ def collect(source_root: Path, start: datetime, end: datetime) -> SourceResult:
             for value in (payload.get("vim_start"), close_value) if value not in (None, "")
         )
         if local_naive:
-            gaps.append(f"Vim legacy naive timestamp assumes host local timezone, DST may be ambiguous: {record_path}")
+            gaps.append(f"Vim local timestamp assumes host local timezone, DST may be ambiguous: {record_path}")
         session_status = "closed" if session_end is not None else "open"
         if session_end is None:
             gaps.append(f"Vim session is open at snapshot, complete diff unavailable: {record_path}")

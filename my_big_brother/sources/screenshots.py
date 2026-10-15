@@ -13,7 +13,6 @@ from pathlib import Path
 
 from . import SourceResult, parse_timestamp, calendar_dates
 from ..paths import is_within
-from ..storage import managed_layout
 
 try:
     from PIL import Image, ImageDraw, ImageOps
@@ -26,19 +25,9 @@ CELL_WIDTH, IMAGE_HEIGHT, LABEL_HEIGHT = 640, 352, 32
 SHEET_COLUMNS, SHEET_ROWS = 2, 3
 
 
-def _directories(root: Path, start=None, end=None) -> list[Path]:
-    if managed_layout(root) is not None and start is not None and end is not None:
-        return [root / day / 'screenshots' for day in calendar_dates(start, end)
-                if (root / day / 'screenshots').is_dir()]
-    directories = sorted(path for path in root.glob('*/screenshots') if path.is_dir())
-    for relative in ("screenshots",):
-        candidate = root / relative
-        if candidate.is_dir() and candidate not in directories:
-            directories.append(candidate)
-    # An explicitly configured screenshot source root can contain its original flat files.
-    if not directories or any(path.suffix.lower() in IMAGE_SUFFIXES for path in root.iterdir()):
-        directories.append(root)
-    return directories
+def _directories(root: Path, start: datetime, end: datetime) -> list[Path]:
+    return [root / day / 'screenshots' for day in calendar_dates(start, end)
+            if (root / day / 'screenshots').is_dir()]
 
 
 def _manifest(directory: Path, gaps: list[str]) -> dict[Path, dict]:
@@ -100,18 +89,15 @@ def collect(source_root: Path, start: datetime, end: datetime) -> SourceResult:
         return SourceResult(status="unavailable", gaps=[f"Screenshot source unavailable: {source_root}"])
     if Image is None:
         return SourceResult(status="unavailable", gaps=["Screenshot source requires optional Pillow dependency"])
-    rows, gaps, seen = [], [], set()
+    rows, gaps = [], []
     for directory in _directories(source_root, start, end):
         manifest = _manifest(directory, gaps)
-        files = directory.iterdir() if directory == source_root else directory.rglob("*")
+        files = directory.rglob("*")
         candidates = {path.resolve() for path in files
             if path.is_file() and path.suffix.lower() in IMAGE_SUFFIXES
             and is_within(path, directory)}
         candidates.update(manifest)
         for path in sorted(candidates):
-            if path in seen:
-                continue
-            seen.add(path)
             metadata = manifest.get(path, {})
             value = metadata.get("timestamp", metadata.get("captured_at"))
             timestamp = parse_timestamp(value)

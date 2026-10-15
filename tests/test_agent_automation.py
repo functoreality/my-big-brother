@@ -33,9 +33,11 @@ class AutomationTests(unittest.TestCase):
 
     def evidence(self):
         from datetime import datetime
-        event = {"event": "command", "timestamp": datetime.fromisoformat(DAY + "T10:00:00").astimezone().isoformat(),
-                 "command": "printf '%s' example", "session_id": "isolated"}
-        (self.inputs / "example.jsonl").write_text(json.dumps(event) + "\n", encoding="utf-8")
+        event = {"event": "command", "completed_at": datetime.fromisoformat(DAY + "T10:00:00").astimezone().isoformat(),
+                 "command": "printf '%s' example"}
+        directory = self.inputs / DAY / 'bash'
+        directory.mkdir(parents=True, exist_ok=True)
+        (directory / "example.jsonl").write_text(json.dumps(event) + "\n", encoding="utf-8")
 
     def write_review(self, ticket):
         run_dir = Path(ticket["run_dir"])
@@ -310,7 +312,8 @@ class AutomationTests(unittest.TestCase):
         self.assertIn(str(task), launch.call_args.args[2])
         context = runner.read_object(Path(value["launch_dir"]) / "context.json")
         self.assertEqual(context["extra_write_paths"], [str(self.inputs)])
-        self.assertEqual(list(self.inputs.iterdir()), [self.inputs / "example.jsonl"])
+        self.assertEqual(list(self.inputs.rglob("*.jsonl")),
+                         [self.inputs / DAY / "bash" / "example.jsonl"])
         for options in ({"task": "relative.md"}, {"task": str(self.root / "missing.md")},
                         {"write_dirs": ["relative"]}, {"write_dirs": [str(self.paths.config)]}):
             with self.subTest(options=options), patch.object(codex, "launch") as rejected:
