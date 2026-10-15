@@ -1,4 +1,4 @@
-"""Read completed Bash recorder events from natural-date directories."""
+"""Read completed Bash recorder events from logical-day directories."""
 
 import json
 from datetime import datetime
@@ -42,7 +42,7 @@ def _session_key(event: dict, path: Path) -> str:
 
 def collect(path: Path, start: datetime, end: datetime) -> SourceResult:
     if not path.is_dir():
-        return SourceResult(status="unavailable", gaps=[f"Raw logs unavailable: {path}"])
+        return SourceResult(status="unavailable", gaps=[f"Bash source unavailable: {path}"])
     files = list(path.glob("*.jsonl"))
     # Legacy recorders can retain their session-start directory for days.
     # Select by event time even when the containing date precedes this window.
@@ -85,8 +85,6 @@ def collect(path: Path, start: datetime, end: datetime) -> SourceResult:
     # events. Never copy their historical commands into prepared evidence.
     history_files = set()
     history_directories = list(path.glob("*/bash"))
-    if (path / "legacy/bash").is_dir():
-        history_directories.append(path / "legacy/bash")
     for names in related.values():
         for name in names:
             history_files.update(directory / name for directory in history_directories if (directory / name).is_file())

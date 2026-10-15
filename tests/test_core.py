@@ -12,7 +12,7 @@ from unittest.mock import patch
 
 from my_big_brother import config, runner
 from my_big_brother import __main__ as cli
-from my_big_brother.paths import Paths, discover, raw_logs_root
+from my_big_brother.paths import Paths, discover
 from my_big_brother.analyzers import codex
 
 
@@ -67,26 +67,19 @@ class CoreTests(unittest.TestCase):
             self.assertEqual(cli.main(['analyze', '--date', '2020-01-15']), 1)
             self.assertEqual(cli.main(['due']), 1)
 
-    def test_locator_preserves_spaces_crlf_and_rejects_multiline(self):
-        # Legacy discovery remains readable, but initialized v2 ignores it.
-        self.assertEqual(raw_logs_root(self.paths), self.paths.daily)
-        (self.paths.config / "storage.json").rename(self.paths.config / "storage-v2.json")
-        locator = self.paths.config / "raw-logs-path.txt"
-        value = str(self.root / "space folder")
-        locator.write_bytes((value + "\r\n").encode())
-        self.assertEqual(raw_logs_root(self.paths), Path(value))
-        for text in ("", value + "\n\n", "relative\n", '"' + value + '"\n'):
-            locator.write_bytes(text.encode())
-            with self.assertRaises(ValueError):
-                raw_logs_root(self.paths)
+    def test_shared_storage_supports_spaces_and_rejects_missing_configuration(self):
+        self.assertEqual(self.paths.daily, self.paths.layout.daily)
+        (self.paths.config / "storage.json").rename(self.paths.config / "saved-storage.json")
+        with self.assertRaisesRegex(ValueError, 'not initialized'):
+            self.paths.daily
 
-    def test_init_preserves_existing_settings_and_locator(self):
+    def test_init_preserves_existing_settings_and_storage(self):
         self.settings["language"] = "zh"
         config.write_json(self.paths.config / "config.json", self.settings)
-        locator = (self.paths.config / "storage.json").read_bytes()
+        storage = (self.paths.config / "storage.json").read_bytes()
         initialized = config.initialize(self.paths)
         self.assertEqual(initialized["language"], "zh")
-        self.assertEqual((self.paths.config / "storage.json").read_bytes(), locator)
+        self.assertEqual((self.paths.config / "storage.json").read_bytes(), storage)
         with self.assertRaises(ValueError):
             config.initialize(self.paths, results_root=str(self.root / "other"))
 

@@ -61,20 +61,6 @@ def absolute(value, name) -> Path:
     return path
 
 
-def raw_logs_root(paths: Paths) -> Path:
-    if (paths.config / "storage.json").exists():
-        return paths.layout.daily
-    locator = paths.config / "raw-logs-path.txt"
-    if not locator.exists():
-        return paths.data / "raw-logs"
-    text = locator.read_bytes().decode("utf-8")
-    if text.endswith("\r\n"):
-        text = text[:-2]
-    elif text.endswith("\n"):
-        text = text[:-1]
-    return absolute(text, str(locator))
-
-
 def is_within(path: Path, root: Path) -> bool:
     """Check resolved containment using APIs available before Python 3.9."""
     try:

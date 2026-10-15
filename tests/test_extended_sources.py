@@ -155,7 +155,7 @@ class VimSourceTests(unittest.TestCase):
         self.assertEqual(len(result.rows), 2)
         self.assertGreaterEqual(len(result.gaps), 4)
 
-    def test_shared_raw_root_does_not_scan_other_source_records(self):
+    def test_shared_source_root_does_not_scan_other_source_records(self):
         self.record("2026-06-20/bash/unrelated")
         result = vim.collect(self.root, self.start, self.end)
         self.assertEqual(result.rows, [])
@@ -337,10 +337,10 @@ class ScreenshotSourceTests(unittest.TestCase):
         os.utime(path, (seconds, seconds))
         return path
 
-    def test_date_first_and_legacy_flat_frames_use_capture_instants(self):
+    def test_date_first_and_explicit_frames_use_capture_instants(self):
         first = self.image("2026-06-20/screenshots/one.png")
         second = self.image("2026-06-21/screenshots/two.png", self.end - timedelta(seconds=1))
-        third = self.image("legacy/screen/three.png", self.start + timedelta(minutes=5), reverse=True)
+        third = self.image("screenshots/three.png", self.start + timedelta(minutes=5), reverse=True)
         self.image("2026-06-20/screenshots/before.png", self.start - timedelta(seconds=1))
         self.image("2026-06-21/screenshots/end.png", self.end)
         result = screenshots.collect(self.root, self.start, self.end)
@@ -350,14 +350,6 @@ class ScreenshotSourceTests(unittest.TestCase):
         self.assertEqual(result.rows[1]["seconds_since_previous_capture"], 300)
         self.assertTrue(all(row["hash_algorithm"] == "average_hash_16x16" for row in result.rows))
         self.assertEqual(result.rows[0]["sha256"], hashlib.sha256(first.read_bytes()).hexdigest())
-
-    def test_existing_dated_screen_record_alias_remains_visible(self):
-        old = self.image('2026-06-20/screen_record/old.png')
-        current = self.image('2026-06-21/screenshots/current.png', self.end - timedelta(seconds=1))
-        self.image('2026-06-21/screen_record/after.png', self.end)
-        result = screenshots.collect(self.root, self.start, self.end)
-        self.assertEqual(result.status, 'ok')
-        self.assertEqual([row['path'] for row in result.rows], [str(old), str(current)])
 
     def test_manifest_time_survives_import_mtime_and_metadata_is_preserved(self):
         path = self.image("2026-06-20/screenshots/captured.png", self.start - timedelta(days=10))

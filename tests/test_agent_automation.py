@@ -256,7 +256,7 @@ class AutomationTests(unittest.TestCase):
                     codex.automate(self.paths, self.settings, **kwargs)
             launch.assert_not_called()
 
-    def test_writable_roots_cannot_include_configuration_checkout_or_raw_logs(self):
+    def test_writable_roots_cannot_include_configuration_checkout_or_source_histories(self):
         for root in (self.paths.config, self.paths.config / "subfolder", runner.REPO,
                      runner.REPO / "subfolder", self.paths.data, self.inputs):
             self.settings["results_root"] = str(root)

@@ -16,41 +16,11 @@ _spec.loader.exec_module(_storage)
 
 
 def locations():
-    home = Path.home()
-    if sys.platform == "darwin":
-        base = home / "Library" / "Application Support" / "my-big-brother"
-        return base / "configs", base / "data"
-    if os.name == "nt":
-        base = Path(os.environ.get("LOCALAPPDATA") or home / "AppData" / "Local")
-        return base / "my-big-brother" / "configs", base / "my-big-brother" / "data"
-
-    def xdg(name, fallback):
-        value = Path(os.environ.get(name, str(fallback)))
-        return value if value.is_absolute() else fallback
-
-    return (
-        xdg("XDG_CONFIG_HOME", home / ".config") / "my-big-brother",
-        xdg("XDG_DATA_HOME", home / ".local" / "share") / "my-big-brother",
-    )
+    return _storage.platform_paths()
 
 
-def raw_root():
-    config, data = locations()
-    layout = _storage.Layout.load(config, required=False)
-    if layout is not None:
-        return layout.daily
-    pointer = config / "raw-logs-path.txt"
-    if not pointer.exists():
-        return data / "raw-logs"
-    text = pointer.read_bytes().decode("utf-8")
-    if text.endswith("\r\n"):
-        text = text[:-2]
-    elif text.endswith("\n"):
-        text = text[:-1]
-    path = Path(text)
-    if not text or "\n" in text or "\r" in text or not path.is_absolute():
-        raise ValueError(f"{pointer} must contain one absolute path")
-    return path
+def daily_root():
+    return _storage.Layout.load(locations()[0]).daily
 
 
 SECRET = re.compile(
@@ -85,14 +55,11 @@ def record():
         "capture_scope": "first-simple-command",
         "redacted": redacted,
     }
-    layout = _storage.Layout.load(locations()[0], required=False)
-    if layout is not None:
-        try:
-            directory = layout.ensure_day(layout.day(completed)) / "bash"
-        except _storage.DiscardedDay:
-            return
-    else:
-        directory = raw_root() / completed[:10] / "bash"
+    layout = _storage.Layout.load(locations()[0])
+    try:
+        directory = layout.ensure_day(layout.day(completed)) / "bash"
+    except _storage.DiscardedDay:
+        return
     directory.mkdir(parents=True, exist_ok=True, mode=0o700)
     flags = os.O_CREAT | os.O_APPEND | os.O_WRONLY
     flags |= getattr(os, "O_NOFOLLOW", 0)
@@ -104,7 +71,7 @@ def record():
 def main():
     operation = sys.argv[1]
     if operation == "check":
-        raw_root()
+        daily_root()
     elif operation == "session":
         print(uuid.uuid4().hex)
     elif operation == "time":

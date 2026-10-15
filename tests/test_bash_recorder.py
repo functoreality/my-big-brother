@@ -29,6 +29,7 @@ class BashRecorderTests(unittest.TestCase):
         directory = tempfile.TemporaryDirectory()
         self.addCleanup(directory.cleanup)
         root = Path(directory.name)
+        recorder._storage.Layout.install(root / "config/my-big-brother", root / "data/my-big-brother")
         env = os.environ.copy()
         env.update(
             HOME=str(root), XDG_CONFIG_HOME=str(root / "config"),
@@ -135,25 +136,27 @@ class BashRecorderTests(unittest.TestCase):
         self.assertFalse(any("private" in r["command"] for r in rows))
         self.assertEqual(rows[-1]["command"], "printf public")
 
-    def test_configured_raw_path_spaces_and_crlf(self):
+    def test_shared_storage_path_spaces_and_missing_configuration(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             config = root / "config" / "my-big-brother"
-            config.mkdir(parents=True)
-            target = root / "raw space"
-            (config / "raw-logs-path.txt").write_bytes((str(target) + "\r\n").encode())
-            with patch.object(recorder, "locations", return_value=(config, root / "data")):
-                self.assertEqual(recorder.raw_root(), target)
-                for bad in ("", "relative", str(target) + "\nextra", str(target) + "\r"):
-                    (config / "raw-logs-path.txt").write_bytes(bad.encode())
-                    with self.assertRaises(ValueError):
-                        recorder.raw_root()
+            target = root / "data space"
+            with patch.object(recorder, "locations", return_value=(config, target)):
+                with self.assertRaisesRegex(ValueError, 'not initialized'):
+                    recorder.daily_root()
+                recorder._storage.Layout.install(config, target)
+                self.assertEqual(recorder.daily_root(), target / 'daily')
+                (config / 'storage.json').write_text('{broken')
+                with self.assertRaises(ValueError):
+                    recorder.daily_root()
 
     @unittest.skipIf(os.name == "nt", "PTY test requires POSIX")
     def test_real_terminal_repeated_commands(self):
         import pty
 
         with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            recorder._storage.Layout.install(base / "config/my-big-brother", base / "data/my-big-brother")
             env = os.environ.copy()
             env.update(HOME=temporary, XDG_CONFIG_HOME=temporary + "/config",
                        XDG_DATA_HOME=temporary + "/data", HISTFILE=temporary + "/history",

@@ -26,13 +26,12 @@ SHEET_COLUMNS, SHEET_ROWS = 2, 3
 
 
 def _directories(root: Path) -> list[Path]:
-    directories = sorted(path for name in ('screenshots', 'screen_record')
-                         for path in root.glob('*/' + name) if path.is_dir())
-    for relative in ("screenshots", "legacy/screenshots", "legacy/screen", "legacy/screen_record"):
+    directories = sorted(path for path in root.glob('*/screenshots') if path.is_dir())
+    for relative in ("screenshots",):
         candidate = root / relative
         if candidate.is_dir() and candidate not in directories:
             directories.append(candidate)
-    # A configured legacy screenshot root can contain its original flat files.
+    # An explicitly configured screenshot source root can contain its original flat files.
     if not directories or any(path.suffix.lower() in IMAGE_SUFFIXES for path in root.iterdir()):
         directories.append(root)
     return directories
@@ -92,15 +91,15 @@ def _image_metadata(path: Path) -> tuple[str, int, int]:
     return f"{int(bits, 2):064x}", width, height
 
 
-def collect(raw_root: Path, start: datetime, end: datetime) -> SourceResult:
-    if not raw_root.is_dir():
-        return SourceResult(status="unavailable", gaps=[f"Screenshot source unavailable: {raw_root}"])
+def collect(source_root: Path, start: datetime, end: datetime) -> SourceResult:
+    if not source_root.is_dir():
+        return SourceResult(status="unavailable", gaps=[f"Screenshot source unavailable: {source_root}"])
     if Image is None:
         return SourceResult(status="unavailable", gaps=["Screenshot source requires optional Pillow dependency"])
     rows, gaps, seen = [], [], set()
-    for directory in _directories(raw_root):
+    for directory in _directories(source_root):
         manifest = _manifest(directory, gaps)
-        files = directory.iterdir() if directory == raw_root else directory.rglob("*")
+        files = directory.iterdir() if directory == source_root else directory.rglob("*")
         candidates = {path.resolve() for path in files
             if path.is_file() and path.suffix.lower() in IMAGE_SUFFIXES
             and is_within(path, directory)}

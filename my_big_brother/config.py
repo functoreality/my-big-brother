@@ -7,7 +7,7 @@ import tempfile
 from pathlib import Path
 from string import Formatter
 
-from .paths import Paths, absolute, raw_logs_root, is_within
+from .paths import Paths, absolute, is_within
 from .storage import Layout
 
 DEFAULT_OUTPUTS = ("worklog", "time-use", "insights", "time-estimates")
@@ -99,7 +99,6 @@ def load(paths: Paths):
             absolute(spec["path"], f"sources.{name}.path")
         if set(spec) - {"enabled", "path", "required"}:
             raise ValueError(f"Invalid fields for sources.{name}")
-    raw_logs_root(paths)
     profile = load_profile(config)
     if profile and any(is_within(Path(name.format(date="2020-01-15")), layout.daily)
                        for name in profile["output_paths"].values()):
@@ -211,13 +210,11 @@ def load_profile(config):
     return profile
 
 
-def initialize(paths, *, sources=None, results_root=None, raw_root=None, data_root=None, day_start_hour=0):
+def initialize(paths, *, sources=None, results_root=None, data_root=None, day_start_hour=0):
     paths.config.mkdir(parents=True, exist_ok=True, mode=0o700)
     config_path = paths.config / "config.json"
     if config_path.exists() and not (paths.config / "storage.json").exists():
         raise ValueError("Existing configuration has no shared storage. Initialize a fresh configuration directory.")
-    if raw_root is not None:
-        raise ValueError("Storage v2 uses --data-root, with a daily child, instead of --raw-logs-root")
     if (paths.config / "storage.json").exists():
         layout = paths.layout
         if data_root is not None and Path(data_root) != layout.root:
@@ -239,6 +236,6 @@ def initialize(paths, *, sources=None, results_root=None, raw_root=None, data_ro
     elif sources is not None or results_root:
         raise ValueError("Existing config preserved. Edit config.json to change settings.")
     config = load(paths)
-    for directory in (raw_logs_root(paths), Path(config["results_root"]), paths.state):
+    for directory in (paths.daily, Path(config["results_root"]), paths.state):
         directory.mkdir(parents=True, exist_ok=True, mode=0o700)
     return config

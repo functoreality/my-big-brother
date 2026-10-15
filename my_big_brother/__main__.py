@@ -9,7 +9,7 @@ from pathlib import Path
 
 from . import __version__
 from . import config, runner
-from .paths import discover, raw_logs_root
+from .paths import discover
 
 
 def parser():
@@ -19,7 +19,6 @@ def parser():
     init = commands.add_parser("init", help="Create missing configuration, preserving existing settings")
     init.add_argument("--sources", help="Comma-separated inputs: codex,opencode,bash,vim,screenshots")
     init.add_argument("--results-root")
-    init.add_argument("--raw-logs-root")
     init.add_argument("--data-root")
     init.add_argument("--day-start-hour", type=int, default=0)
     capture = commands.add_parser("capture-path", help="Allocate a registered logical-day source directory")
@@ -63,7 +62,7 @@ def resolved(paths, settings=None):
             "output_overrides": profile["output_paths"] if profile else {},
             "storage_config": str(paths.config / "storage.json"),
             "daily": str(paths.daily), "memory": str(paths.memory),
-            "raw_logs": str(raw_logs_root(paths)), "results": settings["results_root"],
+            "results": settings["results_root"],
             "state": str(paths.state), "checkout": str(runner.REPO)}
 
 
@@ -76,7 +75,7 @@ def main(argv=None):
             if names is not None and (not names or set(names) - set(config.SOURCES)):
                 raise ValueError("sources must be a comma-separated subset of " + ",".join(config.SOURCES))
             settings = config.initialize(paths, sources=names, results_root=args.results_root,
-                                         raw_root=args.raw_logs_root, data_root=args.data_root,
+                                         data_root=args.data_root,
                                          day_start_hour=args.day_start_hour)
             value = resolved(paths, settings)
         elif args.command == "paths":
@@ -85,7 +84,7 @@ def main(argv=None):
         else:
             settings = config.load(paths)
             if args.command == "doctor":
-                native = {name: spec.get("path") or str(raw_logs_root(paths))
+                native = {name: spec.get("path") or str(paths.daily)
                           for name, spec in settings["sources"].items() if spec.get("enabled", True)}
                 value = {"paths": resolved(paths, settings), "python": sys.version.split()[0],
                          "analyzer": settings["analyzer"],

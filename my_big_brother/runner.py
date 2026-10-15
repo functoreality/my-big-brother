@@ -15,7 +15,6 @@ from datetime import date, datetime, time as wall_time, timedelta
 from pathlib import Path
 
 from .config import KNOWLEDGE_KEYS, load_profile, write_json
-from .paths import raw_logs_root
 from .sources import SourceResult
 from .storage import DiscardedDay
 
@@ -133,7 +132,7 @@ def digest(path):
 
 def review_configuration(paths, config):
     return {"language": config["language"], "day_start_hour": config["day_start_hour"],
-            "sources": config["sources"], "raw_logs": str(raw_logs_root(paths))}
+            "sources": config["sources"], "daily": str(paths.daily)}
 
 
 def state(run_dir, status, **details):
@@ -170,7 +169,7 @@ def prepare_run(paths, config, review_date, snapshot_end=None, *, recreate_delet
         if not spec.get("enabled", True):
             continue
         adapter = None
-        source_path = Path(spec["path"]) if spec.get("path") else raw_logs_root(paths)
+        source_path = Path(spec["path"]) if spec.get("path") else paths.daily
         try:
             adapter = importlib.import_module(f"my_big_brother.sources.{name}")
             result = adapter.collect(source_path, start, end)
@@ -239,7 +238,7 @@ def prepare_run(paths, config, review_date, snapshot_end=None, *, recreate_delet
                "language": config["language"], "outputs": config["outputs"],
                "paths": {"run_dir": str(run_dir), "results_root": config["results_root"],
                          "config": str(paths.config / "config.json"),
-                         "raw_logs": str(raw_logs_root(paths))},
+                         "daily": str(paths.daily)},
                "output_paths": stage_paths, "final_output_paths": final_paths,
                "output_mapping": layout, "output_kinds": {item["staged"]: item["kind"] for item in layout},
                "profile": profile, "profile_digest": profile["digest"] if profile else None,

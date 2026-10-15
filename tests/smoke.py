@@ -82,7 +82,7 @@ def main():
     settings["sources"]["codex"]["path"] = str(sessions)
     settings["sources"]["opencode"]["path"] = str(database)
     Path(paths["config"]).write_text(json.dumps(settings, indent=2) + "\n", encoding="utf-8")
-    bash_directory = Path(paths["raw_logs"]) / DAY / "bash"
+    bash_directory = Path(paths["daily"]) / DAY / "bash"
     bash_directory.mkdir(parents=True)
     bash = {"event": "command", "session_id": "synthetic-shell", "command": "python -m unittest",
             "command_scope": "first-simple-command", "cwd": "/synthetic/orders-project",

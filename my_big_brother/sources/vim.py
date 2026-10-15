@@ -19,12 +19,12 @@ def _record_paths(root: Path, start=None) -> tuple[list[Path], bool]:
         directory = root / layout.day(start) / 'vim'
         return sorted(directory.rglob('record.json')), True
     directories = sorted(path for path in root.glob("*/vim") if path.is_dir())
-    for relative in ("vim", "legacy/vim"):
+    for relative in ("vim",):
         directory = root / relative
         if directory.is_dir() and directory not in directories:
             directories.append(directory)
-    # An explicitly configured legacy Vim root has session folders directly
-    # below it. Do not fall back across other sources in a shared raw tree.
+    # An explicitly configured Vim source root has session folders directly
+    # below it. Do not fall back across other sources in a shared capture tree.
     shared_tree = any(path.is_dir() for pattern in ("????-??-??", "*/bash", "*/screenshots", "bash", "screenshots") for path in root.glob(pattern))
     if not directories and not shared_tree:
         records = sorted(root.rglob("record.json"))
@@ -65,18 +65,18 @@ def _artifact_reference(directory: Path, value: object) -> dict:
         return {"path": str(path), "status": "unavailable"}
 
 
-def collect(raw_root: Path, start: datetime, end: datetime) -> SourceResult:
-    """Read every record.json below an enabled Vim or shared raw root.
+def collect(source_root: Path, start: datetime, end: datetime) -> SourceResult:
+    """Read every record.json below an enabled Vim or shared source root.
 
     Directory dates are not a filter: a session can span midnight or sit in a
     legacy ``viewed`` directory. Naive legacy times use the host local zone.
     The original manifest is preserved in ``record_metadata``.
     """
-    if not raw_root.is_dir():
-        return SourceResult(status="unavailable", gaps=[f"Vim source unavailable: {raw_root}"])
-    record_paths, source_present = _record_paths(raw_root, start)
+    if not source_root.is_dir():
+        return SourceResult(status="unavailable", gaps=[f"Vim source unavailable: {source_root}"])
+    record_paths, source_present = _record_paths(source_root, start)
     if not source_present:
-        return SourceResult(status="unavailable", gaps=[f"Vim source directory unavailable within raw root: {raw_root}"])
+        return SourceResult(status="unavailable", gaps=[f"Vim source directory unavailable within source root: {source_root}"])
     rows, gaps, valid_records = [], [], 0
     for record_path in record_paths:
         try:
