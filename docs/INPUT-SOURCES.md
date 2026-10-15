@@ -41,20 +41,29 @@ daily/YYYY-MM-DD/vim/session/<snapshot artifacts>
 daily/YYYY-MM-DD/vim/session/<modification diff artifacts>
 ```
 
-Preparation selects every natural-date subtree intersecting its time window.
-A 04:00 review reads two adjacent dates. Calendar-date segments are
-independent, and `segment_open` means a live checkpoint rather than editor
-exit. A `boundary_diff_file` spans an explicitly unobserved boundary interval.
-Do not attribute its changes entirely to the new day.
+The date is the session's local start date. Each editor process keeps one
+session, including across midnight. Existing files are snapshotted when
+opened, and the final diff and `record.json` are written at exit. Shared
+storage does not require midnight segments or periodic or event-driven
+checkpoints.
 
-An explicitly configured standalone Vim source is scanned recursively for
-session manifests. A session beginning before the review window and ending
-inside it is included. Managed recording selects the natural-date subtrees intersecting the window.
+Preparation recursively searches all retained Vim date trees for manifests,
+then selects sessions whose actual intervals overlap the review window.
+Standalone sources are also scanned recursively. Searching only the window's
+date directories would miss sessions started on an earlier date.
 
-Each manifest needs `vim_start`. `vim_close` may be absent for an open session.
-New records should use ISO 8601 timestamps with a timezone offset. Legacy
-timestamps without an offset use the machine's local timezone, and the
-adapter reports this assumption because daylight-saving transitions and
+Historical records may contain `segment_open` or `boundary_diff_file`.
+Readers may retain compatibility with them, but they are not required fields
+or required recording behavior for new sessions. An old `segment_open` record
+is a checkpoint, not evidence of editor exit. A historical boundary diff must
+not be attributed entirely to the new day.
+
+Each manifest needs `vim_start`. Historical open-session manifests may omit
+`vim_close`.
+The reader accepts local `YYYY-MM-DD HH:MM:SS` timestamps and ISO 8601
+timestamps with a timezone offset. The plugin keeps its original local time
+format. Timestamps without an offset use the machine's local timezone, and
+the adapter reports this assumption because daylight-saving transitions and
 migration between timezones can make it ambiguous.
 
 The adapter accepts the session recorder's version 1 contract and unversioned
@@ -89,14 +98,15 @@ clipped interval. `diff_scope` states that limitation explicitly.
 
 A completed record whose close time is after the snapshot end is excluded
 because its final diff can contain later changes. This is recorded as a
-limitation in the source gaps. An open session keeps its available manifest
-metadata with `session_status: open` and `diff_status: incomplete_session`.
+limitation in the source gaps. A historical open session keeps its available
+manifest metadata with `session_status: open` and `diff_status: incomplete_session`.
 The adapter does not claim that an open session has a complete final diff.
 
-Shared recording writes checkpoints during the session. Standalone recording
-writes its final manifest at editor exit. A failed session with no
-`record.json` is invisible to the adapter. A recognized, readable Vim subtree
-with no matching records returns an empty successful index. This means only
+Both shared and standalone recording write their final manifest at editor
+exit. Original snapshots already exist while files are open, but an ongoing
+or failed session with no `record.json` is invisible to the adapter. This
+limitation does not require live checkpoints. A recognized, readable Vim
+subtree with no matching records returns an empty successful index. This means only
 that no records were found, not that collection is active or complete.
 A shared daily directory with no Vim subtree returns `unavailable`, as does a missing
 source root or a source containing only unsupported or unreadable records.

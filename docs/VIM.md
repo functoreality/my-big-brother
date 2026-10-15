@@ -49,9 +49,10 @@ let g:vim_session_recorder#config = {
 ## Share the shared storage
 
 The plugin works independently with platform defaults. Optional
-`C/storage.json` selects a custom data root. It registers natural dates
-and writes independent segments
-under `daily/YYYY-MM-DD/vim/`. No extra Vim path variable is needed.
+`C/storage.json` selects a custom data root. It registers the session's local
+start date and writes one session under `daily/YYYY-MM-DD/vim/` per editor
+process. The directory stays under that start date even across midnight.
+No extra Vim path variable is needed.
 `record_dir` is an explicit standalone override and opts out of this lifecycle.
 Ask before removing it or changing editor configuration. Preserve old records.
 Update the complete plugin, including `python/storage.py`, before enabling v2.
@@ -71,7 +72,11 @@ Then set `sources.vim.enabled` to `true` in the personal configuration and
 run `prepare` for a date containing that closed session. Inspect the Vim
 manifest count, excerpt and artifact references before claiming success.
 
-Shared recording publishes periodic checkpoints and independent calendar-date
-segments. Standalone recording publishes at editor exit. Missing records do
-not prove an absence of editor work. Checkpoint diffs and boundary gaps do not
-establish the exact time of each edit. See [Input sources](INPUT-SOURCES.md).
+Both shared and standalone recording snapshot existing files when opened and
+publish the final diff and `record.json` at editor exit. There is no periodic,
+read/write, or focus checkpoint and no midnight segmentation. Before exit,
+the original snapshots already exist for recovery, but the reader has no
+final manifest to index. Missing records do not prove an absence of editor
+work. A whole-session diff cannot establish the exact time or day of each
+edit. Readers search all retained dates for overlapping sessions rather than
+only the review window's date folders. See [Input sources](INPUT-SOURCES.md).

@@ -112,6 +112,41 @@ class StorageTests(unittest.TestCase):
         self.assertEqual(len(sessions), 2)
         self.assertEqual({Path(row['record_path']).parents[2].name for row in sessions}, {'2020-01-14', '2020-01-15'})
 
+    def test_vim_session_started_days_before_window_is_discovered(self):
+        start, end = runner.window('2020-01-14', 4)
+        opened = start - timedelta(days=2)
+        directory = self.layout.ensure_day(opened.strftime('%Y-%m-%d')) / 'vim' / 'long-session'
+        payload = {
+            'schema_version': 1, 'source': 'vim', 'session_id': 'a' * 32,
+            'vim_start': opened.isoformat(),
+            'vim_close': (start + timedelta(hours=1)).isoformat(),
+            'opened_files': [],
+        }
+        write_json(directory / 'record.json', payload)
+        result = vim.collect(self.layout.daily, start, end)
+        self.assertEqual(result.status, 'ok')
+        self.assertEqual(len(result.rows), 1)
+        row = result.rows[0]
+        self.assertEqual(row['record_path'], str(directory / 'record.json'))
+        self.assertEqual(row['record_metadata'], payload)
+        self.assertEqual(row['session_status'], 'closed')
+        self.assertIn('Whole-session', row['diff_scope'])
+        self.assertIn('clipped window', row['diff_scope'])
+        self.assertFalse((self.layout.daily / '2020-01-14').exists())
+
+    def test_vim_historical_day_segments_remain_readable(self):
+        start, end = runner.window('2020-01-14', 4)
+        directory = self.layout.ensure_day('2020-01-14') / 'vim' / 'historical-segment'
+        write_json(directory / 'record.json', {
+            'schema_version': 1, 'source': 'vim', 'session_id': 'b' * 32,
+            'vim_start': start.isoformat(),
+            'vim_close': (start + timedelta(hours=1)).isoformat(),
+            'opened_files': [], 'storage_version': 2, 'segment_open': True,
+        })
+        row = vim.collect(self.layout.daily, start, end).rows[0]
+        self.assertEqual(row['session_status'], 'checkpoint')
+        self.assertIn('segment', row['diff_scope'])
+
     def test_deleted_failed_day_stays_discarded_until_explicit_restore(self):
         first = runner.prepare_run(self.paths, self.settings, '2020-01-15')
         workspace = self.layout.record('2020-01-15')['workspace_id']

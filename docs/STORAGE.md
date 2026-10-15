@@ -66,15 +66,22 @@ See the product [Requirements](REQUIREMENTS.md) before changing this contract.
 
 ## Natural capture dates and analysis windows
 
-Capture dates always match the local system date, equivalent to `date +%F`.
+Capture dates use local calendar dates, equivalent to `date +%F`.
 At 15 October 02:30, Bash writes into `daily/2026-10-15/bash/`, including when
 the review boundary is 04:00. Original timestamps are never shifted.
-Screenshots use their capture date. Vim segments rotate at natural midnight,
-with gaps reported when rollover was not observed.
+Screenshots use their capture date. Vim uses the session's local start date
+for its entire lifetime, including exit after midnight. One editor process
+produces one session, with original snapshots at file open and diff/JSON at
+exit. There is no midnight rotation or periodic or event-driven checkpoint.
+Shared storage governs paths and lifecycle without changing capture behavior.
 
 Only analysis interprets a working day. A review from 14 October 04:00 to
-15 October 04:00 reads records from both natural-date folders and filters by
-actual timestamp. A natural date can contribute to two reviews. Analysis
+15 October 04:00 reads event records from both natural-date folders. Vim
+readers search all retained date trees and select sessions by actual time
+overlap, including sessions that started before either date. Whole-session
+diffs cannot establish which edits belong to each day. Before exit, original
+snapshots exist but there is no final `record.json` to index.
+A natural date can contribute to multiple reviews. Analysis
 material remains under the reviewed date's `_analysis/` directory. Native
 Agent histories stay with their applications.
 

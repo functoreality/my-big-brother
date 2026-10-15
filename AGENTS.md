@@ -7,7 +7,11 @@ Do not treat this file as the daily analysis task itself.
 ## Repository work
 
 - Read `docs/REQUIREMENTS.md` before changing collection or storage.
-  Collectors use the real local calendar date, equivalent to `date +%F`.
+  Collectors use real local calendar dates, equivalent to `date +%F`.
+  Vim keeps one session per editor process under its start date, even across
+  midnight. Snapshot existing files when opened and publish diff/JSON at exit.
+  Never add date rotation or timer, read/write, or focus checkpoints to satisfy
+  storage rules. Shared storage controls paths and lifecycle, not capture behavior.
   Review boundaries such as 04:00 belong only to analysis, never collectors.
   Recorders work with platform defaults when shared configuration is absent.
 - Keep shared preparation and run management in `my_big_brother/`.
@@ -25,6 +29,8 @@ Do not treat this file as the daily analysis task itself.
   before creating them. Never automatically recreate a discarded date.
   Keep disposable material inside `daily/DATE` and durable facts in `memory`.
   See `docs/STORAGE.md` before changing paths or adding a collector.
+  Vim readers search all retained date trees and filter by actual session
+  overlap. The review window's date directories alone are insufficient.
 - Keep the core standard-library only. Recommend Python 3.11+.
 - Avoid recent-only syntax and APIs when a small equivalent works on older
   Python. Older versions are unverified, not guaranteed compatible.

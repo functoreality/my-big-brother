@@ -16,9 +16,12 @@ Empty the trash when you want to release disk space.
 Each date owns its raw captures, `_analysis` indexes, excerpts, screenshot
 sheets, drafts, temporary scripts, action material and `_launches` logs.
 Deleting the date removes that disposable unit. Capture folders use natural
-calendar dates. A 04:00 review can read two adjacent capture dates, while its
-analysis material uses the reviewed date label.
-Do not delete dates that are actively being recorded or reviewed.
+calendar dates. Vim sessions stay under their local start date across
+midnight, so a review can depend on earlier dates as well as dates within its
+window. Final session diffs do not divide edits precisely by date. Analysis
+material uses the reviewed date label.
+Do not delete dates that are actively being recorded or reviewed, including
+an earlier date with a Vim session that has not exited yet.
 
 Deletion means abandoning automatic recovery. Review catch-up, collectors
 and compatible importers do not recreate that date. Deleting a failed date

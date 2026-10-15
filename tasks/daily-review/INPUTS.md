@@ -95,9 +95,13 @@ scanning unrelated projects or opening the current file as a historical copy.
 Modified line counts do not prove execution or a passing test.
 An execution flag establishes only what that collector actually records.
 
-For storage v2, `segment_open` means a live day checkpoint, not editor exit.
-Continued-file baselines are not new human file-open events. Cross-boundary
-`boundary_diff_file` changes have uncertain day attribution. Keep that limit.
+New records describe whole editor sessions under their opening dates,
+including across midnight. Opening snapshots exist immediately, while diffs
+and the final manifest appear at exit. Shared storage does not require live
+checkpoints or day segments.
+In historical segmented records, `segment_open` means a live day checkpoint,
+not editor exit. Continued-file baselines are not new human file-open events.
+Historical `boundary_diff_file` changes have uncertain day attribution.
 Preserve actual session intervals and the adapter's `diff_scope` limitation.
 An aggregate diff across a window boundary cannot allocate each change to a
 particular day. Open or excluded late-closing sessions do not provide a final

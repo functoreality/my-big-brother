@@ -7,15 +7,23 @@ tasks. Read this before changing dates, paths or recorder dependencies.
 
 ## Natural dates belong to collection
 
-- Record timestamps as actual system time with the UTC offset.
+- Record timestamps as actual system time with the UTC offset. Vim keeps
+  its original local `YYYY-MM-DD HH:MM:SS` format as an exception. Its reader
+  reports the local-timezone assumption. Other sources still require offsets.
 - Name capture directories using the local system date, equivalent to
   `date +%F`: `daily/YYYY-MM-DD/<source>/`.
 - The Python equivalent is local `strftime("%Y-%m-%d")`. Do not require a
   Unix `date` executable on Windows or macOS just to format a date.
-- Recorders do not know the review's working-day boundary. They never
-  subtract hours or put a 02:30 event under the previous date.
-- Bash uses the command completion date. Vim's existing checkpoints use
-  natural-date segments, rotating at midnight. Original timestamps stay real.
+- Recorders do not know the review's working-day boundary and never subtract
+  hours to select a date. Event captures use their actual date. Vim uses its
+  session-start date as described below.
+- Bash uses the command completion date, and screenshots use capture dates.
+- Vim keeps one session per editor process under the session's local start
+  date, including when it ends after midnight. Existing files are snapshotted
+  when opened. Diffs and `record.json` are generated at exit. Do not add
+  midnight segments or timer, read/write, or focus checkpoints.
+- Shared storage governs paths, date registration and deletion. It does not
+  change a collector's capture behavior to make records available sooner.
 
 ## Review windows belong to analysis
 
@@ -23,10 +31,15 @@ tasks. Read this before changing dates, paths or recorder dependencies.
 and interpretation only. It is absent from collector storage configuration.
 
 For a review of 14 October 04:00 through 15 October 04:00, the analysis layer
-reads captures from both `daily/2026-10-14/` and `daily/2026-10-15/`, selecting
-records by their actual timestamps. The end is exclusive. One natural-date
-folder can supply two adjacent reviews. Folder names alone do not establish
-the review's time window or the exact time of an edit in an aggregate diff.
+reads event captures from both `daily/2026-10-14/` and `daily/2026-10-15/`,
+selecting records by their actual timestamps. Vim readers recursively search
+all retained date trees because a matching session may have started earlier.
+The end is exclusive. One natural-date folder can supply multiple reviews.
+Folder names alone do not establish the review's time window or the exact
+time of an edit in an aggregate diff.
+A long session's final diff cannot be split reliably into daily activity.
+Until exit, its original snapshots exist but no `record.json` is available
+to the reader. This limitation does not require live checkpoint recording.
 
 Review material under `daily/DATE/_analysis/` uses the reviewed date label.
 That label does not change the natural-date ownership of its input captures.
@@ -51,7 +64,9 @@ Users remove inactive old natural-date directories directly. No status-file
 inspection is required. Registered dates that are removed are not
 automatically recreated. Permanent records and minimal system facts survive.
 
-A review spanning two natural dates can depend on both capture folders.
+A review can depend on earlier Vim start-date folders as well as capture
+folders within its window. A start-date folder remains active until its Vim
+sessions have exited, even after midnight.
 Use a retention period that leaves active capture and review dates intact.
 No collector must introduce a review-specific calendar to implement cleanup.
 
