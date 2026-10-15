@@ -65,9 +65,10 @@ ambiguity rather than inventing a request.
 ## Bash
 
 When enabled and installed, the bundled recorder writes local JSONL below
-`raw-logs/YYYY-MM-DD/bash/`. Dates are natural dates, independently of the
-analysis day's configured boundary. The preparer selects by event time, including
-legacy sessions that keep writing in an earlier session-start date directory.
+`daily/YYYY-MM-DD/bash/` in storage v2. Dates use the shared logical-day
+boundary. Legacy roots can still contain sessions in an earlier start-date
+directory. The preparer selects by event time. Removed managed dates must
+never be recreated to recover legacy evidence.
 
 Command events are clues about actions and working directories. Their
 timestamps and status do not constitute a complete shell audit, prove file
@@ -94,6 +95,9 @@ scanning unrelated projects or opening the current file as a historical copy.
 Modified line counts do not prove execution or a passing test.
 An execution flag establishes only what that collector actually records.
 
+For storage v2, `segment_open` means a live day checkpoint, not editor exit.
+Continued-file baselines are not new human file-open events. Cross-boundary
+`boundary_diff_file` changes have uncertain day attribution. Keep that limit.
 Preserve actual session intervals and the adapter's `diff_scope` limitation.
 An aggregate diff across a window boundary cannot allocate each change to a
 particular day. Open or excluded late-closing sessions do not provide a final

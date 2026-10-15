@@ -15,7 +15,7 @@ my_big_brother/
   sources/          Read native histories and collected logs
   analyzers/        Launch an unattended Agent
   config.py         Personal JSON configuration
-  paths.py          Platform paths and the shared raw-log locator
+  paths.py          Platform paths and the shared storage contract
   runner.py         Prepare, validate, publish, and track completion
   automation.py     Plan and verify invocations when called by the Agent
 tasks/daily-review/ Shared English analysis instructions
@@ -44,40 +44,36 @@ listed in [INSTALLATION.md](../INSTALLATION.md).
 
 ```text
 C/
-  config.json        Sources, outputs, language, results_root, analyzer
-  raw-logs-path.txt  One absolute UTF-8 path shared by collectors
-  local-tasks/       Reserved for user-supplied instructions
+  config.json
+  storage.json       Shared data root and fixed logical-day boundary
+  local-tasks/
 D/
-  raw-logs/          Default collector destination, configurable
-    YYYY-MM-DD/
-      bash/
-  results/           Default publication destination, configurable
-    records/
-      worklog/DATE.md
-      time-use/DATE.md
-      time-use/data/DATE.json
-      insights/DATE.md
-      time-estimates/DATE.json
-  state/             Run materials and completion history
+  daily/YYYY-MM-DD/
+    bash/
+    vim/
+    screenshots/
+    _analysis/<run-id>/
+    _launches/<invocation-id>/
+  memory/
+    USER-MODEL.md
+    MACHINE-CONTEXT.md
+    records/YYYY-MM-DD/
+    _system/days/YYYY-MM-DD.json
+    _system/operations/
 ```
 
-Collectors discover the same C and read only `raw-logs-path.txt` for their
-destination. The main project reads `results_root` from `config.json`.
-Changing the results location therefore does not require collector changes.
-Native Codex and OpenCode histories remain in their original locations.
-
-Raw-log directories use local natural dates, followed by source names.
-Review windows use the configured `day_start_hour` and can span two natural
-dates. Timestamps determine inclusion in the window, not folder names alone.
-Raw logs and published results have different purposes and separate roots.
-This release does not automatically clean raw logs or run materials.
+Collectors and preparation share `C/storage.json`, its root, calendar and
+persistent date registry. Each logical-day directory is disposable without
+inspecting status. Removal abandons automatic recovery and import.
+Formal outputs and minimal durable facts remain in memory. Profiles may
+select external permanent targets. See [Storage v2](STORAGE.md).
 
 ## A review run
 
 1. `prepare` reads enabled sources within a time window. Adapters report
    usable rows and explicit gaps. Full messages become excerpts, while compact
    indexes help the Agent navigate them.
-2. A run under `D/state/runs/` contains `manifest.json`, `context.json`,
+2. A run under `D/daily/DATE/_analysis/` contains `manifest.json`, `context.json`,
    indexes, excerpts, drafts, and diagnostics. The context resolves the date,
    language, selected outputs, staging paths, and completion receipt format.
 3. The Agent follows `tasks/daily-review/TASK.md`. Existing reports are copied

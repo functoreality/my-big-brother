@@ -14,7 +14,7 @@ private user documents as a side effect of this standard task.
 
 ## Worklog
 
-Published at `records/worklog/YYYY-MM-DD.md` below the results root.
+Published at `records/YYYY-MM-DD/worklog.md` below the results root.
 
 Organize by meaningful workflows or projects, with subtasks where appropriate.
 For each substantial item, name the object, action, and supported outcome.
@@ -28,8 +28,8 @@ sources and consequential gaps. Do not turn missing evidence into downtime.
 
 ## Time Use
 
-Published at `records/time-use/YYYY-MM-DD.md` and
-`records/time-use/data/YYYY-MM-DD.json`. JSON is the canonical representation.
+Published at `records/YYYY-MM-DD/time-use.md` and
+`records/YYYY-MM-DD/time-use.json`. JSON is the canonical representation.
 Markdown is its readable view, not another independently maintained timeline.
 
 Use this JSON structure:
@@ -68,7 +68,7 @@ The input window is not a claim that all of it was observed.
 
 ## Daily Insights
 
-Published at `records/insights/YYYY-MM-DD.md`.
+Published at `records/YYYY-MM-DD/insights.md`.
 
 Write useful analysis, hypotheses, and suggestions grounded in specific
 recorded work. Possible subjects include task arrangement, avoidable rework,
@@ -89,7 +89,7 @@ If no distinct supported finding exists, say so briefly.
 
 ## Time Estimates
 
-Published at `records/time-estimates/YYYY-MM-DD.json`.
+Published at `records/YYYY-MM-DD/time-estimates.json`.
 
 These are dated evidence samples for later budgeting, not a claim that a
 reliable estimation model already exists. Use:
@@ -126,8 +126,8 @@ corrections. Never append duplicate samples merely because a run repeated.
 
 ## Optional cumulative knowledge
 
-`user-model` publishes `records/knowledge/USER-MODEL.md`, with output kind
-`user_model`. `machine-context` publishes `records/knowledge/SOURCES.md`,
+`user-model` publishes `USER-MODEL.md`, with output kind
+`user_model`. `machine-context` publishes `MACHINE-CONTEXT.md`,
 with output kind `machine_context`. Both are ordinary standard Markdown
 outputs, available to any executing Agent without a personal profile.
 They are disabled by default. Their targets are cumulative across dates.

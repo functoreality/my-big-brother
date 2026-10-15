@@ -214,3 +214,16 @@ or one without a timezone offset, is rejected.
 Pending operations keep their original run window on a normal retry.
 An explicit matching cutoff resumes them, including equivalent timestamps
 with different offsets. A different explicit cutoff prepares a new review.
+
+## Storage lifecycle
+
+Post-review contexts include `operation_state_dir` under persistent
+`memory/_system/operations/actions/DATE`. Record minimal stable operation
+identities and uncertain outcomes there before side effects. Keep payloads,
+full logs and candidate backups in the dated run. Deletion abandons pending
+work without undoing applied changes. Extensions must honor discarded days
+and verify their own idempotence.
+
+Formal output overrides must be outside `daily` and on the same filesystem
+as daily storage so publication can atomically replace them using dated
+temporary files. See [Storage](STORAGE.md).

@@ -44,40 +44,36 @@ examples/synthetic/
 
 ```text
 C/
-  config.json        输入源、输出、语言、results_root、analyzer
-  raw-logs-path.txt  采集器共享的一个 UTF-8 绝对路径
-  local-tasks/       为用户自定义指令预留
+  config.json
+  storage.json       共享数据根及固定工作日边界
+  local-tasks/
 D/
-  raw-logs/          默认采集目录，可配置
-    YYYY-MM-DD/
-      bash/
-  results/           默认结果发布目录，可配置
-    records/
-      worklog/DATE.md
-      time-use/DATE.md
-      time-use/data/DATE.json
-      insights/DATE.md
-      time-estimates/DATE.json
-  state/             运行材料和完成历史
+  daily/YYYY-MM-DD/
+    bash/
+    vim/
+    screenshots/
+    _analysis/<run-id>/
+    _launches/<invocation-id>/
+  memory/
+    USER-MODEL.md
+    MACHINE-CONTEXT.md
+    records/YYYY-MM-DD/
+    _system/days/YYYY-MM-DD.json
+    _system/operations/
 ```
 
-采集器找到同一个 C，只读取 `raw-logs-path.txt` 来确定写入位置。
-主项目从 `config.json` 读取 `results_root`。
-因此，修改结果保存位置不需要修改采集器。
-Codex 和 OpenCode 的原生历史保留在原位置。
-
-原始日志目录先按本地自然日期，再按输入源名称组织。
-复盘时间窗口使用配置的 `day_start_hour`，可能跨两个自然日期。
-是否属于窗口由时间戳决定，不能只看目录名称。
-原始日志与已发布结果的用途不同，根目录也分开。
-本版本不会自动清理原始日志或运行材料。
+采集器与分析程序共用 `C/storage.json` 的数据根、日界线和日期登记。
+日期目录按逻辑工作日归档。删除已无活动写入的旧日期表示放弃，
+无需读状态，补跑和导入都不会重建它。
+正式报告和最小持久化事实独立保留在 memory，个人 profile 可覆盖正式位置。
+完整约定和迁移步骤见[存储 v2](STORAGE.md)。
 
 ## 一次复盘
 
 1. `prepare` 读取时间窗口内已启用的输入源。
    适配器报告可用记录和明确的证据缺口。
    完整消息保存为摘录，精简索引帮助 Agent 定位内容。
-2. `D/state/runs/` 下的运行目录包含 `manifest.json`、`context.json`、
+2. `D/daily/DATE/_analysis/` 下的运行目录包含 `manifest.json`、`context.json`、
    索引、摘录、草稿和诊断信息。
    上下文确定日期、语言、已选输出、暂存路径和完成回执格式。
 3. Agent 遵循 `tasks/daily-review/TASK.md`。

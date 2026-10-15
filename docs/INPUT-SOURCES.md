@@ -36,10 +36,16 @@ Follow [Vim/Neovim recording](VIM.md) for discovery, configuration and verificat
 The shared layout is:
 
 ```text
-raw/YYYY-MM-DD/vim/session/record.json
-raw/YYYY-MM-DD/vim/session/<snapshot artifacts>
-raw/YYYY-MM-DD/vim/session/<modification diff artifacts>
+daily/YYYY-MM-DD/vim/session/record.json
+daily/YYYY-MM-DD/vim/session/<snapshot artifacts>
+daily/YYYY-MM-DD/vim/session/<modification diff artifacts>
 ```
+
+Storage v2 selects the matching logical-day subtree. Day segments are
+independent, and `segment_open` means a live checkpoint rather than editor
+exit. A `boundary_diff_file` spans an explicitly unobserved boundary interval.
+Do not attribute its changes entirely to the new day. The recursive legacy
+behavior below applies to explicitly selected old roots.
 
 The adapter recursively scans each Vim subtree, including sessions stored on
 earlier dates. A session that begins before the review window and ends inside

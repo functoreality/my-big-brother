@@ -48,16 +48,13 @@ let g:vim_session_recorder#config = {
 
 ## Share the raw-log location
 
-The plugin uses the same platform configuration directory `C` and
-`C/raw-logs-path.txt` as My Big Brother. The locator contains one absolute
-UTF-8 path. Both programs fall back to the same platform default when it is
-absent. Use `python -m my_big_brother paths` to inspect the resolved locations.
-
-Records go to `raw-logs/YYYY-MM-DD/vim/<session>/`. No extra Vim path variable
-is needed for the standard shared layout. An existing `record_dir` override
-bypasses that locator and keeps a flat layout. With permission, migrate that
-option to shared discovery or explicitly configure the reader's legacy path.
-Preserve old records. Never use `results_root` as the editor destination.
+The plugin uses the same `C/storage.json`, data root and fixed logical-day
+boundary. V2-capable plugin versions register and write independent segments
+under `daily/YYYY-MM-DD/vim/`. No extra Vim path variable is needed.
+`record_dir` is an explicit standalone override and opts out of this lifecycle.
+Ask before removing it or changing editor configuration. Preserve old records.
+Update the complete plugin, including `python/storage.py`, before enabling v2.
+See [Storage v2](STORAGE.md). Never use permanent results as a capture target.
 Ensure GUI editors, shells and schedulers use the same account and location
 settings. WSL and remote editors have their own environments.
 

@@ -74,6 +74,9 @@ Do not replace ticket dates, source status, or run identities with guesses.
 Handle each ticket:
 
 - `already-completed`: retain that result without redoing the review.
+- `discarded`: retain this result and do not prepare or restore that date.
+  The user abandoned its workspace. Do not invoke `--recreate-deleted`
+  without a separate explicit user request. Published records remain usable.
 - `empty`: report the absence of usable evidence and retain the result.
   Do not claim the date was analyzed or write invented reports.
   It is not marked completed, so later invocations can check for late records.
@@ -95,6 +98,9 @@ Follow the configured personal instructions when present, within their
 read and write scope. During review, write only the run's staged outputs,
 temporary reasoning, and exact `completion.json` from `completion_example`.
 Keep final destinations and post-review targets untouched in this phase.
+The prepared context has a permanent publication journal. Do not move it into
+this disposable run. Post-review tasks must use `operation_state_dir` for
+minimal stable operation facts, without copying source content or full logs.
 
 Publish and validate with:
 

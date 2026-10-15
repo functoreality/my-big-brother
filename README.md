@@ -62,7 +62,7 @@ and destinations, rather than enabled as a standard output for everyone.
 - **Reflection and planning:** **Available** Daily Insights and conservative
   duration samples. Each standard output can be enabled independently.
 - **Long-term understanding:** **Available** optional User Model and Machine
-  Context outputs, retained under `records/knowledge/`. The same daily Agent
+  Context outputs, retained directly under `memory/`. The same daily Agent
   maintains supported user preferences and known file/directory/source locations.
   A profile can redirect them to existing files. See [Knowledge](docs/KNOWLEDGE.md).
   **Via profile** additional project-specific knowledge and operations.
@@ -136,10 +136,12 @@ personal history inside Git.
 - `config.json` selects sources, outputs, language, and the analyzer.
 - `local_profile`, when selected, names personal rules, permitted references,
   output overrides, validators, and optional post-review operations.
-- `raw-logs-path.txt` contains the one shared absolute path for collectors.
-- Results have stable dated paths under `records/`.
-- Runtime state holds indexes, excerpts, drafts, diagnostics, and completion
-  history outside the repository.
+- `storage.json` shares the data root and fixed logical-day boundary.
+- `daily/DATE/` holds disposable captures, drafts, sheets and execution logs.
+- `memory/` holds published reports, directly visible user/machine knowledge,
+  and minimal durable system facts. Delete inactive old dates without reading
+  state files. Removed dates are not automatically recreated.
+- Existing installations need the explicit [v1 migration](docs/STORAGE.md).
 
 Native Agent histories stay in their own locations. This MVP does not
 automatically delete raw logs or run materials. Review and manage their disk

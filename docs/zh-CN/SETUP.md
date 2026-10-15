@@ -37,7 +37,7 @@ python -m my_big_brother doctor
 
 ## 配置个人安装
 
-`paths` 显示 `config.json`、`raw-logs-path.txt`、结果和运行状态的位置。
+`paths` 显示 `config.json`、`storage.json`、daily、memory 和持久化状态的位置。
 它们都位于仓库之外。
 编辑生成的 JSON 配置，可以选择输入源、输出类型、报告语言，
 或自定义绝对路径 `results_root`。
@@ -52,8 +52,8 @@ python -m my_big_brother doctor
 默认语言仍是英文。
 此设置影响生成的文字，不改变 JSON 字段名、命令或安装的任务指令语言。
 
-采集器只共享 `raw-logs-path.txt` 中的原始日志绝对路径。
-不要在这个文件中填写结果路径或 JSON 语法。
+采集器通过 `storage.json` 共用数据根和固定工作日边界。
+修改存储或迁移旧版本之前，先读[存储 v2](STORAGE.md)。
 读取 Agent 原生历史不需要新的采集插件。
 
 可选 Vim、截图适配器的记录格式与回看资产见[输入来源](INPUT-SOURCES.md)。

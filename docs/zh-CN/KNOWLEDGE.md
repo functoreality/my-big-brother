@@ -7,8 +7,8 @@
 
 | `config.json` 输出名 | 输出类型 | `results_root` 下的默认位置 |
 | --- | --- | --- |
-| `user-model` | `user_model` | `records/knowledge/USER-MODEL.md` |
-| `machine-context` | `machine_context` | `records/knowledge/SOURCES.md` |
+| `user-model` | `user_model` | `USER-MODEL.md` |
+| `machine-context` | `machine_context` | `MACHINE-CONTEXT.md` |
 
 在已有 `outputs` 数组中增加一个或两个名称即可。
 完整标准输出列表与重定向 JSON 示例见[英文版](../KNOWLEDGE.md)。

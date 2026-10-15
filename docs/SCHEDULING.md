@@ -81,8 +81,9 @@ Before installing a timer:
   Carry any required absolute XDG settings on Linux.
 - Test account access, network access, and the command from the scheduler's
   environment. Do not assume interactive aliases or shell startup files load.
-- Capture stdout and stderr outside the repository. Create their parent
-  directory before enabling the timer.
+- The launcher writes logs inside registered daily directories. Do not add
+  a permanent aggregate log outside daily. Pre-log setup errors may only be
+  available as stderr or the host scheduler's own diagnostics.
 - Allow enough time for several reviews. `codex.timeout_seconds` applies to
   the entire Agent session, including all selected dates and post-review work.
 
@@ -91,7 +92,7 @@ Before installing a timer:
 The shared [cron template](../examples/scheduling/cron.example) runs daily
 at 09:00 in cron's timezone. Replace the example absolute paths before adding
 it to the user's crontab. It changes working directory, uses an absolute
-Python executable, and appends diagnostics to an external log.
+Python executable, and lets the launcher retain dated diagnostics.
 If cron uses a different XDG environment, add the required absolute variables.
 These example paths contain no literal percent signs. In a crontab command,
 escape literal `%` characters, including those in quoted paths.
@@ -106,7 +107,7 @@ which is not the same as user login or guaranteed network readiness.
 
 The shared [LaunchAgent template](../examples/scheduling/launchagent.plist)
 uses a daily 09:00 trigger and `RunAtLoad` for catch-up when the user agent
-loads. Replace its interpreter, installation, and log paths, keeping array
+loads. Replace its interpreter and installation paths, keeping array
 arguments separate. XML-escape special characters such as `&` in paths.
 Save the resolved file in the user's LaunchAgents directory and validate it
 with `plutil -lint` before loading it with the user's launchd tools.

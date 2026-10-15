@@ -36,10 +36,15 @@ Bash 适配器读取按日期存储的 `YYYY-MM-DD/bash/*.jsonl`，
 共享存储结构如下：
 
 ```text
-raw/YYYY-MM-DD/vim/session/record.json
-raw/YYYY-MM-DD/vim/session/<snapshot artifacts>
-raw/YYYY-MM-DD/vim/session/<modification diff artifacts>
+daily/YYYY-MM-DD/vim/session/record.json
+daily/YYYY-MM-DD/vim/session/<snapshot artifacts>
+daily/YYYY-MM-DD/vim/session/<modification diff artifacts>
 ```
+
+存储 v2 选择对应逻辑工作日的子树，各日分段独立。
+`segment_open` 表示活动检查点，不表示编辑器已经退出。
+`boundary_diff_file` 跨越未观察区间，不能将变化全部归到新一天。
+下面的旧会话递归规则适用于明确选择的旧根目录。
 
 适配器递归扫描每个 Vim 子目录，包括开始于更早日期的会话。
 会话在复盘窗口之前开始、在窗口内结束时仍会纳入索引。

@@ -24,9 +24,5 @@
   </dict>
   <key>RunAtLoad</key>
   <true/>
-  <key>StandardOutPath</key>
-  <string>/absolute/path/to/runtime-logs/daily-review.log</string>
-  <key>StandardErrorPath</key>
-  <string>/absolute/path/to/runtime-logs/daily-review-error.log</string>
 </dict>
 </plist>

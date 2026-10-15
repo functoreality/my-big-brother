@@ -38,7 +38,7 @@ another Agent from using `prepare` and `finish`.
 
 ## Configure your own installation
 
-`paths` reports the locations of `config.json`, `raw-logs-path.txt`, results,
+`paths` reports the locations of `config.json`, `storage.json`, daily storage, results,
 and runtime state. They live outside the repository. Edit the generated JSON
 configuration to select sources, output types, report language, or a custom
 absolute `results_root`.
@@ -53,9 +53,9 @@ This is one field inside `config.json`, not a replacement for the entire file.
 English remains the default. This setting affects generated prose, not JSON
 field names, commands, or the language of the installed task instructions.
 
-Collectors share only the absolute raw-log path in `raw-logs-path.txt`.
-Do not put results paths or JSON syntax in that file. Reading native Agent
-histories does not require a new collector plugin.
+Collectors share the data root and fixed logical-day boundary in `storage.json`.
+See [Storage v2](STORAGE.md) before changing storage or migrating v1.
+Reading native Agent histories does not require a new collector plugin.
 
 Optional Vim and screenshot adapters, record formats, and replay assets are
 described in [Input sources](INPUT-SOURCES.md).

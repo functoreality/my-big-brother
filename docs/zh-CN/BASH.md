@@ -40,27 +40,15 @@ source "/absolute/path/to/my-big-brother/collectors/bash/session-recorder.sh"
 
 ## 保存位置与格式
 
-辅助程序只读取当前平台标准 my-big-brother 配置目录中的
-`raw-logs-path.txt`，不读取 `config.json` 或分析结果的路径。
-如果路径文件不存在，就使用当前平台默认的原始日志目录。
-如果路径文件格式错误，会给出诊断信息，而不是悄悄选择其他位置。
-文件内容应为一个 UTF-8 绝对路径，可以带 LF 或 CRLF 行尾。
-路径中的空格会被保留。
+v2 模式读取 `C/storage.json`，共用工作日边界，登记后写入
+`daily/YYYY-MM-DD/bash/`。命令按完成时刻归档，保留开始时间。
+已放弃的日期直接跳过，不会重建。
+附带的标准库协议不要求安装 Python 包。
+没有 v2 配置时仍支持旧原始日志定位方式。
+初始化及迁移见[存储 v2](STORAGE.md)。
 
-每次写入都会重新读取路径文件，并选择当前本地自然日期：
-
-```text
-raw-logs/
-  YYYY-MM-DD/
-    bash/
-      SESSION_ID.jsonl
-```
-
-自然日期取命令完成时的日期。
-跨越午夜的命令仍保留开始和完成时间，便于分析器识别日期边界。
-文件使用随机的会话标识。
-在 POSIX 系统上，新日志文件的权限为 `0600`。
-采集器不修改 shell 的 umask，也不修改已有目录和文件的权限。
+新日志使用随机会话标识，POSIX 权限为 `0600`。
+采集器不修改调用者的 umask 或已有文件权限。
 
 每条 JSONL 记录包含 `event: "command"`、`session_id`、`started_at`、
 `completed_at`、`cwd`、`command`、`exit_status`、`capture_scope` 和 `redacted`。

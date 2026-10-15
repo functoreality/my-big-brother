@@ -76,10 +76,12 @@ source's path to the selected existing records. Enable `bash`, `vim` or
 records or completing the corresponding collector setup. Initialization does not read histories or install recording hooks.
 Use actual paths, without searching unrelated accounts or private folders.
 
-`--results-root` and `--raw-logs-root` accept absolute custom paths on first
-initialization. For an existing setup, run `init` without options to fill
-missing files and edit its personal settings deliberately. Preserve previous
-values, reports and raw data.
+Use `--data-root` to choose a complete v2 data root on first initialization,
+`--day-start-hour` for its fixed logical-day boundary, and `--results-root` for
+an optional permanent output root. V2 does not use `--raw-logs-root`.
+For an existing v1 setup, preview `migrate-storage` before applying it.
+Adapt personal task state bindings first. Preserve old writers' snapshots
+until those processes close. See [Storage v2](docs/STORAGE.md).
 
 Defaults use configuration directory C and data directory D:
 
@@ -93,11 +95,13 @@ Linux XDG values must be absolute. GUI editors, the installing Agent and
 scheduled runs must discover the same C and D under the intended account.
 WSL and remote machines have their own environments.
 
-`C/raw-logs-path.txt` contains one UTF-8 absolute path, with an optional LF
-or CRLF terminator. Do not add JSON, quotes, comments or environment variables.
-Collectors share this locator and write `YYYY-MM-DD/<source>/` directories.
-`results_root` belongs in `C/config.json`; collectors do not use it.
-Defaults are `D/raw-logs`, `D/results` and runtime state in `D/state`.
+Initialization creates `C/storage.json` and its durable registry. All v2
+collectors share its root, layout version and fixed day boundary. Disposable
+captures and analysis live in `D/daily/YYYY-MM-DD/`. Permanent records and
+minimal system facts live in `D/memory/`. Native Agent histories remain with
+their applications. Do not hand-create only the shared config file.
+Confirm every active collector supports v2 before promising date-only cleanup.
+The old raw-log pointer is legacy compatibility, not a second v2 setting.
 
 ## 3. Configure outputs and personal context
 
@@ -190,7 +194,8 @@ python -m my_big_brother analyze --date 2026-01-15
 This prepares a work ticket and `prompt_path`, not an Agent launch.
 `prepare` is also available for direct preparation. Check the run's manifest,
 context, timestamps, source counts/gaps and resolved paths. The half-open
-logical-day window may span two natural-date directories.
+logical-day window selects one managed logical-day directory. Explicit
+legacy roots may still span natural-date directories.
 Omitting `--date` selects the last closed day. Use an explicit current date
 only for an honest partial review. `--snapshot-end` accepts a timestamp with
 UTC offset for a fixed cutoff.

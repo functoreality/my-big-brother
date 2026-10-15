@@ -41,27 +41,16 @@ the path used by your shell configuration.
 
 ## Locations and format
 
-The helper reads only the shared `raw-logs-path.txt` file in the platform's
-standard my-big-brother configuration directory. It does not read `config.json`
-or results paths. An absent pointer uses the platform's default raw-log path.
-A malformed pointer gives a diagnostic rather than silently choosing another
-location. The pointer contains exactly one absolute UTF-8 path and an optional
-LF or CRLF terminator. Spaces are preserved.
+In storage v2 the helper reads `C/storage.json`, shares its logical-day
+boundary, and registers dates before writing `daily/YYYY-MM-DD/bash/`.
+Commands are assigned by completion time, with start time retained.
+A discarded day is skipped without recreating its directory.
+The bundled standard-library protocol needs no installed Python package.
+Without v2 configuration, legacy raw-log pointer behavior remains available.
+See [Storage v2](STORAGE.md) for initialization and migration.
 
-Each write reads the pointer again and selects the current local natural date:
-
-```text
-raw-logs/
-  YYYY-MM-DD/
-    bash/
-      SESSION_ID.jsonl
-```
-
-The natural date is the completion date. A command crossing midnight retains
-its start and completion timestamps, so an analyzer can recognize the boundary.
-The file uses a random session identifier. New log files have mode `0600` on
-POSIX systems. The recorder does not change the shell's umask or permissions
-of existing directories and files.
+New log files use random session IDs and POSIX mode `0600`.
+The recorder does not change the caller's umask or existing file permissions.
 
 Each JSONL record contains `event: "command"`, `session_id`, `started_at`,
 `completed_at`, `cwd`, `command`, `exit_status`, `capture_scope`, and `redacted`.

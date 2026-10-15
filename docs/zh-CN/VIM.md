@@ -44,16 +44,12 @@ let g:vim_session_recorder#config = {
 
 ## 共用原始日志位置
 
-插件与 My Big Brother 使用相同的平台配置目录 `C` 和
-`C/raw-logs-path.txt`。定位文件只包含一条 UTF-8 绝对路径，
-不存在时，两边使用同一个平台默认目录。
-用 `python -m my_big_brother paths` 查看程序解析的位置。
-
-记录写入 `raw-logs/YYYY-MM-DD/vim/<session>/`。
-标准共享布局不需要额外配置 Vim 路径变量。
-已有 `record_dir` 覆盖项会绕过定位文件，继续使用平铺布局。
-获得同意后迁移为共享定位，或为读取器明确配置旧路径。保留旧记录。
-不要把 `results_root` 用作编辑器记录位置。
+插件共用 `C/storage.json`、数据根和固定工作日边界。
+支持 v2 的版本登记后写入 `daily/YYYY-MM-DD/vim/`，每个工作日分段独立。
+无需额外设置 Vim 路径变量。显式 `record_dir` 属于独立模式，不具备此删除保证。
+移除覆盖项或修改编辑器配置前先询问用户，保留旧记录。
+启用 v2 前需更新完整插件，包括 `python/storage.py`。
+见[存储 v2](STORAGE.md)，不要把长期结果目录作为采集位置。
 确保 GUI 编辑器、终端和调度器使用相同账号与位置配置。
 WSL 和远程编辑器各有自己的运行环境。
 

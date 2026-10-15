@@ -41,9 +41,10 @@ explicit. There is no third-party plugin loader or universal activity schema.
 Document supported versions and represent parsing failures as coverage gaps.
 
 Read upstream histories without changing them. For new collectors, use the
-shared `C/raw-logs-path.txt` location contract and write under
-`raw-logs/YYYY-MM-DD/<source>/`, with natural-date folders and timestamped
-records. Collectors do not read `results_root`.
+shared `C/storage.json` contract and register a logical day before writing
+`daily/YYYY-MM-DD/<source>/`. Honor discarded dates instead of recreating
+missing directories. See [Storage v2](STORAGE.md). Collectors do not read
+`results_root`.
 
 ## Add an output
 

@@ -8,8 +8,8 @@ They are optional, and the default four output selections are unchanged.
 
 | `config.json` output | Output kind | Default path below `results_root` |
 | --- | --- | --- |
-| `user-model` | `user_model` | `records/knowledge/USER-MODEL.md` |
-| `machine-context` | `machine_context` | `records/knowledge/SOURCES.md` |
+| `user-model` | `user_model` | `USER-MODEL.md` |
+| `machine-context` | `machine_context` | `MACHINE-CONTEXT.md` |
 
 Add either or both names to the existing `outputs` array. For all standard
 outputs, use:

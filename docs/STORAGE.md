@@ -1,0 +1,138 @@
+# Storage v2
+
+[简体中文](zh-CN/STORAGE.md)
+
+The personal data root has two areas. It is separate from the source checkout
+and from the platform-discovered configuration directory C.
+
+```text
+data-root/
+  daily/
+    YYYY-MM-DD/
+      bash/
+      vim/
+      screenshots/
+      _analysis/<run-id>/
+      _launches/<invocation-id>/
+      scheduler.log
+  memory/
+    USER-MODEL.md
+    MACHINE-CONTEXT.md
+    records/YYYY-MM-DD/
+      worklog.md
+      time-use.md
+      time-use.json
+      insights.md
+      time-estimates.json
+    _system/
+      storage.json
+      days/YYYY-MM-DD.json
+      operations/
+      locks/
+```
+
+Only selected outputs and used source directories are created. A personal
+profile may keep published files in existing external locations.
+Knowledge outputs remain optional. Profile instructions are configuration,
+not accumulated user knowledge, and stay under C.
+
+## Initialize shared storage
+
+```sh
+python -m my_big_brother init --sources bash --day-start-hour 4
+python -m my_big_brother paths
+```
+
+`--data-root /absolute/path` selects the whole data root on first installation.
+`--results-root` may select a separate permanent output root. It cannot overlap
+disposable daily storage. Atomic publication keeps its temporary copy inside
+the dated run, so formal outputs and `daily` must share a filesystem.
+Cross-filesystem publication stops before replacing any output.
+Do not use the old `--raw-logs-root` option in v2.
+
+Initialization writes `C/storage.json` with `schema_version: 2`, `data_root`,
+and `day_start_hour`. Collectors and preparation share this contract. Its
+calendar is fixed after initialization. Do not edit just `day_start_hour`
+in `config.json`, or hand-create a storage pointer without its durable marker.
+Changing an existing root/calendar needs an explicit migration design.
+
+Default C and D discovery remains documented in [INSTALLATION.md](../INSTALLATION.md).
+The legacy `raw-logs-path.txt` is ignored once a valid v2 contract is present.
+A malformed v2 contract is an error and never causes fallback to old storage.
+
+## Logical days and deletion
+
+At hour 4, `2026-10-14` contains events from 14 October 04:00 to 15 October
+04:00. Bash uses command completion time. Screenshots use capture time.
+The separate Vim plugin uses independent day segments and reports gaps when
+a boundary was not observed. Native Agent histories stay with their apps.
+
+You can delete inactive old date directories directly, including failed runs.
+No status-file inspection is required. This abandons automatic recovery.
+See [Manual cleanup](CLEANUP.md).
+
+Every writer registers a day before creating it. Missing registered workspaces
+are marked discarded in small durable per-day records. Review, collection and
+import must not recreate them. The completion fact and workspace disposition
+are separate. Deleting a completed day's inputs does not erase its reports.
+Configuration changes do not override the discard decision.
+
+For a deliberate user-requested restoration:
+
+```sh
+python -m my_big_brother analyze --date 2026-10-14 --recreate-deleted
+```
+
+This prepares a new review generation. It does not launch an Agent, recover
+deleted evidence or authorize unrelated operations. Automatic tasks must never
+add this option themselves. Ordinary `--date` does not restore deleted dates.
+
+## Collector and extension contract
+
+The canonical standard-library implementation is `my_big_brother/storage.py`.
+The Bash collector and independent Vim plugin vendor the same protocol so
+the plugin can still run without installing the main package. First writers
+coordinate using shared persistent locks. No collector needs a second user
+copy of the root or calendar in shell/editor settings.
+
+For an already configured capture program, `capture-path --source screenshots`
+returns a registered destination. `record-screenshot --image /absolute/image.jpg`
+stores an existing image and records its capture timestamp. Both accept
+`--timestamp` with an explicit UTC offset and return `discarded` for a removed
+day. Neither command takes screenshots or starts periodic capture.
+
+Write reasoning, excerpts, scripts, validation scratch space, full receipts
+and backups of proposed changes inside the selected day's analysis directory.
+Post-review tasks receive `operation_state_dir` for minimal durable operation
+facts. Record stable identities before side effects, including effects whose
+outcome is uncertain after a crash. Do not put raw content or full logs there.
+Removing a day stops remaining work and does not undo already applied changes.
+Custom extensions need their own verifiable idempotence and must honor discard.
+
+Startup still launches one Agent. It allocates dated logs without planning
+review work. A discarded target day uses the current logical day for startup
+logs. If no legal directory or valid registry is available, return stderr and
+a failure status without creating fallback cache roots.
+
+## Existing v1 installations
+
+Stop active v1 review processes before migration. Preserve open editor sessions'
+original snapshots until they close, then restart collectors after upgrading.
+Preview first, then apply explicitly:
+
+```sh
+python -m my_big_brother migrate-storage
+python -m my_big_brother migrate-storage --apply
+```
+
+Migration copies captures into logical days and backs up configuration. It
+retains original v1 directories as rollback material, does not change cron,
+and never invokes an Agent. Old run directories become dated diagnostics,
+not resumable v2 tickets. Pending v1 post-review work or personal tasks bound
+to v1 state must be resolved/adapted before migration.
+
+After verification and after old writers stop, archive the retained v1
+`raw-logs`, `state` and old default `results` outside the active data root.
+They are migration copies, not additional v2 cleanup locations. Custom source
+paths and periodic collectors also need explicit adaptation. A retained old
+importer must not recreate discarded dates.
