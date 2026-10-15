@@ -168,10 +168,31 @@ class BashRecorderTests(unittest.TestCase):
                 self.assertEqual((root / "settings").read_text().strip(), f"{control}|*excluded-pattern*")
                 self.assertEqual(result.returncode, 0)
 
-    def test_status_and_completion_cwd(self):
-        result, rows, root = self.shell([], ["false", "mkdir child", "cd child", "printf done"])
-        self.assertEqual(rows[0]["exit_status"], 1)
-        self.assertEqual(rows[-1]["cwd"], str(root / "child"))
+    def test_command_cwd_is_before_execution_including_directory_changes(self):
+        result, rows, root = self.shell([], ['false', 'mkdir child', 'cd child',
+            'pwd > observed-cwd', 'cd missing-directory', 'cd ..; printf compound', 'cd child; exit 7'])
+        by_command = {row['command']: row for row in rows}
+        self.assertEqual(by_command['false']['exit_status'], 1)
+        self.assertEqual(by_command['cd child']['cwd'], str(root))
+        self.assertEqual(by_command['pwd > observed-cwd']['cwd'], str(root / 'child'))
+        self.assertEqual((root / 'child/observed-cwd').read_text().strip(), str(root / 'child'))
+        self.assertEqual(by_command['cd missing-directory']['cwd'], str(root / 'child'))
+        self.assertNotEqual(by_command['cd missing-directory']['exit_status'], 0)
+        self.assertEqual(by_command['cd ..; printf compound']['cwd'], str(root / 'child'))
+        self.assertEqual(by_command['cd child; exit 7']['cwd'], str(root))
+        events = [json.loads(line) for path in root.rglob('*.jsonl')
+                  for line in path.read_text().splitlines()]
+        self.assertEqual(events[0]['cwd'], str(root))
+        self.assertEqual(events[-1]['cwd'], str(root / 'child'))
+        self.assertEqual(result.returncode, 7)
+
+    def test_command_cwd_observes_prompt_directory_changes(self):
+        result, rows, root = self.shell(
+            ['mkdir prompt-directory', "PROMPT_COMMAND='cd \"$HOME/prompt-directory\"'"],
+            ['cd ..', 'printf after-prompt'])
+        self.assertEqual(rows[0]['command'], 'cd ..')
+        self.assertEqual(rows[0]['cwd'], str(root / 'prompt-directory'))
+        self.assertEqual(rows[1]['cwd'], str(root / 'prompt-directory'))
         self.assertEqual(result.returncode, 0)
 
     def test_native_history_contents_and_settings_are_preserved(self):

@@ -72,7 +72,10 @@ TXT 只保存一行 UTF-8 绝对路径，不加引号、注释，不展开变量
   开始采集时立即写入，不必等第一条长命令结束。
 - `command`：`event`、`started_at`、`completed_at`、`cwd`、`command` 和 `exit_status`。
   开始时间来自秒级 Bash history 时间，完成时间在下一提示符或正常退出时观察。
-  与原记录器一致，`cwd` 是执行后的目录，包括执行 `cd` 的情况。
+  `cwd` 是整条输入开始执行前的 shell 目录。
+  对 `cd child`，它表示从哪个目录发起切换。
+  对 `cd child; run`，它只表示整条输入的初始目录，不代表每个内部命令的目录。
+  不额外记录第二个目录字段。
 - `session_end`：`event`、`ended_at` 和最终 `cwd`，正常退出时写入。
   `exit 7` 命令在结束事件前记录，并保留状态 7。
 
@@ -131,6 +134,21 @@ Linux 隔离测试覆盖 `PS0`、functrace 和重复加载。
 history 排除不会停用采集。输入敏感内容前设 `MBB_BASH_RECORDING=0` 暂停，
 之后设回 `1`。
 选中的证据可能发送给已配置的分析器服务商，文件名也会显示目录提示。
+
+## 为什么 Bash 记录器使用 Python
+
+被加载的 Bash 脚本负责观察 shell 事件、完整 history 输入、退出状态和命令初始目录。
+这些信息属于当前交互式 shell，必须由 Bash 钩子取得。
+初始目录沿用已有的执行前钩子，仅保存一个 shell 变量，不新增 Python 调用。
+
+Python 辅助程序负责 JSON 转义、Unicode 和多行文本、带 UTC 偏移的本地时间、
+平台路径和文件追加。原个人脚本原本依赖 `/usr/bin/jq` 和 GNU 专有的 `date` 参数，
+现在用 Python 标准库代替这些依赖，三平台使用同一套实现。
+
+代价是需要 Python，在会话开始、命令完成和正常结束时启动辅助进程。
+它不是常驻 Python 服务，也没有为记录初始目录额外启动 Python。
+只有 Bash 钩子观察 shell 活动，辅助程序不执行采集到的命令，也不启动分析 Agent。
+原生 macOS 和 Windows 的运行仍未经验证，具体范围见前文。
 
 ## 测试
 

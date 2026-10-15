@@ -83,8 +83,11 @@ and multiline input. HISTIGNORE, leading-space filters, duplicate policies,
 zero history size and history-file persistence settings do not exclude JSONL
 commands. The unresolved `set +o history` case provides no command events.
 Command `started_at` comes from second-resolution history time. `completed_at`
-is observed at the prompt or normal exit, and `cwd` is the directory after
-execution. Status belongs to the submitted input as a whole. Session start is
+is observed at the prompt or normal exit, and command `cwd` is the shell
+directory before the full submitted input starts executing. Session boundary
+`cwd` describes that boundary instant. For `cd child; run`, the command's cwd
+is only the initial context, not the location of every internal operation.
+Status belongs to the submitted input as a whole. Session start is
 written immediately, with normal session end and `exit` input captured at exit.
 An interrupted process can lack completion and end events. Preserve these
 limits rather than inferring attention from a shell's whole lifetime.

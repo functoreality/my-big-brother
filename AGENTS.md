@@ -23,9 +23,11 @@ Do not treat this file as the daily analysis task itself.
 - Keep semantic analysis rules in `tasks/`. Agents lead the interpretation.
 - Preserve Bash's full history-input semantics and compact `session_start`,
   `command`, `session_end` format. Session metadata belongs in the boundary
-  events, not repeated on commands. Do not substitute first-simple-command
-  capture. JSONL includes inputs excluded by native history filters and supports
-  zero history size and disabled history-file persistence. Preserve native
+  events, not repeated on commands. Command `cwd` means the directory before
+  the full input starts executing. Boundary-event `cwd` describes the boundary
+  instant. Do not add separate before/after directory fields or substitute
+  first-simple-command capture. JSONL includes inputs excluded by native
+  history filters and supports zero history size and disabled history-file persistence. Preserve native
   history contents and execution settings. `set +o history` remains an explicit
   unresolved capture gap. See docs/BASH.md before changing this behavior.
 - Treat source adapters and analyzer launchers as independent capabilities.

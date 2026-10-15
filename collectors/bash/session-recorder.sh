@@ -32,6 +32,7 @@ __mbb_read_history() {
 # Bash's own history builtin with the original settings before executing.
 __mbb_ready() {
     local status=$?
+    __mbb_command_cwd=$PWD
     __mbb_history_id=
     __mbb_read_history
     __mbb_last_history_id=$__mbb_history_id
@@ -88,12 +89,13 @@ __mbb_preexec() {
     esac
     [[ $__mbb_in_prompt == 0 ]] || return "$status"
     __mbb_in_prompt=1
+    __mbb_command_cwd=$PWD
     __mbb_observe_input
     return "$status"
 }
 
 __mbb_write() {
-    printf '%s\0' "$__mbb_session" "$1" "$PWD" "${2-}" "${3-}" "${4-}" |
+    printf '%s\0' "$__mbb_session" "$1" "${5-$PWD}" "${2-}" "${3-}" "${4-}" |
         "$__mbb_python" "$__mbb_helper" record
 }
 
@@ -102,7 +104,7 @@ __mbb_pending=0
 
 __mbb_flush_history() {
     if [[ $__mbb_pending == 1 && ${MBB_BASH_RECORDING:-1} != 0 ]]; then
-        __mbb_write command "$__mbb_history_command" "$1" "$__mbb_history_epoch"
+        __mbb_write command "$__mbb_history_command" "$1" "$__mbb_history_epoch" "$__mbb_command_cwd"
     fi
     __mbb_pending=0
 }

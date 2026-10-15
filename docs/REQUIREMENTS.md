@@ -33,7 +33,10 @@ tasks. Read this before changing dates, paths or recorder dependencies.
 ## Preserve Bash recording behavior
 
 Bash preserves history-input recording: full compound input, history-based
-command start time, completion time, exit status and post-command cwd.
+command start time, completion time and exit status. Command `cwd` is the
+shell directory before the complete submitted input starts executing.
+Session-start and session-end `cwd` describe their own boundary instants.
+Keep one directory field per event, without repeating start/end directories.
 Write `session_start` immediately and `session_end` on normal exit.
 Do not repeat session IDs, PIDs or session-start metadata on every command.
 JSONL must not lose commands because of native duplicate rules, leading-space

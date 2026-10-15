@@ -78,8 +78,11 @@ umask or existing file permissions.
   as recording starts, even if the first command then runs for hours.
 - `command`: `event`, `started_at`, `completed_at`, `cwd`, `command`, and
   `exit_status`. Start time comes from Bash history and has second precision.
-  Completion is observed at the next prompt or normal shell exit. As in the
-  original recorder, `cwd` is the directory after execution, including for `cd`.
+  Completion is observed at the next prompt or normal shell exit. `cwd` is
+  the shell directory immediately before the submitted input starts executing.
+  For `cd child`, it is the directory from which the change was requested.
+  For `cd child; run`, it describes the whole input's initial context, not the
+  directory of every internal command. No second directory field is recorded.
 - `session_end`: `event`, `ended_at`, and final `cwd`. Written on normal exit.
   A recorded `exit 7` command retains status 7 before the end event.
 
@@ -146,6 +149,25 @@ Other secrets and private text may still be recorded. History exclusions do
 not disable this recorder. Pause with `MBB_BASH_RECORDING=0` before sensitive
 input and set it back to `1` afterward. Selected evidence can be
 sent to the configured Analyzer provider. File names also reveal directory hints.
+
+## Why Bash uses a Python helper
+
+The sourced Bash file observes shell events, full history input, exit status
+and the command's starting directory. It must run inside the interactive shell
+to see that state. Capturing the directory uses the existing pre-execution
+hook and one shell variable. It adds no Python invocation.
+
+The helper handles JSON escaping, Unicode and multiline text, local timestamps
+with UTC offsets, platform paths and append-only files. The original personal
+script used `/usr/bin/jq` and GNU-specific `date` options. Python's standard
+library replaces those dependencies with one portable implementation.
+
+The cost is requiring Python and starting a helper process at session start,
+command completion and normal session end. It is not a background Python
+service. No Python process is added solely to capture the starting directory.
+Only Bash hooks observe shell activity. The helper does not execute captured
+commands or launch an analysis Agent. Native macOS and Windows execution
+remain unverified, as described above.
 
 ## Tests
 

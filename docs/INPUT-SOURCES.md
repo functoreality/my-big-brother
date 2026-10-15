@@ -28,7 +28,7 @@ Historical commands and other sessions' out-of-window commands are not copied in
 index. Command timestamps, directories, and recorded capture or timestamp
 scope are preserved. A missing capture scope is explicitly marked as unknown
 coverage. A modern command's `started_at` is not invented as a shell
-session start. The bundled command cwd is observed after execution, and its
+session start. The bundled command cwd is observed before execution, and its
 start time comes from history. See [Bash recording](BASH.md) for limitations.
 
 ## Vim sessions
