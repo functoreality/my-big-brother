@@ -157,6 +157,7 @@ Bash 支持适用于 Bash 环境，包括作为独立环境的 WSL，不记录 P
 - [定时运行](docs/zh-CN/SCHEDULING.md)和[可选 Bash 记录](docs/zh-CN/BASH.md)。
 - [架构](docs/zh-CN/ARCHITECTURE.md)和[扩展指南](docs/zh-CN/EXTENDING.md)。
 - [输入来源](docs/zh-CN/INPUT-SOURCES.md)和[个人配置档案](docs/zh-CN/PROFILES.md)。
+- [手动清理与需要保留的状态](docs/zh-CN/CLEANUP.md)。
 - [中英文示例](examples/synthetic/README.zh-CN.md)。
 
 面向用户的文档和示例提供英文及简体中文版本。

@@ -173,6 +173,7 @@ input adapters, analysis tasks, and independent Agent startup entries.
 - [Scheduling](docs/SCHEDULING.md) and [optional Bash recording](docs/BASH.md).
 - [Architecture](docs/ARCHITECTURE.md) and [extension guide](docs/EXTENDING.md).
 - [Input sources](docs/INPUT-SOURCES.md) and [personal profiles](docs/PROFILES.md).
+- [Manual cleanup and retained state](docs/CLEANUP.md).
 - [English and Chinese examples](examples/synthetic/README.md).
 
 Human-facing documentation and examples are available in English and
