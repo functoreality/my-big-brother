@@ -90,15 +90,7 @@ Agent 负责理解记录，也可以通过显式个人配置维护长期背景�
 把下面这段消息复制给能够操作你电脑的 Agent：
 
 ```text
-请在本机安装 https://github.com/functoreality/my-big-brother。
-阅读并遵循仓库的 INSTALLATION.md，询问我要读取哪些记录、生成哪些输出。
-如果我使用 Vim 或 Neovim，请推荐 session-recorder.vim，
-安装插件或修改编辑器配置前先询问我。
-帮我用选定的 Agent 设置每日无人值守复盘，优先使用适用的原生定时机制。
-如果它没有适用的原生调度，请用它支持的执行接口编写本地运行脚本并配置系统定时任务。
-每次触发只启动一个执行 Agent，由它自己完成全部复盘步骤。
-先在定时任务的执行环境验证一次复盘，再启用定时运行。
-持续记录和周期性任务都先征得我的同意。
+请帮我安装 https://github.com/functoreality/my-big-brother/blob/main/INSTALLATION.md
 ```
 
 共享的 [INSTALLATION.md](INSTALLATION.md) 为安装 Agent 提供操作说明。

@@ -99,16 +99,7 @@ require reprocessing every capture.
 Copy this message to an Agent that can work on your machine:
 
 ```text
-Install https://github.com/functoreality/my-big-brother on this machine.
-Read its INSTALLATION.md and follow it. Ask which records and outputs I want.
-If I use Vim or Neovim, offer session-recorder.vim and ask before installing
-it or editing my editor configuration. Help me set up daily unattended reviews
-with my chosen Agent. Prefer its native scheduler when suitable. Otherwise,
-build the needed local runner and OS schedule using its supported execution
-interface. Keep each trigger to one executing Agent that performs all review
-steps itself. Verify one review in the scheduled execution environment before
-enabling the schedule. Ask before starting continuous recording or installing
-a recurring task.
+Please help me install https://github.com/functoreality/my-big-brother/blob/main/INSTALLATION.md
 ```
 
 The shared [INSTALLATION.md](INSTALLATION.md) guides your installing Agent.
