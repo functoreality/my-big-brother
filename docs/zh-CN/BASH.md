@@ -13,7 +13,7 @@ Bash 采集器记录交互式命令活动，不读取或修改 Bash history。
 
 需要 Bash 和 Python 3，推荐 Python 3.11 或更新版本。
 旧 Python 版本未经验证，不保证兼容。
-初始化 my-big-brother 后，在交互式 `.bashrc` 的末尾附近添加以下一行，
+在交互式 `.bashrc` 的末尾附近添加以下一行，
 放在其他提示符集成之后：
 
 ```bash
@@ -40,11 +40,12 @@ source "/absolute/path/to/my-big-brother/collectors/bash/session-recorder.sh"
 
 ## 保存位置与格式
 
-v2 模式读取 `C/storage.json`，共用工作日边界，登记后写入
-`daily/YYYY-MM-DD/bash/`。命令按完成时刻归档，保留开始时间。
+采集器按本机自然日期写入 `daily/YYYY-MM-DD/bash/`，等价于 `date +%F`。
+命令按完成时刻归档，保留真实开始时间，写入前登记日期。
 已放弃的日期直接跳过，不会重建。
 附带的标准库协议不要求安装 Python 包。
-必须先初始化共享存储。配置缺失或无效时停止记录，不另选目录。
+无需先安装或初始化主项目。可选的 `C/storage.json` 指定自定义数据根，
+缺失时使用平台默认值，运行状态自动建立。已有配置无效或登记损坏时报告错误。
 初始化说明见[存储 v2](STORAGE.md)。
 
 新日志使用随机会话标识，POSIX 权限为 `0600`。

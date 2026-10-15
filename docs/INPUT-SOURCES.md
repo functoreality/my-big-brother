@@ -41,14 +41,15 @@ daily/YYYY-MM-DD/vim/session/<snapshot artifacts>
 daily/YYYY-MM-DD/vim/session/<modification diff artifacts>
 ```
 
-Storage v2 selects the matching logical-day subtree. Day segments are
+Preparation selects every natural-date subtree intersecting its time window.
+A 04:00 review reads two adjacent dates. Calendar-date segments are
 independent, and `segment_open` means a live checkpoint rather than editor
 exit. A `boundary_diff_file` spans an explicitly unobserved boundary interval.
 Do not attribute its changes entirely to the new day.
 
 An explicitly configured standalone Vim source is scanned recursively for
 session manifests. A session beginning before the review window and ending
-inside it is included. Managed recording selects only its logical-day subtree.
+inside it is included. Managed recording selects the natural-date subtrees intersecting the window.
 
 Each manifest needs `vim_start`. `vim_close` may be absent for an open session.
 New records should use ISO 8601 timestamps with a timezone offset. Legacy

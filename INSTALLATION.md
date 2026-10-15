@@ -77,7 +77,7 @@ records or completing the corresponding collector setup. Initialization does not
 Use actual paths, without searching unrelated accounts or private folders.
 
 Use `--data-root` to choose a complete v2 data root on first initialization,
-`--day-start-hour` for its fixed logical-day boundary, and `--results-root` for
+`--day-start-hour` for its analysis-only working-day boundary, and `--results-root` for
 an optional permanent output root.
 This pre-release uses the new layout directly and provides no old-data
 migration tool. See [Storage](docs/STORAGE.md).
@@ -95,7 +95,9 @@ scheduled runs must discover the same C and D under the intended account.
 WSL and remote machines have their own environments.
 
 Initialization creates `C/storage.json` and its durable registry. All v2
-collectors share its root, layout version and fixed day boundary. Disposable
+collectors use its root and layout version when present. Recorders also work
+without this file, using platform defaults and automatic runtime registration.
+Capture dates always match the system calendar date. Disposable
 captures and analysis live in `D/daily/YYYY-MM-DD/`. Permanent records and
 minimal system facts live in `D/memory/`. Native Agent histories remain with
 their applications. Do not hand-create only the shared config file.
@@ -154,7 +156,7 @@ Adapt the declaration for another manager or Neovim Lua configuration.
 Do not replace the entire vimrc or assume a fixed configuration path.
 Use the shared storage configuration. No extra path variable is normally needed.
 An explicit `record_dir` override selects standalone recording.
-Ask before removing it to enable the shared logical-day lifecycle.
+Ask before removing it to enable the shared calendar-date lifecycle.
 Preserve exclusions and specify the intended native Python when needed.
 
 Ask the user to restart their editor, then check `:RecorderStatus`.
@@ -192,7 +194,8 @@ python -m my_big_brother analyze --date 2026-01-15
 This prepares a work ticket and `prompt_path`, not an Agent launch.
 `prepare` is also available for direct preparation. Check the run's manifest,
 context, timestamps, source counts/gaps and resolved paths. The half-open
-logical-day window selects one managed logical-day directory.
+logical-day window selects records by actual time across adjacent natural-date
+directories. A 04:00 window normally reads two dates.
 Omitting `--date` selects the last closed day. Use an explicit current date
 only for an honest partial review. `--snapshot-end` accepts a timestamp with
 UTC offset for a fixed cutoff.
@@ -336,7 +339,8 @@ Distinguish available mechanisms from untested runtime behavior.
 Explain how retained outputs support weekly summaries and other conversations.
 
 Back up configuration, results and completion state. In-place relocation of
-initialized storage or changes to its fixed calendar are unsupported.
+initialized storage is unsupported. The analysis boundary is configured
+separately and never changes capture-date ownership.
 Moving results needs only its own configuration update while reviews are stopped.
 Do not delete active records. This release does not automatically clean captures
 or derived materials. Do not replace existing user automation without

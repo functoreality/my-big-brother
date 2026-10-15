@@ -15,8 +15,9 @@ Empty the trash when you want to release disk space.
 
 Each date owns its raw captures, `_analysis` indexes, excerpts, screenshot
 sheets, drafts, temporary scripts, action material and `_launches` logs.
-Deleting the date removes that disposable unit. Dates are logical workdays:
-with a 04:00 boundary, 14 October includes records through 15 October 04:00.
+Deleting the date removes that disposable unit. Capture folders use natural
+calendar dates. A 04:00 review can read two adjacent capture dates, while its
+analysis material uses the reviewed date label.
 Do not delete dates that are actively being recorded or reviewed.
 
 Deletion means abandoning automatic recovery. Review catch-up, collectors

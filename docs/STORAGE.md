@@ -25,7 +25,7 @@ data-root/
       insights.md
       time-estimates.json
     _system/
-      storage.json
+      identity.json
       days/YYYY-MM-DD.json
       operations/
       locks/
@@ -36,7 +36,7 @@ profile may keep published files in existing external locations.
 Knowledge outputs remain optional. Profile instructions are configuration,
 not accumulated user knowledge, and stay under C.
 
-## Initialize shared storage
+## Main application and independent recorders
 
 ```sh
 python -m my_big_brother init --sources bash --day-start-hour 4
@@ -49,21 +49,34 @@ disposable daily storage. Atomic publication keeps its temporary copy inside
 the dated run, so formal outputs and `daily` must share a filesystem.
 Cross-filesystem publication stops before replacing any output.
 
-Initialization writes `C/storage.json` with `schema_version: 2`, `data_root`,
-and `day_start_hour`. Collectors and preparation share this contract. Its
-calendar is fixed after initialization. Do not edit just `day_start_hour`
-in `config.json`, or hand-create a storage pointer without its durable marker.
-Changing an existing root/calendar in place is unsupported.
+Main application initialization writes optional collector configuration
+`C/storage.json` with `schema_version: 2` and `data_root`. Review settings,
+including `day_start_hour`, belong only to `C/config.json`.
 
-Default C and D discovery remains documented in [INSTALLATION.md](../INSTALLATION.md).
-A malformed v2 contract is an error and never causes fallback to old storage.
+Recorders also work without the main application or either user configuration
+file. They use platform defaults when `C/storage.json` is missing and create
+runtime metadata automatically. An optional valid shared configuration selects
+a different data root. A malformed existing file or damaged runtime registry
+is an error. Runtime `memory/_system/identity.json` records storage identity,
+not a review calendar. No collector writes a user configuration file.
 
-## Logical days and deletion
+Default C and D discovery is documented in [INSTALLATION.md](../INSTALLATION.md).
+Changing an existing data root in place is unsupported.
+See the product [Requirements](REQUIREMENTS.md) before changing this contract.
 
-At hour 4, `2026-10-14` contains events from 14 October 04:00 to 15 October
-04:00. Bash uses command completion time. Screenshots use capture time.
-The separate Vim plugin uses independent day segments and reports gaps when
-a boundary was not observed. Native Agent histories stay with their apps.
+## Natural capture dates and analysis windows
+
+Capture dates always match the local system date, equivalent to `date +%F`.
+At 15 October 02:30, Bash writes into `daily/2026-10-15/bash/`, including when
+the review boundary is 04:00. Original timestamps are never shifted.
+Screenshots use their capture date. Vim segments rotate at natural midnight,
+with gaps reported when rollover was not observed.
+
+Only analysis interprets a working day. A review from 14 October 04:00 to
+15 October 04:00 reads records from both natural-date folders and filters by
+actual timestamp. A natural date can contribute to two reviews. Analysis
+material remains under the reviewed date's `_analysis/` directory. Native
+Agent histories stay with their applications.
 
 You can delete inactive old date directories directly, including failed runs.
 No status-file inspection is required. This abandons automatic recovery.
@@ -91,7 +104,7 @@ The canonical standard-library implementation is `my_big_brother/storage.py`.
 The Bash collector and independent Vim plugin vendor the same protocol so
 the plugin can still run without installing the main package. First writers
 coordinate using shared persistent locks. No collector needs a second user
-copy of the root or calendar in shell/editor settings.
+copy of the root in shell/editor settings. No analysis calendar is shared.
 
 For an already configured capture program, `capture-path --source screenshots`
 returns a registered destination. `record-screenshot --image /absolute/image.jpg`
@@ -108,6 +121,6 @@ Removing a day stops remaining work and does not undo already applied changes.
 Custom extensions need their own verifiable idempotence and must honor discard.
 
 Startup still launches one Agent. It allocates dated logs without planning
-review work. A discarded target day uses the current logical day for startup
+review work. A discarded target day uses the current natural date for startup
 logs. If no legal directory or valid registry is available, return stderr and
 a failure status without creating fallback cache roots.

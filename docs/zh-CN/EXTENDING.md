@@ -41,8 +41,9 @@ def collect(path: Path, start: datetime, end: datetime) -> SourceResult:
 请说明支持的版本，并把解析失败表示为证据覆盖缺口。
 
 读取上游历史时，不要修改原始文件。
-新增采集器应遵循共享的 `C/storage.json`，登记后写入
-`daily/YYYY-MM-DD/<source>/`，按逻辑工作日归档。
+新增采集器默认独立运行，可用可选的 `C/storage.json` 指定共享数据根。
+登记后写入
+`daily/YYYY-MM-DD/<source>/`，按本机自然日期归档。
 已放弃的日期不得重建，记录自身带时间戳。完整协议见[存储 v2](STORAGE.md)。
 采集器不读取 `results_root`。
 

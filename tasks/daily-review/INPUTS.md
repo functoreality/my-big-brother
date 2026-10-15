@@ -65,8 +65,9 @@ ambiguity rather than inventing a request.
 ## Bash
 
 When enabled and installed, the bundled recorder writes local JSONL below
-`daily/YYYY-MM-DD/bash/` in storage v2. Dates use the shared logical-day
-boundary. The preparer selects activity by event time inside that day.
+`daily/YYYY-MM-DD/bash/`. Dates are local natural dates, equivalent to
+`date +%F`, independent of the review boundary. The preparer reads adjacent
+dates when needed and selects activity by actual event time.
 Removed managed dates must never be recreated to recover evidence.
 
 Command events are clues about actions and working directories. Their

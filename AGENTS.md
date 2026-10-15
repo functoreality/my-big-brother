@@ -6,6 +6,10 @@ Do not treat this file as the daily analysis task itself.
 
 ## Repository work
 
+- Read `docs/REQUIREMENTS.md` before changing collection or storage.
+  Collectors use the real local calendar date, equivalent to `date +%F`.
+  Review boundaries such as 04:00 belong only to analysis, never collectors.
+  Recorders work with platform defaults when shared configuration is absent.
 - Keep shared preparation and run management in `my_big_brother/`.
 - Keep semantic analysis rules in `tasks/`. Agents lead the interpretation.
 - Treat source adapters and analyzer launchers as independent capabilities.
@@ -17,7 +21,7 @@ Do not treat this file as the daily analysis task itself.
   workflow. Never loop or retry by launching another Agent from driver code.
 - Keep collectors limited to recording activity in their host environment.
 - Keep user configuration, logs, results, and state outside the repository.
-- Use the shared storage protocol for all writers. Register logical days
+- Use the shared storage protocol for all managed writers. Register dates
   before creating them. Never automatically recreate a discarded date.
   Keep disposable material inside `daily/DATE` and durable facts in `memory`.
   See `docs/STORAGE.md` before changing paths or adding a collector.

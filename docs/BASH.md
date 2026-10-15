@@ -12,8 +12,8 @@ MVP. Do not install it in someone else's shell without their permission.
 ## Installation
 
 Use Bash and Python 3, with Python 3.11+ recommended. Older Python versions
-are unverified and compatibility is not guaranteed. After initializing
-my-big-brother, add this line near the end of your interactive `.bashrc`,
+are unverified and compatibility is not guaranteed. Add this line near the
+end of your interactive `.bashrc`,
 after prompt integrations:
 
 ```bash
@@ -41,13 +41,15 @@ the path used by your shell configuration.
 
 ## Locations and format
 
-In storage v2 the helper reads `C/storage.json`, shares its logical-day
-boundary, and registers dates before writing `daily/YYYY-MM-DD/bash/`.
+The helper writes `daily/YYYY-MM-DD/bash/` using the system calendar date,
+equivalent to `date +%F`. It registers dates before writing.
 Commands are assigned by completion time, with start time retained.
 A discarded day is skipped without recreating its directory.
 The bundled standard-library protocol needs no installed Python package.
-Initialize shared storage before attaching the collector. Missing or invalid
-configuration stops recording without selecting another directory.
+The collector works without installing or initializing the main application.
+An optional `C/storage.json` selects a custom data root. When absent, platform
+defaults apply. Runtime registration is created automatically. An invalid
+existing configuration or damaged registry reports an error.
 See [Storage v2](STORAGE.md) for initialization.
 
 New log files use random session IDs and POSIX mode `0600`.

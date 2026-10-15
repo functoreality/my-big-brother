@@ -21,6 +21,8 @@ other Agent conversations, instead of making every report an isolated diary.
 You choose the sources, outputs, and Agent. My Big Brother prepares evidence
 and manages checked publication. The Agent interprets the records and can
 maintain selected long-term context through an explicit personal profile.
+Collectors use natural system dates. Working-day boundaries belong only to
+analysis. See the [collection requirements](docs/REQUIREMENTS.md).
 Collectors record activity separately. Installing this project does not start
 screen capture or recording in every application.
 
@@ -136,12 +138,13 @@ personal history inside Git.
 - `config.json` selects sources, outputs, language, and the analyzer.
 - `local_profile`, when selected, names personal rules, permitted references,
   output overrides, validators, and optional post-review operations.
-- `storage.json` shares the data root and fixed logical-day boundary.
+- Optional `storage.json` selects the shared data root. Collectors default to
+  platform paths and use natural calendar dates.
 - `daily/DATE/` holds disposable captures, drafts, sheets and execution logs.
 - `memory/` holds published reports, directly visible user/machine knowledge,
   and minimal durable system facts. Delete inactive old dates without reading
   state files. Removed dates are not automatically recreated.
-- See [Storage](docs/STORAGE.md) for the shared calendar and collector contract.
+- See [Storage](docs/STORAGE.md) for the collector contract and [Requirements](docs/REQUIREMENTS.md).
 
 Native Agent histories stay in their own locations. This MVP does not
 automatically delete captures or run materials. Review and manage their disk

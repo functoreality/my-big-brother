@@ -48,8 +48,9 @@ let g:vim_session_recorder#config = {
 
 ## Share the shared storage
 
-The plugin uses the same `C/storage.json`, data root and fixed logical-day
-boundary. V2-capable plugin versions register and write independent segments
+The plugin works independently with platform defaults. Optional
+`C/storage.json` selects a custom data root. It registers natural dates
+and writes independent segments
 under `daily/YYYY-MM-DD/vim/`. No extra Vim path variable is needed.
 `record_dir` is an explicit standalone override and opts out of this lifecycle.
 Ask before removing it or changing editor configuration. Preserve old records.
@@ -70,7 +71,7 @@ Then set `sources.vim.enabled` to `true` in the personal configuration and
 run `prepare` for a date containing that closed session. Inspect the Vim
 manifest count, excerpt and artifact references before claiming success.
 
-Shared recording publishes periodic checkpoints and independent logical-day
+Shared recording publishes periodic checkpoints and independent calendar-date
 segments. Standalone recording publishes at editor exit. Missing records do
 not prove an absence of editor work. Checkpoint diffs and boundary gaps do not
 establish the exact time of each edit. See [Input sources](INPUT-SOURCES.md).

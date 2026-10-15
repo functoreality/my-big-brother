@@ -2,6 +2,8 @@
 
 [English](../ARCHITECTURE.md) | 简体中文
 
+日期与采集器约束见[需求说明](REQUIREMENTS.md)。
+
 My Big Brother 是一个本地仓库，复盘流程由 Agent 主导。
 Python 准备证据并管理发布，Markdown 任务说明告诉 Agent
 如何理解证据并生成有用的记录。
@@ -45,7 +47,7 @@ examples/synthetic/
 ```text
 C/
   config.json
-  storage.json       共享数据根及固定工作日边界
+  storage.json       可选的共享数据根，不含分析日界线
   local-tasks/
 D/
   daily/YYYY-MM-DD/
@@ -62,8 +64,9 @@ D/
     _system/operations/
 ```
 
-采集器与分析程序共用 `C/storage.json` 的数据根、日界线和日期登记。
-日期目录按逻辑工作日归档。删除已无活动写入的旧日期表示放弃，
+采集器按本机自然日期归档，等价于 `date +%F`。可选的 `C/storage.json`
+只指定共享位置。工作日分界仅由分析配置决定，读取器跨自然日期提取记录。
+持久化日期登记记住删除决定。删除已无活动写入的旧日期表示放弃，
 无需读状态，补跑和导入都不会重建它。
 正式报告和最小持久化事实独立保留在 memory，个人 profile 可覆盖正式位置。
 完整约定和迁移步骤见[存储 v2](STORAGE.md)。

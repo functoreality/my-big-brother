@@ -2,6 +2,8 @@
 
 [English](ARCHITECTURE.md) | [简体中文](zh-CN/ARCHITECTURE.md)
 
+Date and recorder requirements: [Requirements](REQUIREMENTS.md).
+
 My Big Brother is a local repository with an Agent-led review workflow.
 Python prepares evidence and manages publication. Markdown tasks tell the
 Agent how to interpret that evidence and produce useful records.
@@ -45,7 +47,7 @@ listed in [INSTALLATION.md](../INSTALLATION.md).
 ```text
 C/
   config.json
-  storage.json       Shared data root and fixed logical-day boundary
+  storage.json       Optional shared data root, no analysis calendar
   local-tasks/
 D/
   daily/YYYY-MM-DD/
@@ -62,8 +64,9 @@ D/
     _system/operations/
 ```
 
-Collectors and preparation share `C/storage.json`, its root, calendar and
-persistent date registry. Each logical-day directory is disposable without
+Collectors use the system calendar date, equivalent to `date +%F`. An
+optional `C/storage.json` selects their data root. Persistent registration
+remembers removed dates. Each inactive old date directory is disposable without
 inspecting status. Removal abandons automatic recovery and import.
 Formal outputs and minimal durable facts remain in memory. Profiles may
 select external permanent targets. See [Storage v2](STORAGE.md).

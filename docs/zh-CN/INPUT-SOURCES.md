@@ -41,13 +41,14 @@ daily/YYYY-MM-DD/vim/session/<snapshot artifacts>
 daily/YYYY-MM-DD/vim/session/<modification diff artifacts>
 ```
 
-存储 v2 选择对应逻辑工作日的子树，各日分段独立。
+读取器选择时间窗口覆盖的自然日期子树，04:00 分界的一次复盘会读取相邻两天。
+各自然日分段独立。
 `segment_open` 表示活动检查点，不表示编辑器已经退出。
 `boundary_diff_file` 跨越未观察区间，不能将变化全部归到新一天。
 
 明确配置的独立 Vim 来源会递归查找会话 manifest。
 会话在复盘窗口之前开始、在窗口内结束时仍纳入索引。
-共享模式只读取对应工作日的子目录。
+共享模式读取时间窗口相交的自然日期子目录。
 
 每条 manifest 都需要 `vim_start`。
 旧记录中的开放会话可以没有 `vim_close`。
