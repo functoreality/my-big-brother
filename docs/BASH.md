@@ -91,18 +91,24 @@ stream. Command output is not recorded.
 
 ## History compatibility
 
-Repeated commands are recorded under `ignoredups`, `ignoreboth`, `erasedups`,
-and the duplicate-only `&` pattern in `HISTIGNORE`. Your native history still
-applies its original rules. Other `HISTIGNORE` patterns and leading-space
-exclusion under `ignorespace` or `ignoreboth` continue to exclude input.
-Disabled history or `HISTSIZE=0` produces no command events, while session
-boundaries are still recorded. The recorder does not enable history.
+JSONL records repeated input, leading-space input and commands matching
+`HISTIGNORE`, independently of native history filtering. Bash's own history
+still applies the user's `HISTCONTROL`, `HISTIGNORE` and size settings.
+`HISTSIZE=0`, an unset or empty `HISTFILE`, and `HISTFILESIZE=0` do not prevent
+JSONL capture. The recorder does not assign `HISTFILE` or write to it.
 
-To observe duplicates, the hook temporarily relaxes duplicate suppression
-while waiting for input. Before execution it restores the original settings
-and passes the full input through Bash's own history builtin. It does not use
-`BASH_COMMAND` as the recorded text. Prompt hooks run with the original settings.
-The JSONL format does not change with your history policy.
+While waiting for input, the hook temporarily relaxes history filtering and,
+when needed, reserves one extra entry. Before execution it observes the full
+input, restores the original filters, and submits it to Bash's history builtin.
+With an original size of zero it removes the observation without retaining it.
+It then restores the size before commands and prompt hooks execute.
+It does not use `BASH_COMMAND` as the recorded text.
+
+**Known gap:** `set +o history` disables the input mechanism itself. Command
+capture is unavailable while that option is off, although session boundaries
+remain. The recorder preserves the disabled option. Turning it back on resumes
+capture. This is different from disabling history-file persistence and is an
+unresolved limitation, not an intentional recording exclusion.
 
 When the history list reaches `HISTSIZE`, temporarily reserving one slot and
 restoring the limit can renumber history entries. History content and duplicate
@@ -123,7 +129,7 @@ prompt or trap integrations after loading is unsupported. Open a new shell
 after changing integrations or upgrading the recorder.
 
 `HISTCONTROL`, `HISTIGNORE`, and finite `HISTSIZE` must be writable for temporary
-duplicate observation. Continuous recording remains opt-in. To pause command
+input observation. Continuous recording remains opt-in. To pause command
 recording, set `MBB_BASH_RECORDING=0`, then restore it to `1` when wanted.
 Session-end events still identify normal closure. To disable a new session,
 export `MBB_BASH_RECORDING=0` before sourcing. To uninstall, remove the source
@@ -134,8 +140,9 @@ line and open a new shell. This does not delete existing captures.
 The recorder keeps the original best-effort redaction rule. Commands containing
 assignments to token, secret, password or API-key names, `sshpass`, or
 `Authorization:` are replaced with `<redacted:possible-secret>`.
-Other secrets and private text may still be recorded. Use history exclusions
-or pause recording before entering sensitive input. Selected evidence can be
+Other secrets and private text may still be recorded. History exclusions do
+not disable this recorder. Pause with `MBB_BASH_RECORDING=0` before sensitive
+input and set it back to `1` afterward. Selected evidence can be
 sent to the configured Analyzer provider. File names also reveal directory hints.
 
 ## Tests
@@ -145,7 +152,8 @@ python3 -m unittest discover -s tests -p test_bash_recorder.py -v
 ```
 
 The isolated Linux suite covers native-history comparisons, duplicate policies,
-privacy exclusions, compound and multiline input, event fields, existing hooks,
+history-file settings, filtering independence, compound and multiline input,
+event fields, existing hooks,
 exit status, permissions, fixed start-date paths, and a real pseudo-terminal.
 It checks that a session-start event exists before a blocking command finishes.
 No real shell configuration, history, or schedule is changed.

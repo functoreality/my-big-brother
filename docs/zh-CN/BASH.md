@@ -82,16 +82,21 @@ source "/absolute/path/to/my-big-brother/collectors/bash/session-recorder.sh"
 
 ## history 兼容
 
-`ignoredups`、`ignoreboth`、`erasedups`，以及 `HISTIGNORE` 的重复过滤项 `&`
-都不影响 JSONL 记录每次重复执行，原生 history 仍按用户原规则去重。
-其他 `HISTIGNORE` 模式和 `ignorespace`、`ignoreboth` 的前导空格排除继续有效。
-关闭 history 或设置 `HISTSIZE=0` 时不记录命令，但仍保留会话起止事件。
-采集器不会自行开启 history。
+重复输入、前导空格输入和匹配 `HISTIGNORE` 的命令都会写入 JSONL。
+原生 history 仍按用户原有的 `HISTCONTROL`、`HISTIGNORE` 和容量设置处理。
+`HISTSIZE=0`、未设置或清空 `HISTFILE`、`HISTFILESIZE=0` 都不阻止 JSONL 采集。
+采集器不设置 `HISTFILE`，也不向它写入。
 
-等待输入时，钩子暂时放宽重复过滤。
-命令执行前恢复原设置，再将完整输入交给 Bash 自带的 history 机制处理。
-不以 `BASH_COMMAND` 作为记录文本，已有提示符钩子也在原设置下执行。
-JSONL 格式不随用户的 history 策略改变。
+等待输入时暂时放宽 history 过滤，必要时预留一个位置。
+命令执行前观察整条输入，恢复原过滤设置，再交给 Bash 自带的 history 机制处理。
+原容量为零时，直接移除临时观察条目，不留在原生历史中。
+之后恢复容量，用户命令与已有提示符钩子在原设置下执行。
+不以 `BASH_COMMAND` 作为记录文本。
+
+**已知缺口：** `set +o history` 关闭了获取输入所用的机制。
+此时无法采集命令，只保留会话起止。采集器保留关闭状态，
+用户重新开启该选项后恢复采集。这与禁止历史文件落盘不同，
+是尚未解决的限制，不是有意设计的记录排除。
 
 history 达到 `HISTSIZE` 上限时，为重复输入临时预留一个位置再恢复上限，
 可能导致 Bash 重排历史编号。
@@ -109,7 +114,7 @@ Linux 隔离测试覆盖 `PS0`、functrace 和重复加载。
 只读 `PROMPT_COMMAND` 无法安装。
 不支持加载后动态替换提示符或 trap 集成，修改集成或升级采集器后请重开 shell。
 
-临时观察重复输入要求 `HISTCONTROL`、`HISTIGNORE` 和有限的 `HISTSIZE` 可写。
+临时观察完整输入要求 `HISTCONTROL`、`HISTIGNORE` 和有限的 `HISTSIZE` 可写。
 持续记录仍需主动启用。
 `MBB_BASH_RECORDING=0` 暂停命令记录，恢复为 `1` 后继续，正常结束仍写结束事件。
 若要停用新会话，在加载前导出 `MBB_BASH_RECORDING=0`。
@@ -121,7 +126,8 @@ Linux 隔离测试覆盖 `PS0`、functrace 和重复加载。
 检测到 token、secret、password、API key 等名称的赋值、`sshpass` 或
 `Authorization:` 时，整条命令替换为 `<redacted:possible-secret>`。
 其他秘密和私密文本仍可能被记录。
-输入敏感内容前使用 history 排除或暂停记录。
+history 排除不会停用采集。输入敏感内容前设 `MBB_BASH_RECORDING=0` 暂停，
+之后设回 `1`。
 选中的证据可能发送给已配置的分析器服务商，文件名也会显示目录提示。
 
 ## 测试
@@ -130,7 +136,8 @@ Linux 隔离测试覆盖 `PS0`、functrace 和重复加载。
 python3 -m unittest discover -s tests -p test_bash_recorder.py -v
 ```
 
-Linux 隔离测试覆盖原生 history 对照、重复策略、隐私过滤、复合和多行输入、
+Linux 隔离测试覆盖原生 history 对照、重复策略、历史文件设置、过滤独立性、
+复合和多行输入、
 事件字段、已有钩子、退出状态、权限、固定启动日期和真实伪终端。
 测试确认阻塞命令结束前已经存在会话开始事件。
 不会修改真实 shell 配置、历史或定时任务。

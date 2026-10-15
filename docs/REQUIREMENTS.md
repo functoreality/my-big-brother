@@ -36,9 +36,11 @@ Bash preserves history-input recording: full compound input, history-based
 command start time, completion time, exit status and post-command cwd.
 Write `session_start` immediately and `session_end` on normal exit.
 Do not repeat session IDs, PIDs or session-start metadata on every command.
-Preserve history privacy exclusions and the user's native duplicate policy
-while recording repeated executions. See [Bash](BASH.md) for the accepted
-history-numbering limitation and the exact compact event fields.
+JSONL must not lose commands because of native duplicate rules, leading-space
+filters, HISTIGNORE, zero history size or disabled history-file persistence.
+Preserve the user's native history content and execution settings.
+`set +o history` is an unresolved capture gap, explicitly documented in
+[Bash](BASH.md), along with the accepted history-numbering limitation.
 
 ## Review windows belong to analysis
 

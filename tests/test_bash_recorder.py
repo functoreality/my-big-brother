@@ -97,7 +97,7 @@ class BashSessionNamingTests(unittest.TestCase):
 
 @unittest.skipUnless(os.name == "posix" and shutil.which("bash"), "Requires a POSIX Bash environment")
 class BashRecorderTests(unittest.TestCase):
-    def shell(self, setup, commands, *, initialize=True, recording=True):
+    def shell(self, setup, commands, *, initialize=True, recording=True, exit_command=True):
         directory = tempfile.TemporaryDirectory()
         self.addCleanup(directory.cleanup)
         root = Path(directory.name)
@@ -112,7 +112,7 @@ class BashRecorderTests(unittest.TestCase):
         env.pop("PROMPT_COMMAND", None)
         env.pop("BASH_ENV", None)
         attach = [f"source {shlex.quote(str(HOOK))}"] if recording else []
-        script = "\n".join(setup + attach + commands + ["exit", ""])
+        script = "\n".join(setup + attach + commands + (["exit", ""] if exit_command else [""]))
         result = subprocess.run(
             ["bash", "--noprofile", "--norc", "-i"], input=script,
             text=True, env=env, cwd=root, capture_output=True, timeout=15,
@@ -160,10 +160,9 @@ class BashRecorderTests(unittest.TestCase):
                      "printf '%s\\n' \"$HISTCONTROL|$HISTIGNORE\" > settings"],
                 )
                 expected = ['printf repeated', 'printf repeated']
-                if 'ignoreboth' not in control:
-                    expected.append('printf spaced')
+                expected.extend(['printf spaced', 'printf excluded-pattern'])
                 self.assertEqual([r['command'] for r in rows[:len(expected)]], expected)
-                self.assertFalse(any('printf excluded-pattern' == r['command'] for r in rows))
+                self.assertIn('printf excluded-pattern', [r['command'] for r in rows])
                 self.assertEqual((root / "settings").read_text().strip(), f"{control}|*excluded-pattern*")
                 self.assertEqual(result.returncode, 0)
 
@@ -177,7 +176,8 @@ class BashRecorderTests(unittest.TestCase):
         import re
 
         policies = [('', ''), ('ignoredups', ''), ('erasedups', ''),
-                    ('ignoreboth:erasedups', ''), ('', '&'), ('erasedups', '*private*:&')]
+                    ('ignoreboth:erasedups', ''), ('', '&'), ('erasedups', '*private*:&'),
+                    ('ignorespace', '*'), ('', '*private*')]
         for control, ignore in policies:
             for size in (2, 20):
                 with self.subTest(control=control, ignore=ignore, size=size):
@@ -197,12 +197,55 @@ class BashRecorderTests(unittest.TestCase):
                     self.assertEqual(sum(row['command'] == 'printf alpha' for row in rows), 3)
                     self.assertEqual(result.returncode, 0)
 
-    def test_history_disabled_keeps_only_session_boundaries(self):
-        result, rows, root = self.shell(['set +o history'], ['printf private'])
+    def test_disk_history_disabled_or_zero_size_still_records_without_changing_native_history(self):
+        import re
+
+        for setting in ('HISTSIZE=0', 'unset HISTFILE', 'HISTFILE=', 'HISTFILESIZE=0'):
+            with self.subTest(setting=setting):
+                setup = ['HISTCONTROL=ignoredups', "HISTIGNORE='source *'", 'history -c',
+                         'history -s previous-entry', setting]
+                commands = ['printf repeated', 'printf repeated',
+                            "[[ -o history ]]; printf '%s|%s|%s' \"$?\" \"$HISTSIZE\" \"${HISTFILE-unset}\" > settings",
+                            'history > observed-history']
+                _, _, baseline = self.shell(setup, commands, recording=False)
+                result, rows, root = self.shell(setup, commands)
+                normalize = lambda value, directory: re.sub(
+                    r'^\s*\d+\s{2}', '', value.replace(str(directory), '<HOME>'), flags=re.MULTILINE)
+                self.assertEqual(normalize((root / 'observed-history').read_text(), root),
+                                 normalize((baseline / 'observed-history').read_text(), baseline))
+                self.assertEqual(normalize((root / 'settings').read_text(), root),
+                                 normalize((baseline / 'settings').read_text(), baseline))
+                saved = lambda directory: (directory / 'history').read_text() if (directory / 'history').exists() else ''
+                self.assertEqual(normalize(saved(root), root), normalize(saved(baseline), baseline))
+                self.assertEqual(sum(row['command'] == 'printf repeated' for row in rows), 2)
+                self.assertEqual(result.returncode, 0)
+
+    def test_history_can_be_disabled_and_enabled_during_a_recorded_session(self):
+        result, rows, root = self.shell([], ['set +o history', 'printf disabled',
+            'HISTSIZE=0', 'printf zero', 'HISTSIZE=20', 'set -o history',
+            'printf enabled', 'history > observed-history'])
+        recorded = [row['command'] for row in rows]
+        self.assertNotIn('printf disabled', recorded)
+        self.assertNotIn('printf zero', recorded)
+        self.assertIn('printf enabled', recorded)
+        self.assertNotIn('printf disabled', (root / 'observed-history').read_text())
+        self.assertNotIn('printf zero', (root / 'observed-history').read_text())
+        self.assertEqual(result.returncode, 0)
+
+    def test_history_disabled_is_an_explicit_capture_gap(self):
+        result, rows, root = self.shell(['set +o history'], ['printf disabled'])
         self.assertEqual(rows, [])
         events = [json.loads(line) for path in root.rglob('*.jsonl')
                   for line in path.read_text().splitlines()]
-        self.assertEqual([row['event'] for row in events], ['session_start', 'session_end'])
+        self.assertEqual([event['event'] for event in events], ['session_start', 'session_end'])
+        self.assertEqual(result.returncode, 0)
+
+    def test_original_exit_hook_observes_original_settings_on_eof(self):
+        setup = ["HISTCONTROL=ignoreboth", "HISTIGNORE='*excluded*'", 'HISTSIZE=2',
+                 "trap 'printf \"%s|%s|%s\" \"$HISTCONTROL\" \"$HISTIGNORE\" \"$HISTSIZE\" > exit-settings' EXIT"]
+        # A final comment reaches EOF without running a command or its preexec hook.
+        result, rows, root = self.shell(setup, ['# EOF observation'], exit_command=False)
+        self.assertEqual((root / 'exit-settings').read_text(), 'ignoreboth|*excluded*|2')
         self.assertEqual(result.returncode, 0)
 
     def test_event_fields_match_legacy_without_repeated_session_metadata(self):

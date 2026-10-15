@@ -21,7 +21,6 @@ __mbb_session=$("$__mbb_python" "$__mbb_helper" session "$__mbb_shell_pid" "$PWD
 
 __mbb_read_history() {
     local line HISTTIMEFORMAT='%s '
-    [[ -o history ]] || return 1
     line=$(builtin history 1)
     [[ $line =~ ^[[:space:]]*([0-9]+)[*]?[[:space:]]+([0-9]+)[[:space:]](.*)$ ]] || return 1
     __mbb_history_id=${BASH_REMATCH[1]}
@@ -29,11 +28,10 @@ __mbb_read_history() {
     __mbb_history_command=${BASH_REMATCH[3]}
 }
 
-# Keep duplicate input visible until the next command starts. Replay that input
-# through Bash's own history builtin with the original settings before executing.
+# Observe complete input before native history filtering. Replay it through
+# Bash's own history builtin with the original settings before executing.
 __mbb_ready() {
-    local status=$? flag
-    local -a flags
+    local status=$?
     __mbb_history_id=
     __mbb_read_history
     __mbb_last_history_id=$__mbb_history_id
@@ -42,27 +40,16 @@ __mbb_ready() {
     __mbb_ignore=${HISTIGNORE-}
     __mbb_ignore_set=${HISTIGNORE+x}
     __mbb_size=${HISTSIZE-}
-    __mbb_filtered_control=
-    IFS=: read -r -a flags <<< "$__mbb_control"
-    for flag in "${flags[@]}"; do
-        case $flag in
-            ignoredups|erasedups) continue ;;
-            ignoreboth) flag=ignorespace ;;
-        esac
-        __mbb_filtered_control+=${__mbb_filtered_control:+:}$flag
-    done
-    __mbb_filtered_ignore=
-    IFS=: read -r -a flags <<< "$__mbb_ignore"
-    for flag in "${flags[@]}"; do
-        [[ $flag == '&' ]] && continue
-        __mbb_filtered_ignore+=${__mbb_filtered_ignore:+:}$flag
-    done
+    __mbb_size_set=${HISTSIZE+x}
+    __mbb_history_enabled=0
+    [[ -o history ]] && __mbb_history_enabled=1
     __mbb_temporary_history=0
-    if [[ $__mbb_filtered_control != "$__mbb_control" || $__mbb_filtered_ignore != "$__mbb_ignore" ]]; then
-        HISTCONTROL=$__mbb_filtered_control
-        HISTIGNORE=$__mbb_filtered_ignore
-        # A duplicate must not evict the oldest entry before native filtering.
-        if [[ $__mbb_size =~ ^[0-9]+$ && $__mbb_size != 0 ]]; then
+    if [[ $__mbb_history_enabled == 1 &&
+          ( -n $__mbb_control || -n $__mbb_ignore || $__mbb_size == 0 ) ]]; then
+        HISTCONTROL=
+        HISTIGNORE=
+        # A filtered input must not evict the oldest native history entry.
+        if [[ $__mbb_size =~ ^[0-9]+$ ]]; then
             HISTSIZE=$((10#$__mbb_size + 1))
         fi
         __mbb_temporary_history=1
@@ -70,6 +57,27 @@ __mbb_ready() {
     __mbb_pending=0
     __mbb_in_prompt=0
     return "$status"
+}
+
+__mbb_observe_input() {
+    if [[ $__mbb_temporary_history == 1 ]]; then
+        if [[ $__mbb_control_set ]]; then HISTCONTROL=$__mbb_control; else unset HISTCONTROL; fi
+        if [[ $__mbb_ignore_set ]]; then HISTIGNORE=$__mbb_ignore; else unset HISTIGNORE; fi
+    fi
+    if [[ $__mbb_history_enabled == 1 ]] && __mbb_read_history &&
+       [[ $__mbb_history_id != "$__mbb_last_history_id" ]]; then
+        __mbb_pending=1
+        if [[ $__mbb_temporary_history == 1 ]]; then
+            builtin history -d "$__mbb_history_id"
+            if [[ $__mbb_history_enabled == 1 && $__mbb_size != 0 ]]; then
+                builtin history -s -- "$__mbb_history_command"
+            fi
+        fi
+    fi
+    if [[ $__mbb_temporary_history == 1 ]]; then
+        if [[ $__mbb_size_set ]]; then HISTSIZE=$__mbb_size; else unset HISTSIZE; fi
+        __mbb_temporary_history=0
+    fi
 }
 
 __mbb_preexec() {
@@ -80,20 +88,7 @@ __mbb_preexec() {
     esac
     [[ $__mbb_in_prompt == 0 ]] || return "$status"
     __mbb_in_prompt=1
-    if [[ $__mbb_temporary_history == 1 ]]; then
-        if [[ $__mbb_control_set ]]; then HISTCONTROL=$__mbb_control; else unset HISTCONTROL; fi
-        if [[ $__mbb_ignore_set ]]; then HISTIGNORE=$__mbb_ignore; else unset HISTIGNORE; fi
-    fi
-    if __mbb_read_history && [[ $__mbb_history_id != "$__mbb_last_history_id" ]]; then
-        __mbb_pending=1
-        if [[ $__mbb_temporary_history == 1 ]]; then
-            builtin history -d "$__mbb_history_id"
-            builtin history -s -- "$__mbb_history_command"
-        fi
-    fi
-    if [[ $__mbb_temporary_history == 1 && $__mbb_size =~ ^[0-9]+$ && $__mbb_size != 0 ]]; then
-        HISTSIZE=$__mbb_size
-    fi
+    __mbb_observe_input
     return "$status"
 }
 
@@ -115,12 +110,14 @@ __mbb_flush_history() {
 __mbb_prompt() {
     local status=$1
     __mbb_in_prompt=1
+    [[ $__mbb_temporary_history != 1 ]] || __mbb_observe_input
     __mbb_flush_history "$status"
     return "$status"
 }
 
 __mbb_on_exit() {
     local status=$?
+    [[ $__mbb_temporary_history != 1 ]] || __mbb_observe_input
     __mbb_flush_history "$status"
     __mbb_write session_end
     return "$status"

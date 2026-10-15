@@ -79,8 +79,9 @@ contents, or establish focused work for the whole command duration.
 Background jobs can outlive a foreground command.
 
 The bundled recorder captures complete history entries, including compound
-and multiline input. Privacy exclusions from HISTIGNORE and leading-space
-policies remain active. Disabled history provides no command events.
+and multiline input. HISTIGNORE, leading-space filters, duplicate policies,
+zero history size and history-file persistence settings do not exclude JSONL
+commands. The unresolved `set +o history` case provides no command events.
 Command `started_at` comes from second-resolution history time. `completed_at`
 is observed at the prompt or normal exit, and `cwd` is the directory after
 execution. Status belongs to the submitted input as a whole. Session start is

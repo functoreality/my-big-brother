@@ -174,13 +174,16 @@ An open session may have no final manifest. Do not close unsaved user work.
 Offer the bundled recorder only when the user wants future shell activity
 recorded. With consent, follow [BASH.md](docs/BASH.md), back up the active
 `.bashrc` and preserve prompt hooks, traps and native history contents.
-It records complete history input and session boundaries. History privacy
-exclusions remain active, and repeated executions are captured while native
-history applies its original duplicate policy. Explain that a full history
-list can be renumbered, affecting numeric expansion such as `!123`, as
-documented in BASH.md. Do not enable it for users requiring stable numbers.
-Use redaction and exclusions as appropriate. Do not source it in a different
-shell or treat it as a PowerShell recorder.
+It records complete input and session boundaries, including repeated input,
+leading-space input and HISTIGNORE matches. The native history list keeps its
+original filtering rules. Zero history size and disabled history-file saving
+do not stop JSONL capture. Explain that history exclusions no longer provide
+recorder privacy. Use `MBB_BASH_RECORDING=0` to pause recording.
+The unresolved `set +o history` case has no command capture. Do not promise
+full coverage for that setup. A full history list can be renumbered, affecting
+numeric expansion such as `!123`, as documented in BASH.md. Do not enable it
+for users requiring stable numbers. Keep the existing redaction rule.
+Do not source it in a different shell or treat it as a PowerShell recorder.
 
 ### Screenshots
 
