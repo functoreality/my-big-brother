@@ -7,7 +7,6 @@ import os
 from pathlib import Path
 import re
 import sys
-import uuid
 import importlib.util
 
 _spec = importlib.util.spec_from_file_location("mbb_storage", Path(__file__).with_name("storage.py"))
@@ -33,6 +32,13 @@ def now():
     return dt.datetime.now().astimezone().isoformat(timespec="microseconds")
 
 
+def new_session(pid):
+    if not re.fullmatch(r"[1-9][0-9]*", pid):
+        raise ValueError("invalid Bash process identifier")
+    timestamp = dt.datetime.fromisoformat(now()).strftime("%Y-%m-%dT%H%M%S%z")
+    return f"{timestamp}-{pid}"
+
+
 def record():
     fields = sys.stdin.buffer.read().split(b"\0")
     if len(fields) != 6 or fields[-1]:
@@ -40,7 +46,7 @@ def record():
     session, started, cwd, status, command = [
         value.decode("utf-8", errors="replace") for value in fields[:-1]
     ]
-    if not re.fullmatch(r"[a-f0-9]{32}", session):
+    if not re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{6}[+-][0-9]{4}-[1-9][0-9]*", session):
         raise ValueError("invalid session identifier")
     completed = now()
     redacted = bool(SECRET.search(command))
@@ -73,7 +79,7 @@ def main():
     if operation == "check":
         daily_root()
     elif operation == "session":
-        print(uuid.uuid4().hex)
+        print(new_session(sys.argv[2]))
     elif operation == "time":
         print(now())
     elif operation == "record":

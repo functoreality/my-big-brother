@@ -26,7 +26,8 @@ if ! "$__mbb_python" "$__mbb_helper" check; then
     printf '%s\n' 'my-big-brother: recorder not attached. Fix the diagnostic above and source it again.' >&2
     return 0
 fi
-__mbb_session=$("$__mbb_python" "$__mbb_helper" session) || return 0
+__mbb_shell_pid=${BASHPID:-$$}
+__mbb_session=$("$__mbb_python" "$__mbb_helper" session "$__mbb_shell_pid") || return 0
 __mbb_in_prompt=1
 __mbb_pending=0
 __mbb_busy=0

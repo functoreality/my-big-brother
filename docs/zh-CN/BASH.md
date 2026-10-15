@@ -48,7 +48,12 @@ source "/absolute/path/to/my-big-brother/collectors/bash/session-recorder.sh"
 缺失时使用平台默认值，运行状态自动建立。已有配置无效或登记损坏时报告错误。
 初始化说明见[存储 v2](STORAGE.md)。
 
-新日志使用随机会话标识，POSIX 权限为 `0600`。
+日志文件名使用采集会话的启动时间和 Bash 进程号，
+例如 `2026-10-15T093012+0800-12345.jsonl`。
+这里是 shell 启用采集器的时间，不是第一条命令的时间。
+进程号用于区分同一秒启用采集器的多个本机 shell，不附加随机串。
+同一会话跨日期写入时保持文件名不变，文件名主体也是 JSONL 的 `session_id`。
+新日志的 POSIX 权限为 `0600`。
 采集器不修改调用者的 umask 或已有文件权限。
 
 每条 JSONL 记录包含 `event: "command"`、`session_id`、`started_at`、

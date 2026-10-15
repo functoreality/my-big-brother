@@ -183,13 +183,15 @@ class StorageTests(unittest.TestCase):
         recorder = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(recorder)
         clock = datetime(2020, 1, 15, 3).astimezone().isoformat()
-        fields = ['a' * 32, clock, str(self.root), '0', 'synthetic command', '']
+        session = '2020-01-14T230000+0000-12345'
+        fields = [session, clock, str(self.root), '0', 'synthetic command', '']
         payload = '\0'.join(fields).encode()
         with patch.object(recorder, 'locations', return_value=(self.paths.config, self.paths.data)), \
              patch.object(recorder, 'now', return_value=clock), \
              patch.object(recorder.sys, 'stdin', SimpleNamespace(buffer=io.BytesIO(payload))):
             recorder.record()
         log = next((self.layout.daily / '2020-01-15/bash').glob('*.jsonl'))
+        self.assertEqual(log.name, session + '.jsonl')
         self.assertEqual(json.loads(log.read_text())['command'], 'synthetic command')
         self.discard('2020-01-15')
         with patch.object(recorder, 'locations', return_value=(self.paths.config, self.paths.data)), \

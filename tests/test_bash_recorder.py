@@ -23,6 +23,16 @@ recorder = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(recorder)
 
 
+class BashSessionNamingTests(unittest.TestCase):
+    def test_same_second_sessions_are_distinguished_by_bash_pid(self):
+        with patch.object(recorder, 'now', return_value='2026-10-15T09:30:12.123456+08:00'):
+            first = recorder.new_session('12345')
+            second = recorder.new_session('12346')
+        self.assertEqual(first, '2026-10-15T093012+0800-12345')
+        self.assertEqual(second, '2026-10-15T093012+0800-12346')
+        self.assertNotEqual(first, second)
+
+
 @unittest.skipUnless(os.name == "posix" and shutil.which("bash"), "Requires a POSIX Bash environment")
 class BashRecorderTests(unittest.TestCase):
     def shell(self, setup, commands, *, initialize=True):
@@ -57,6 +67,20 @@ class BashRecorderTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0)
         self.assertEqual([row['command'] for row in rows], ['printf independent'])
         self.assertFalse((root / 'config/my-big-brother').exists())
+
+    def test_session_filename_contains_enable_time_and_actual_shell_pid(self):
+        result, rows, root = self.shell([], [
+            "printf '%s\\n' \"${BASHPID:-$$}\" > shell-pid", "printf second",
+        ])
+        self.assertEqual(result.returncode, 0)
+        logs = list(root.rglob('*.jsonl'))
+        self.assertEqual(len(logs), 1)
+        session = logs[0].stem
+        timestamp, pid = session.rsplit('-', 1)
+        enabled = recorder.dt.datetime.strptime(timestamp, '%Y-%m-%dT%H%M%S%z')
+        self.assertEqual(pid, (root / 'shell-pid').read_text().strip())
+        self.assertTrue(all(row['session_id'] == session for row in rows))
+        self.assertLessEqual(enabled, recorder.dt.datetime.fromisoformat(rows[0]['started_at']))
 
     def test_history_controls_and_ignore(self):
         for control in ("", "ignoredups", "ignoreboth", "erasedups", "ignoreboth:erasedups"):

@@ -52,7 +52,13 @@ defaults apply. Runtime registration is created automatically. An invalid
 existing configuration or damaged registry reports an error.
 See [Storage v2](STORAGE.md) for initialization.
 
-New log files use random session IDs and POSIX mode `0600`.
+Log filenames use the recorder's session start time and Bash process ID,
+for example `2026-10-15T093012+0800-12345.jsonl`. This is when the recorder is
+enabled in the shell, rather than the first command's time. The process ID
+distinguishes local shells enabled in the same second. No random suffix is used.
+The same session keeps its filename when writing into later date directories.
+The filename stem is also the JSONL `session_id`.
+New log files use POSIX mode `0600`.
 The recorder does not change the caller's umask or existing file permissions.
 
 Each JSONL record contains `event: "command"`, `session_id`, `started_at`,
