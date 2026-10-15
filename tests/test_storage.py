@@ -75,6 +75,9 @@ class StorageTests(unittest.TestCase):
         (self.paths.state / 'days').rename(self.paths.state / 'days-backup')
         with self.assertRaises(ValueError):
             Layout.load(self.paths.config)
+        with self.assertRaises(ValueError):
+            Layout.install(self.root / 'replacement-config', self.paths.data, 4)
+        self.assertFalse((self.layout.system / 'days').exists())
 
     def test_stale_run_rejected_after_explicit_restoration(self):
         ticket = runner.prepare_run(self.paths, self.settings, '2020-01-15')

@@ -22,9 +22,6 @@ def parser():
     init.add_argument("--raw-logs-root")
     init.add_argument("--data-root")
     init.add_argument("--day-start-hour", type=int, default=0)
-    migrate = commands.add_parser("migrate-storage", help="Preview or apply a non-destructive v1 storage migration")
-    migrate.add_argument("--apply", action="store_true")
-    migrate.add_argument("--data-root")
     capture = commands.add_parser("capture-path", help="Allocate a registered logical-day source directory")
     capture.add_argument("--source", required=True, choices=('bash', 'vim', 'screenshots'))
     capture.add_argument("--timestamp")
@@ -74,10 +71,7 @@ def main(argv=None):
     args = parser().parse_args(argv)
     paths = discover()
     try:
-        if args.command == "migrate-storage":
-            from . import migration
-            value = migration.migrate(paths, apply=args.apply, data_root=args.data_root)
-        elif args.command == "init":
+        if args.command == "init":
             names = args.sources.split(",") if args.sources else None
             if names is not None and (not names or set(names) - set(config.SOURCES)):
                 raise ValueError("sources must be a comma-separated subset of " + ",".join(config.SOURCES))

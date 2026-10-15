@@ -79,9 +79,8 @@ Use actual paths, without searching unrelated accounts or private folders.
 Use `--data-root` to choose a complete v2 data root on first initialization,
 `--day-start-hour` for its fixed logical-day boundary, and `--results-root` for
 an optional permanent output root. V2 does not use `--raw-logs-root`.
-For an existing v1 setup, preview `migrate-storage` before applying it.
-Adapt personal task state bindings first. Preserve old writers' snapshots
-until those processes close. See [Storage v2](docs/STORAGE.md).
+This pre-release uses the new layout directly and provides no old-data
+migration tool. See [Storage](docs/STORAGE.md).
 
 Defaults use configuration directory C and data directory D:
 

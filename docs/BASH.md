@@ -47,7 +47,7 @@ Commands are assigned by completion time, with start time retained.
 A discarded day is skipped without recreating its directory.
 The bundled standard-library protocol needs no installed Python package.
 Without v2 configuration, legacy raw-log pointer behavior remains available.
-See [Storage v2](STORAGE.md) for initialization and migration.
+See [Storage v2](STORAGE.md) for initialization.
 
 New log files use random session IDs and POSIX mode `0600`.
 The recorder does not change the caller's umask or existing file permissions.

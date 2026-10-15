@@ -54,7 +54,7 @@ Initialization writes `C/storage.json` with `schema_version: 2`, `data_root`,
 and `day_start_hour`. Collectors and preparation share this contract. Its
 calendar is fixed after initialization. Do not edit just `day_start_hour`
 in `config.json`, or hand-create a storage pointer without its durable marker.
-Changing an existing root/calendar needs an explicit migration design.
+Changing an existing root/calendar in place is unsupported.
 
 Default C and D discovery remains documented in [INSTALLATION.md](../INSTALLATION.md).
 The legacy `raw-logs-path.txt` is ignored once a valid v2 contract is present.
@@ -113,26 +113,3 @@ Startup still launches one Agent. It allocates dated logs without planning
 review work. A discarded target day uses the current logical day for startup
 logs. If no legal directory or valid registry is available, return stderr and
 a failure status without creating fallback cache roots.
-
-## Existing v1 installations
-
-Stop active v1 review processes before migration. Preserve open editor sessions'
-original snapshots until they close, then restart collectors after upgrading.
-Preview first, then apply explicitly:
-
-```sh
-python -m my_big_brother migrate-storage
-python -m my_big_brother migrate-storage --apply
-```
-
-Migration copies captures into logical days and backs up configuration. It
-retains original v1 directories as rollback material, does not change cron,
-and never invokes an Agent. Old run directories become dated diagnostics,
-not resumable v2 tickets. Pending v1 post-review work or personal tasks bound
-to v1 state must be resolved/adapted before migration.
-
-After verification and after old writers stop, archive the retained v1
-`raw-logs`, `state` and old default `results` outside the active data root.
-They are migration copies, not additional v2 cleanup locations. Custom source
-paths and periodic collectors also need explicit adaptation. A retained old
-importer must not recreate discarded dates.

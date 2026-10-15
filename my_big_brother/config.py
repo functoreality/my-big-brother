@@ -214,15 +214,14 @@ def load_profile(config):
 def initialize(paths, *, sources=None, results_root=None, raw_root=None, data_root=None, day_start_hour=0):
     paths.config.mkdir(parents=True, exist_ok=True, mode=0o700)
     config_path = paths.config / "config.json"
-    locator = paths.config / "raw-logs-path.txt"
     if config_path.exists() and not (paths.config / "storage.json").exists():
-        raise ValueError("Existing v1 configuration preserved. Run migrate-storage first.")
+        raise ValueError("Existing configuration has no shared storage. Initialize a fresh configuration directory.")
     if raw_root is not None:
         raise ValueError("Storage v2 uses --data-root, with a daily child, instead of --raw-logs-root")
     if (paths.config / "storage.json").exists():
         layout = paths.layout
         if data_root is not None and Path(data_root) != layout.root:
-            raise ValueError("Existing storage preserved. Moving it requires migration.")
+            raise ValueError("Existing storage preserved. In-place relocation is not supported.")
     else:
         layout = Layout.install(paths.config, data_root or paths.data, day_start_hour)
     if not config_path.exists():

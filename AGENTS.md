@@ -17,6 +17,10 @@ Do not treat this file as the daily analysis task itself.
   workflow. Never loop or retry by launching another Agent from driver code.
 - Keep collectors limited to recording activity in their host environment.
 - Keep user configuration, logs, results, and state outside the repository.
+- Use the shared storage protocol for all writers. Register logical days
+  before creating them. Never automatically recreate a discarded date.
+  Keep disposable material inside `daily/DATE` and durable facts in `memory`.
+  See `docs/STORAGE.md` before changing paths or adding a collector.
 - Keep the core standard-library only. Recommend Python 3.11+.
 - Avoid recent-only syntax and APIs when a small equivalent works on older
   Python. Older versions are unverified, not guaranteed compatible.

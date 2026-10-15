@@ -33,8 +33,3 @@ A profile may also publish permanent files outside `memory`.
 Removing raw evidence limits later reruns. Keeping a low-resolution sheet is
 not a replacement for the original screenshot. Native Agent histories belong
 to their applications and are not removed by this project.
-
-For an old installation, complete the [v1 migration](STORAGE.md) first.
-Retained v1 directories are one-time rollback copies to archive after old
-writers stop, not additional v2 daily-cleanup locations. Legacy standalone
-collectors do not provide the v2 deletion guarantee.

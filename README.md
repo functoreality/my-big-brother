@@ -141,7 +141,7 @@ personal history inside Git.
 - `memory/` holds published reports, directly visible user/machine knowledge,
   and minimal durable system facts. Delete inactive old dates without reading
   state files. Removed dates are not automatically recreated.
-- Existing installations need the explicit [v1 migration](docs/STORAGE.md).
+- See [Storage](docs/STORAGE.md) for the shared calendar and collector contract.
 
 Native Agent histories stay in their own locations. This MVP does not
 automatically delete raw logs or run materials. Review and manage their disk
