@@ -25,11 +25,12 @@ spec.loader.exec_module(recorder)
 
 @unittest.skipUnless(os.name == "posix" and shutil.which("bash"), "Requires a POSIX Bash environment")
 class BashRecorderTests(unittest.TestCase):
-    def shell(self, setup, commands):
+    def shell(self, setup, commands, *, initialize=True):
         directory = tempfile.TemporaryDirectory()
         self.addCleanup(directory.cleanup)
         root = Path(directory.name)
-        recorder._storage.Layout.install(root / "config/my-big-brother", root / "data/my-big-brother")
+        if initialize:
+            recorder._storage.Layout.install(root / "config/my-big-brother", root / "data/my-big-brother")
         env = os.environ.copy()
         env.update(
             HOME=str(root), XDG_CONFIG_HOME=str(root / "config"),
@@ -50,6 +51,12 @@ class BashRecorderTests(unittest.TestCase):
             self.assertEqual(path.parent.parent.name, rows[-1]["completed_at"][:10])
             self.assertEqual(path.stat().st_mode & 0o777, 0o600)
         return result, rows, root
+
+    def test_independent_shell_records_without_application_configuration(self):
+        result, rows, root = self.shell([], ['printf independent'], initialize=False)
+        self.assertEqual(result.returncode, 0)
+        self.assertEqual([row['command'] for row in rows], ['printf independent'])
+        self.assertFalse((root / 'config/my-big-brother').exists())
 
     def test_history_controls_and_ignore(self):
         for control in ("", "ignoredups", "ignoreboth", "erasedups", "ignoreboth:erasedups"):
@@ -142,8 +149,8 @@ class BashRecorderTests(unittest.TestCase):
             config = root / "config" / "my-big-brother"
             target = root / "data space"
             with patch.object(recorder, "locations", return_value=(config, target)):
-                with self.assertRaisesRegex(ValueError, 'not initialized'):
-                    recorder.daily_root()
+                self.assertEqual(recorder.daily_root(), target / 'daily')
+                self.assertFalse((config / 'storage.json').exists())
                 recorder._storage.Layout.install(config, target)
                 self.assertEqual(recorder.daily_root(), target / 'daily')
                 (config / 'storage.json').write_text('{broken')

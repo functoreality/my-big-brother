@@ -5,11 +5,11 @@ import shutil
 import uuid
 from pathlib import Path
 
-from .storage import DiscardedDay, file_lock, timestamp
+from .storage import DiscardedDay, Layout, file_lock, timestamp
 
 
 def directory(paths, source, captured_at=None):
-    layout = paths.layout
+    layout = Layout.for_collector(paths.config, paths.data)
     day = layout.day(captured_at)
     try:
         target = layout.ensure_day(day) / source
@@ -34,7 +34,8 @@ def screenshot(paths, image, captured_at=None):
         target = target_dir / (instant.strftime('%H-%M-%S') + '-' + uuid.uuid4().hex + source.suffix.lower())
         shutil.copy2(source, target)
         target.chmod(0o600)
-    with file_lock(paths.state / 'locks' / ('screenshots-' + selected['date'] + '.lock')):
+    layout = Layout.for_collector(paths.config, paths.data)
+    with file_lock(layout.system / 'locks' / ('screenshots-' + selected['date'] + '.lock')):
         with (target_dir / 'manifest.jsonl').open('a', encoding='utf-8') as stream:
             stream.write(json.dumps({'path': target.name, 'captured_at': instant.isoformat()}) + '\n')
     return {**selected, 'image': str(target)}

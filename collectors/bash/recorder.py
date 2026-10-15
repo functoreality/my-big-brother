@@ -20,7 +20,7 @@ def locations():
 
 
 def daily_root():
-    return _storage.Layout.load(locations()[0]).daily
+    return _storage.Layout.for_collector(*locations()).daily
 
 
 SECRET = re.compile(
@@ -55,9 +55,9 @@ def record():
         "capture_scope": "first-simple-command",
         "redacted": redacted,
     }
-    layout = _storage.Layout.load(locations()[0])
+    layout = _storage.Layout.for_collector(*locations())
     try:
-        directory = layout.ensure_day(layout.day(completed)) / "bash"
+        directory = layout.ensure_day(completed[:10]) / "bash"
     except _storage.DiscardedDay:
         return
     directory.mkdir(parents=True, exist_ok=True, mode=0o700)

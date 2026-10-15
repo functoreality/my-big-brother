@@ -21,7 +21,7 @@ def parser():
     init.add_argument("--results-root")
     init.add_argument("--data-root")
     init.add_argument("--day-start-hour", type=int, default=0)
-    capture = commands.add_parser("capture-path", help="Allocate a registered logical-day source directory")
+    capture = commands.add_parser("capture-path", help="Allocate a registered calendar-date source directory")
     capture.add_argument("--source", required=True, choices=('bash', 'vim', 'screenshots'))
     capture.add_argument("--timestamp")
     screenshot = commands.add_parser("record-screenshot", help="Store an existing capture, without taking screenshots")
@@ -81,6 +81,12 @@ def main(argv=None):
         elif args.command == "paths":
             settings = config.load(paths) if (paths.config / "config.json").exists() else None
             value = resolved(paths, settings)
+        elif args.command in ('capture-path', 'record-screenshot'):
+            from . import capture
+            if args.command == 'capture-path':
+                value = capture.directory(paths, args.source, args.timestamp)
+            else:
+                value = capture.screenshot(paths, args.image, args.timestamp)
         else:
             settings = config.load(paths)
             if args.command == "doctor":
@@ -93,16 +99,10 @@ def main(argv=None):
                          "note": "Source presence does not verify supported contents. Run analyze and inspect its task ticket."}
                 print(json.dumps(value, indent=2, ensure_ascii=False))
                 return 0
-            elif args.command in ('capture-path', 'record-screenshot'):
-                from . import capture
-                if args.command == 'capture-path':
-                    value = capture.directory(paths, args.source, args.timestamp)
-                else:
-                    value = capture.screenshot(paths, args.image, args.timestamp)
             elif args.command == 'log-startup-error':
                 from .storage import DiscardedDay
                 try:
-                    directory = paths.layout.ensure_day(runner.latest_closed_date(paths.layout.hour))
+                    directory = paths.layout.ensure_day(runner.latest_closed_date(settings['day_start_hour']))
                 except DiscardedDay:
                     directory = paths.layout.ensure_day(paths.layout.day())
                 with (directory / 'scheduler.log').open('a', encoding='utf-8') as stream:

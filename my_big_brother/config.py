@@ -67,8 +67,6 @@ def load(paths: Paths):
     config = defaults(paths)
     config.update(value)
     layout = paths.layout
-    if config["day_start_hour"] != layout.hour:
-        raise ValueError("day_start_hour differs from the fixed shared storage calendar")
     if not isinstance(config["analyzer"], str) or not config["analyzer"].strip():
         raise ValueError("analyzer must be a nonempty Agent name")
     if not isinstance(config["language"], str) or not config["language"].strip():
@@ -220,10 +218,10 @@ def initialize(paths, *, sources=None, results_root=None, data_root=None, day_st
         if data_root is not None and Path(data_root) != layout.root:
             raise ValueError("Existing storage preserved. In-place relocation is not supported.")
     else:
-        layout = Layout.install(paths.config, data_root or paths.data, day_start_hour)
+        layout = Layout.install(paths.config, data_root or paths.data)
     if not config_path.exists():
         config = defaults(paths)
-        config["day_start_hour"] = layout.hour
+        config["day_start_hour"] = day_start_hour
         config["results_root"] = str(layout.memory)
         enabled = SOURCES if sources is None else sources
         config["sources"] = {name: spec for name, spec in config["sources"].items() if name in enabled}

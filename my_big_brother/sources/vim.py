@@ -8,16 +8,17 @@ import re
 from datetime import datetime
 from pathlib import Path, PureWindowsPath
 
-from . import SourceResult, parse_timestamp
+from . import SourceResult, parse_timestamp, calendar_dates
 from ..paths import is_within
 from ..storage import managed_layout
 
 
-def _record_paths(root: Path, start=None) -> tuple[list[Path], bool]:
+def _record_paths(root: Path, start=None, end=None) -> tuple[list[Path], bool]:
     layout = managed_layout(root)
-    if layout is not None and start is not None:
-        directory = root / layout.day(start) / 'vim'
-        return sorted(directory.rglob('record.json')), True
+    if layout is not None and start is not None and end is not None:
+        records = {record for day in calendar_dates(start, end)
+                   for record in (root / day / 'vim').rglob('record.json')}
+        return sorted(records), True
     directories = sorted(path for path in root.glob("*/vim") if path.is_dir())
     for relative in ("vim",):
         directory = root / relative
@@ -25,7 +26,7 @@ def _record_paths(root: Path, start=None) -> tuple[list[Path], bool]:
             directories.append(directory)
     # An explicitly configured Vim source root has session folders directly
     # below it. Do not fall back across other sources in a shared capture tree.
-    shared_tree = any(path.is_dir() for pattern in ("????-??-??", "*/bash", "*/screenshots", "bash", "screenshots") for path in root.glob(pattern))
+    shared_tree = any(path.is_dir() for pattern in ("*/bash", "*/screenshots", "bash", "screenshots") for path in root.glob(pattern))
     if not directories and not shared_tree:
         records = sorted(root.rglob("record.json"))
         return records, bool(records) or root.name in ("vim", "vim-records")
@@ -66,15 +67,15 @@ def _artifact_reference(directory: Path, value: object) -> dict:
 
 
 def collect(source_root: Path, start: datetime, end: datetime) -> SourceResult:
-    """Read every record.json below an enabled Vim or shared source root.
+    """Index natural-date segments intersecting the analysis window.
 
-    Directory dates are not a filter: a session can span midnight or sit in a
-    legacy ``viewed`` directory. Naive legacy times use the host local zone.
-    The original manifest is preserved in ``record_metadata``.
+    Explicit standalone roots are discovered recursively. Naive historical
+    timestamps use the host local zone. The complete original manifest stays
+    in ``record_metadata``.
     """
     if not source_root.is_dir():
         return SourceResult(status="unavailable", gaps=[f"Vim source unavailable: {source_root}"])
-    record_paths, source_present = _record_paths(source_root, start)
+    record_paths, source_present = _record_paths(source_root, start, end)
     if not source_present:
         return SourceResult(status="unavailable", gaps=[f"Vim source directory unavailable within source root: {source_root}"])
     rows, gaps, valid_records = [], [], 0
@@ -196,7 +197,7 @@ def collect(source_root: Path, start: datetime, end: datetime) -> SourceResult:
             "timestamp_timezone": "host_local_assumed" if local_naive else "explicit_offset",
         })
         if payload.get("storage_version") == 2:
-            rows[-1]["diff_scope"] = "Independent day segment through checkpoint, not individual edit timestamps."
+            rows[-1]["diff_scope"] = "Independent calendar-date segment through checkpoint, not individual edit timestamps."
     rows.sort(key=lambda row: (parse_timestamp(row["timestamp"]), row["record_path"]))
     status = "unavailable" if record_paths and valid_records == 0 else ("partial" if gaps else "ok")
     return SourceResult(rows, status, gaps)

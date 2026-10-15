@@ -3,7 +3,20 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta
+
+
+def calendar_dates(start, end):
+    """Natural local dates intersecting the half-open analysis interval."""
+    if end <= start:
+        return []
+    current = start.astimezone().date()
+    last = (end - timedelta(microseconds=1)).astimezone().date()
+    result = []
+    while current <= last:
+        result.append(current.isoformat())
+        current += timedelta(days=1)
+    return result
 
 
 @dataclass

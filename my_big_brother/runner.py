@@ -148,8 +148,6 @@ def source_error(run_dir, name, phase, error):
 
 
 def prepare_run(paths, config, review_date, snapshot_end=None, *, recreate_deleted=False):
-    if config["day_start_hour"] != paths.layout.hour:
-        raise ValueError("Review calendar differs from shared storage calendar")
     profile = load_profile(config)
     start, end, full_end = snapshot_window(review_date, config["day_start_hour"], snapshot_end)
     run_id = now().strftime("%Y%m%dT%H%M%S") + "-" + uuid.uuid4().hex[:8]

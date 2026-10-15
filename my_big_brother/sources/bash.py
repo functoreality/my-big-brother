@@ -1,10 +1,10 @@
-"""Read completed Bash recorder events from logical-day directories."""
+"""Read completed Bash events by timestamp across natural-date directories."""
 
 import json
 from datetime import datetime
 from pathlib import Path
 
-from . import SourceResult, parse_timestamp
+from . import SourceResult, parse_timestamp, calendar_dates
 from ..storage import managed_layout
 
 
@@ -50,7 +50,8 @@ def collect(path: Path, start: datetime, end: datetime) -> SourceResult:
     if layout is None:
         files.extend(path.glob("????-??-??/bash/*.jsonl"))
     else:
-        files.extend((path / layout.day(start) / 'bash').glob('*.jsonl'))
+        for day in calendar_dates(start, end):
+            files.extend((path / day / 'bash').glob('*.jsonl'))
     rows, gaps, starts = [], [], {}
     files = sorted(set(files))
     for session_path in files:
