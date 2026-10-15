@@ -64,8 +64,10 @@ D/
     _system/operations/
 ```
 
-Collectors use the system calendar date, equivalent to `date +%F`. An
-optional `C/storage.json` selects their data root. Persistent registration
+Collectors use the system calendar date at creation, equivalent to `date +%F`.
+An existing recording keeps its creation-date location. Bash and Vim sessions
+never rotate at midnight. Their readers search all retained start-date folders.
+An optional `C/storage.json` selects their data root. Persistent registration
 remembers removed dates. Each inactive old date directory is disposable without
 inspecting status. Removal abandons automatic recovery and import.
 Formal outputs and minimal durable facts remain in memory. Profiles may

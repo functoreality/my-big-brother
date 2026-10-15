@@ -8,6 +8,9 @@ Do not treat this file as the daily analysis task itself.
 
 - Read `docs/REQUIREMENTS.md` before changing collection or storage.
   Collectors use real local calendar dates, equivalent to `date +%F`.
+  Bash keeps one JSONL per shell under its start date, even across months.
+  Freeze its path and initial directory when recording starts. Never rotate
+  an existing recording because the calendar or review boundary changes.
   Vim keeps one session per editor process under its start date, even across
   midnight. Snapshot existing files when opened and publish diff/JSON at exit.
   Never add date rotation or timer, read/write, or focus checkpoints to satisfy
@@ -29,8 +32,8 @@ Do not treat this file as the daily analysis task itself.
   before creating them. Never automatically recreate a discarded date.
   Keep disposable material inside `daily/DATE` and durable facts in `memory`.
   See `docs/STORAGE.md` before changing paths or adding a collector.
-  Vim readers search all retained date trees and filter by actual session
-  overlap. The review window's date directories alone are insufficient.
+  Bash and Vim readers search all retained date trees and filter by actual
+  event time or session overlap. Window-date directories alone are insufficient.
 - Keep the core standard-library only. Recommend Python 3.11+.
 - Avoid recent-only syntax and APIs when a small equivalent works on older
   Python. Older versions are unverified, not guaranteed compatible.

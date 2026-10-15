@@ -41,10 +41,13 @@ the path used by your shell configuration.
 
 ## Locations and format
 
-The helper writes `daily/YYYY-MM-DD/bash/` using the system calendar date,
-equivalent to `date +%F`. It registers dates before writing.
-Commands are assigned by completion time, with start time retained.
-A discarded day is skipped without recreating its directory.
+Each recorded shell process owns exactly one JSONL under
+`daily/YYYY-MM-DD/bash/`, using the local date when the recorder is enabled.
+The helper registers that date and creates the file once at startup.
+The path stays fixed across midnight, months of uptime, `cd`, or later shared
+configuration changes. Command start and completion times remain actual times.
+If its start-date workspace is discarded or replaced, the session stops writing
+without recreating it or switching to today's directory.
 The bundled standard-library protocol needs no installed Python package.
 The collector works without installing or initializing the main application.
 An optional `C/storage.json` selects a custom data root. When absent, platform
@@ -52,19 +55,29 @@ defaults apply. Runtime registration is created automatically. An invalid
 existing configuration or damaged registry reports an error.
 See [Storage v2](STORAGE.md) for initialization.
 
-Log filenames use the recorder's session start time and Bash process ID,
-for example `2026-10-15T093012+0800-12345.jsonl`. This is when the recorder is
-enabled in the shell, rather than the first command's time. The process ID
-distinguishes local shells enabled in the same second. No random suffix is used.
-The same session keeps its filename when writing into later date directories.
-The filename stem is also the JSONL `session_id`.
+Filenames use `HH-MM-SS_<initial-directory-name>_<pid>.jsonl`, for example
+`09-30-12_my-project_12345.jsonl`. Time means when recording is enabled, not
+the first command's time. The parent supplies the date. No timezone or random
+suffix is displayed. A name collision adds `_2`, `_3`, and so on, without
+overwriting or appending to another session's file.
+
+The directory hint is the initial cwd's basename. Unsafe filename characters
+become `_`. Names longer than 28 characters keep the first 18 and last 8,
+separated by `..`. A 64-byte UTF-8 limit also preserves both ends without
+splitting characters. An empty hint or a path-length restriction omits it.
+Full startup time with UTC offset and initial cwd remain in the JSONL.
+The stable `session_id` is independent of the display filename.
 New log files use POSIX mode `0600`.
 The recorder does not change the caller's umask or existing file permissions.
 
-Each JSONL record contains `event: "command"`, `session_id`, `started_at`,
+Each JSONL record contains `event: "command"`, `session_id`, `session_started_at`,
+`session_cwd`, `session_pid`, `started_at`,
 `completed_at`, `cwd`, `command`, `exit_status`, `capture_scope`, and `redacted`.
 Timestamps include a local UTC offset. `cwd` is the directory before execution.
 The collector does not capture command output or terminal screenshots.
+The reader searches all retained start-date folders and filters commands by
+their actual completion timestamps. It never limits discovery to the review's
+calendar dates. Open a new shell after upgrading the recorder.
 
 ## What is captured
 

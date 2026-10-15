@@ -46,6 +46,11 @@ optional `C/storage.json` root override and register a calendar date before writ
 missing directories. See [Storage v2](STORAGE.md). Collectors do not read
 `results_root`.
 
+Choose a recording's date and path when it begins, then keep that location.
+Do not rotate a Bash or editor session at midnight or a review boundary.
+Readers must find relevant events in older start-date folders. An independent
+new screenshot uses its own capture date, not a daemon's original start date.
+
 ## Add an output
 
 Extend the daily task's output contract for results based on the same day's

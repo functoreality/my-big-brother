@@ -46,6 +46,10 @@ def collect(path: Path, start: datetime, end: datetime) -> SourceResult:
 `daily/YYYY-MM-DD/<source>/`，按本机自然日期归档。
 已放弃的日期不得重建，记录自身带时间戳。完整协议见[存储 v2](STORAGE.md)。
 采集器不读取 `results_root`。
+每份记录开始时确定日期和路径，之后保持位置不变。
+不要因午夜或复盘分界而拆分 Bash、编辑器会话。
+读取器必须能从较早启动日期下找到当前事件。
+每张新截图是独立记录，使用自身拍摄日期，不使用守护进程的首次启动日期。
 
 ## 添加输出
 

@@ -212,28 +212,36 @@ class StorageTests(unittest.TestCase):
             self.layout.ensure_day('../escape', recreate=True)
         self.assertFalse((self.paths.data / 'escape').exists())
 
-    def test_bash_writer_uses_natural_date_and_never_recreates_discarded_day(self):
+    def test_bash_writer_keeps_start_date_and_never_recreates_discarded_day(self):
         helper = Path(__file__).parents[1] / 'collectors/bash/recorder.py'
         spec = importlib.util.spec_from_file_location('test_v2_bash', helper)
         recorder = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(recorder)
         clock = datetime(2020, 1, 15, 3).astimezone().isoformat()
-        session = '2020-01-14T230000+0000-12345'
-        fields = [session, clock, str(self.root), '0', 'synthetic command', '']
+        with patch.object(recorder, 'locations', return_value=(self.paths.config, self.paths.data)), \
+             patch.object(recorder, 'now', return_value=datetime(2020, 1, 14, 23).astimezone().isoformat()):
+            session = recorder.new_session('12345', str(self.root))
+        fields = [json.dumps(session), clock, str(self.root), '0', 'synthetic command', '']
         payload = '\0'.join(fields).encode()
         with patch.object(recorder, 'locations', return_value=(self.paths.config, self.paths.data)), \
              patch.object(recorder, 'now', return_value=clock), \
              patch.object(recorder.sys, 'stdin', SimpleNamespace(buffer=io.BytesIO(payload))):
             recorder.record()
-        log = next((self.layout.daily / '2020-01-15/bash').glob('*.jsonl'))
-        self.assertEqual(log.name, session + '.jsonl')
+        log = next((self.layout.daily / '2020-01-14/bash').glob('*.jsonl'))
+        self.assertEqual(log.name, session['filename'])
         self.assertEqual(json.loads(log.read_text())['command'], 'synthetic command')
-        self.discard('2020-01-15')
+        self.discard('2020-01-14')
         with patch.object(recorder, 'locations', return_value=(self.paths.config, self.paths.data)), \
              patch.object(recorder, 'now', return_value=clock), \
              patch.object(recorder.sys, 'stdin', SimpleNamespace(buffer=io.BytesIO(payload))):
             recorder.record()
-        self.assertFalse((self.layout.daily / '2020-01-15').exists())
+        self.assertFalse((self.layout.daily / '2020-01-14').exists())
+
+        self.layout.ensure_day('2020-01-14', recreate=True)
+        with patch.object(recorder, 'now', return_value=clock), \
+             patch.object(recorder.sys, 'stdin', SimpleNamespace(buffer=io.BytesIO(payload))):
+            recorder.record()
+        self.assertFalse((self.layout.daily / '2020-01-14/bash').exists())
 
     def test_vendored_protocol_matches_canonical_source(self):
         root = Path(__file__).parents[1]

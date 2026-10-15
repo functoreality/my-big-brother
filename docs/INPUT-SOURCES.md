@@ -14,13 +14,16 @@ start continuous collection.
 
 The Bash adapter reads dated `YYYY-MM-DD/bash/*.jsonl` files and explicitly
 configured flat session roots. Activity rows always stay within the
-review window. For a command or session end whose start was recorded earlier,
+review window. Each Bash process keeps one file under its start date for its
+entire lifetime. The adapter searches every retained start-date folder, even
+months before the review. Command rows preserve `session_started_at` and
+`session_cwd` when present, independently of each command's time and cwd.
+For a command or session end whose start was recorded earlier,
 the adapter attaches the nearest prior start as `session_context`, including
 `outside_window: true`, the actual start timestamp, original start fields,
 and its source location. This context is not another activity row.
 
-Historical lookup reads only files belonging to sessions with window events.
-Historical commands and other sessions' commands are not copied into the
+Historical commands and other sessions' out-of-window commands are not copied into the
 index. Command timestamps, directories, and recorded capture or timestamp
 scope are preserved. A missing capture scope is explicitly marked as unknown
 coverage. A modern command's `started_at` is not invented as a shell

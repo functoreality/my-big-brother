@@ -65,9 +65,11 @@ ambiguity rather than inventing a request.
 ## Bash
 
 When enabled and installed, the bundled recorder writes local JSONL below
-`daily/YYYY-MM-DD/bash/`. Dates are local natural dates, equivalent to
-`date +%F`, independent of the review boundary. The preparer reads adjacent
-dates when needed and selects activity by actual event time.
+`daily/YYYY-MM-DD/bash/`. Each shell keeps one file under the local natural
+date when recording starts, equivalent to `date +%F` then. It never rotates,
+including after months of uptime. The preparer searches all retained start-date
+folders and selects activity by actual event time, not the directory date.
+`session_started_at` and `session_cwd` describe the recording's initial state.
 Removed managed dates must never be recreated to recover evidence.
 
 Command events are clues about actions and working directories. Their

@@ -1,6 +1,7 @@
 """Exercise recorder hooks in isolated real interactive Bash subprocesses."""
 
 import importlib.util
+import io
 import json
 import os
 from pathlib import Path
@@ -12,6 +13,7 @@ import sys
 import tempfile
 import time
 import unittest
+from types import SimpleNamespace
 from unittest.mock import patch
 
 
@@ -24,13 +26,73 @@ spec.loader.exec_module(recorder)
 
 
 class BashSessionNamingTests(unittest.TestCase):
-    def test_same_second_sessions_are_distinguished_by_bash_pid(self):
+    def setUp(self):
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        self.root = Path(directory.name)
+        self.config = self.root / 'config'
+        self.data = self.root / 'data'
+        locations = patch.object(recorder, 'locations', return_value=(self.config, self.data))
+        locations.start()
+        self.addCleanup(locations.stop)
+
+    def session(self, pid='12345', cwd=None):
         with patch.object(recorder, 'now', return_value='2026-10-15T09:30:12.123456+08:00'):
-            first = recorder.new_session('12345')
-            second = recorder.new_session('12346')
-        self.assertEqual(first, '2026-10-15T093012+0800-12345')
-        self.assertEqual(second, '2026-10-15T093012+0800-12346')
-        self.assertNotEqual(first, second)
+            return recorder.new_session(pid, str(cwd or self.root / 'project'))
+
+    def test_same_second_sessions_are_distinguished_by_bash_pid(self):
+        first = self.session('12345')
+        second = self.session('12346')
+        self.assertEqual(first['filename'], '09-30-12_project_12345.jsonl')
+        self.assertEqual(second['filename'], '09-30-12_project_12346.jsonl')
+        self.assertNotEqual(first['session_id'], second['session_id'])
+
+    def test_existing_filename_is_not_overwritten_or_shared(self):
+        first = self.session()
+        logfile = self.data / 'daily/2026-10-15/bash' / first['filename']
+        logfile.write_text('existing session content')
+        second = self.session()
+        self.assertNotEqual(first['filename'], second['filename'])
+        self.assertNotEqual(first['session_id'], second['session_id'])
+        self.assertEqual(logfile.read_text(), 'existing session content')
+
+    def test_directory_hint_is_bounded_and_keeps_unicode_head_and_tail(self):
+        name = '首' * 30 + '中' * 30 + '尾' * 30
+        session = self.session(cwd=self.root / name)
+        label = session['filename'][9:-len('_12345.jsonl')]
+        self.assertLessEqual(len(label.encode('utf-8')), 64)
+        self.assertTrue(label.startswith('首'))
+        self.assertTrue(label.endswith('尾'))
+        self.assertEqual(session['session_cwd'], str(self.root / name))
+        self.assertEqual(recorder.directory_label(self.root / 'a:b?c*'), 'a_b_c_')
+        self.assertEqual(recorder.directory_label(Path('/')), '')
+
+    def test_one_file_survives_midnight_months_and_config_changes(self):
+        from my_big_brother.sources import bash
+
+        session = self.session()
+        for completed in ('2026-10-16T03:00:00+08:00', '2027-01-15T06:00:00+08:00'):
+            fields = [json.dumps(session), completed, str(self.root / 'another-project'),
+                      '0', 'printf synthetic', '']
+            payload = '\0'.join(fields).encode()
+            with patch.object(recorder, 'now', return_value=completed), \
+                 patch.object(recorder, 'locations', side_effect=AssertionError('must keep startup storage')), \
+                 patch.object(recorder.sys, 'stdin', SimpleNamespace(buffer=io.BytesIO(payload))):
+                recorder.record()
+        logs = list((self.data / 'daily').rglob('*.jsonl'))
+        self.assertEqual(len(logs), 1)
+        self.assertEqual(logs[0].parent.parent.name, '2026-10-15')
+        rows = [json.loads(line) for line in logs[0].read_text().splitlines()]
+        self.assertEqual(len(rows), 2)
+        self.assertTrue(all(row['session_cwd'] == session['session_cwd'] for row in rows))
+        self.assertTrue(all(row['cwd'] == str(self.root / 'another-project') for row in rows))
+        start = recorder.dt.datetime.fromisoformat('2027-01-15T04:00:00+08:00')
+        end = recorder.dt.datetime.fromisoformat('2027-01-16T04:00:00+08:00')
+        result = bash.collect(self.data / 'daily', start, end)
+        self.assertEqual(result.status, 'ok')
+        self.assertEqual(len(result.rows), 1)
+        self.assertEqual(result.rows[0]['completed_at'], rows[-1]['completed_at'])
+        self.assertEqual(Path(result.rows[0]['session_path']), logs[0])
 
 
 @unittest.skipUnless(os.name == "posix" and shutil.which("bash"), "Requires a POSIX Bash environment")
@@ -56,9 +118,11 @@ class BashRecorderTests(unittest.TestCase):
         )
         rows = []
         for path in root.rglob("*.jsonl"):
-            rows.extend(json.loads(line) for line in path.read_text().splitlines())
+            events = [json.loads(line) for line in path.read_text().splitlines()]
+            rows.extend(events)
             self.assertEqual(path.parent.name, "bash")
-            self.assertEqual(path.parent.parent.name, rows[-1]["completed_at"][:10])
+            for row in events:
+                self.assertEqual(path.parent.parent.name, row["session_started_at"][:10])
             self.assertEqual(path.stat().st_mode & 0o777, 0o600)
         return result, rows, root
 
@@ -75,11 +139,12 @@ class BashRecorderTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0)
         logs = list(root.rglob('*.jsonl'))
         self.assertEqual(len(logs), 1)
-        session = logs[0].stem
-        timestamp, pid = session.rsplit('-', 1)
-        enabled = recorder.dt.datetime.strptime(timestamp, '%Y-%m-%dT%H%M%S%z')
-        self.assertEqual(pid, (root / 'shell-pid').read_text().strip())
-        self.assertTrue(all(row['session_id'] == session for row in rows))
+        pid = (root / 'shell-pid').read_text().strip()
+        enabled = recorder.dt.datetime.fromisoformat(rows[0]['session_started_at'])
+        expected = enabled.strftime('%H-%M-%S') + '_' + recorder.directory_label(root) + '_' + pid
+        self.assertEqual(logs[0].stem, expected)
+        self.assertTrue(all(row['session_id'] == rows[0]['session_id'] for row in rows))
+        self.assertTrue(all(row['session_cwd'] == str(root) for row in rows))
         self.assertLessEqual(enabled, recorder.dt.datetime.fromisoformat(rows[0]['started_at']))
 
     def test_history_controls_and_ignore(self):

@@ -66,18 +66,21 @@ See the product [Requirements](REQUIREMENTS.md) before changing this contract.
 
 ## Natural capture dates and analysis windows
 
-Capture dates use local calendar dates, equivalent to `date +%F`.
-At 15 October 02:30, Bash writes into `daily/2026-10-15/bash/`, including when
-the review boundary is 04:00. Original timestamps are never shifted.
-Screenshots use their capture date. Vim uses the session's local start date
+Capture ownership uses the recording's local creation date, equivalent to
+`date +%F` at startup. Bash creates one JSONL under its start date and appends
+there for the shell's entire lifetime. A shell started on 14 October still
+writes into `daily/2026-10-14/bash/` on 15 October or months later.
+No midnight or logical-day boundary changes an existing recording's path.
+Original event timestamps are never shifted. Screenshots are independent
+captures and use their capture date. Vim uses the session's local start date
 for its entire lifetime, including exit after midnight. One editor process
 produces one session, with original snapshots at file open and diff/JSON at
 exit. There is no midnight rotation or periodic or event-driven checkpoint.
 Shared storage governs paths and lifecycle without changing capture behavior.
 
 Only analysis interprets a working day. A review from 14 October 04:00 to
-15 October 04:00 reads event records from both natural-date folders. Vim
-readers search all retained date trees and select sessions by actual time
+15 October 04:00 finds Bash and Vim sessions across all retained start-date
+folders. Bash selects events by actual time, and Vim selects sessions by time
 overlap, including sessions that started before either date. Whole-session
 diffs cannot establish which edits belong to each day. Before exit, original
 snapshots exist but there is no final `record.json` to index.

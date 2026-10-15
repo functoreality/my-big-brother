@@ -97,7 +97,9 @@ WSL and remote machines have their own environments.
 Initialization creates `C/storage.json` and its durable registry. All v2
 collectors use its root and layout version when present. Recorders also work
 without this file, using platform defaults and automatic runtime registration.
-Capture dates always match the system calendar date. Disposable
+Capture dates use each recording's creation date. Bash and Vim keep their
+start-date paths across midnight and months of uptime, while individual
+screenshots use their own capture dates. Disposable
 captures and analysis live in `D/daily/YYYY-MM-DD/`. Permanent records and
 minimal system facts live in `D/memory/`. Native Agent histories remain with
 their applications. Do not hand-create only the shared config file.
@@ -194,8 +196,9 @@ python -m my_big_brother analyze --date 2026-01-15
 This prepares a work ticket and `prompt_path`, not an Agent launch.
 `prepare` is also available for direct preparation. Check the run's manifest,
 context, timestamps, source counts/gaps and resolved paths. The half-open
-logical-day window selects records by actual time across adjacent natural-date
-directories. A 04:00 window normally reads two dates.
+logical-day window selects records by actual time. Bash and Vim discovery
+searches all retained start-date folders, not just the window's dates.
+Screenshot discovery uses the capture dates intersecting the window.
 Omitting `--date` selects the last closed day. Use an explicit current date
 only for an honest partial review. `--snapshot-end` accepts a timestamp with
 UTC offset for a fixed cutoff.

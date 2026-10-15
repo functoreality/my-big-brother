@@ -4,8 +4,7 @@ import json
 from datetime import datetime
 from pathlib import Path
 
-from . import SourceResult, parse_timestamp, calendar_dates
-from ..storage import managed_layout
+from . import SourceResult, parse_timestamp
 
 
 TIME_FIELDS = {"session_start": "started_at", "command": "completed_at", "session_end": "ended_at"}
@@ -44,14 +43,9 @@ def collect(path: Path, start: datetime, end: datetime) -> SourceResult:
     if not path.is_dir():
         return SourceResult(status="unavailable", gaps=[f"Bash source unavailable: {path}"])
     files = list(path.glob("*.jsonl"))
-    # Legacy recorders can retain their session-start directory for days.
-    # Select by event time even when the containing date precedes this window.
-    layout = managed_layout(path)
-    if layout is None:
-        files.extend(path.glob("????-??-??/bash/*.jsonl"))
-    else:
-        for day in calendar_dates(start, end):
-            files.extend((path / day / 'bash').glob('*.jsonl'))
+    # A shell keeps its opening file for its entire lifetime, even for months.
+    # Discover all retained sessions, then select events by actual timestamps.
+    files.extend(path.glob("????-??-??/bash/*.jsonl"))
     rows, gaps, starts = [], [], {}
     files = sorted(set(files))
     for session_path in files:
@@ -70,30 +64,6 @@ def collect(path: Path, start: datetime, end: datetime) -> SourceResult:
                 if not any(field in event for field in ("capture_scope", "timestamps_scope", "timestamp_scope")):
                     row["capture_scope_note"] = "Legacy history has no recorded capture scope. Coverage cannot be inferred."
             rows.append(row)
-    related = {}
-    for row in rows:
-        if row["event"] == "session_start":
-            continue
-        session_path = Path(row["session_path"])
-        key = _session_key(row, session_path)
-        if any(start <= item[0] < end for item in starts.get(key, [])):
-            continue
-        related.setdefault(key, set()).add(session_path.name)
-        identifier = row.get("session_id")
-        if isinstance(identifier, str) and identifier and Path(identifier).name == identifier and "\\" not in identifier:
-            related[key].add(f"{identifier}.jsonl")
-    # Read historical starts only in files belonging to sessions with window
-    # events. Never copy their historical commands into prepared evidence.
-    history_files = set()
-    history_directories = list(path.glob("*/bash"))
-    for names in related.values():
-        for name in names:
-            history_files.update(directory / name for directory in history_directories if (directory / name).is_file())
-    for session_path in sorted(history_files.difference(files)):
-        for ordinal, event, timestamp in _events(session_path, gaps):
-            key = _session_key(event, session_path)
-            if event["event"] == "session_start" and timestamp < start and key in related:
-                starts.setdefault(key, []).append((timestamp, event, session_path, ordinal))
     for row in rows:
         if row["event"] == "session_start":
             continue

@@ -27,7 +27,7 @@ if ! "$__mbb_python" "$__mbb_helper" check; then
     return 0
 fi
 __mbb_shell_pid=${BASHPID:-$$}
-__mbb_session=$("$__mbb_python" "$__mbb_helper" session "$__mbb_shell_pid") || return 0
+__mbb_session=$("$__mbb_python" "$__mbb_helper" session "$__mbb_shell_pid" "$PWD") || return 0
 __mbb_in_prompt=1
 __mbb_pending=0
 __mbb_busy=0

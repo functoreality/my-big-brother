@@ -2,6 +2,7 @@
 """Standard-library writer for the opt-in interactive Bash collector."""
 
 import datetime as dt
+import errno
 import json
 import os
 from pathlib import Path
@@ -32,27 +33,70 @@ def now():
     return dt.datetime.now().astimezone().isoformat(timespec="microseconds")
 
 
-def new_session(pid):
+def directory_label(cwd):
+    label = re.sub(r'[<>:"/\\|?*\x00-\x1f\x7f]', '_', Path(cwd).name).strip(' .')
+    if len(label) > 28:
+        label = label[:18] + '..' + label[-8:]
+    encoded = label.encode('utf-8')
+    if len(encoded) > 64:
+        label = (encoded[:30].decode('utf-8', errors='ignore') + '..'
+                 + encoded[-32:].decode('utf-8', errors='ignore'))
+    return label.rstrip(' .')
+
+
+def new_session(pid, cwd):
     if not re.fullmatch(r"[1-9][0-9]*", pid):
         raise ValueError("invalid Bash process identifier")
-    timestamp = dt.datetime.fromisoformat(now()).strftime("%Y-%m-%dT%H%M%S%z")
-    return f"{timestamp}-{pid}"
+    started = now()
+    clock = dt.datetime.fromisoformat(started).strftime('%H-%M-%S')
+    layout = _storage.Layout.for_collector(*locations())
+    day = started[:10]
+    directory = layout.ensure_day(day) / 'bash'
+    directory.mkdir(parents=True, exist_ok=True, mode=0o700)
+    label = directory_label(cwd)
+    counter = 1
+    while True:
+        suffix = '' if counter == 1 else '_' + str(counter)
+        filename = clock + '_' + (label + '_' if label else '') + pid + suffix + '.jsonl'
+        try:
+            descriptor = os.open(directory / filename, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+            os.close(descriptor)
+            break
+        except FileExistsError:
+            counter += 1
+        except OSError as error:
+            if not label or (error.errno != errno.ENAMETOOLONG
+                             and getattr(error, 'winerror', None) not in (123, 206)):
+                raise
+            label = ''
+    return {
+        'session_id': started + '-' + pid + suffix,
+        'session_started_at': started, 'session_cwd': cwd, 'session_pid': int(pid),
+        'filename': filename, 'storage_settings': layout.settings,
+        'workspace_id': layout.record(day)['workspace_id'],
+    }
 
 
 def record():
     fields = sys.stdin.buffer.read().split(b"\0")
     if len(fields) != 6 or fields[-1]:
         raise ValueError("invalid recorder payload")
-    session, started, cwd, status, command = [
+    context, started, cwd, status, command = [
         value.decode("utf-8", errors="replace") for value in fields[:-1]
     ]
-    if not re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{6}[+-][0-9]{4}-[1-9][0-9]*", session):
-        raise ValueError("invalid session identifier")
+    session = json.loads(context)
+    filename = session['filename']
+    if (not filename.endswith('.jsonl') or Path(filename).name != filename
+            or '\\' in filename):
+        raise ValueError('invalid session filename')
     completed = now()
     redacted = bool(SECRET.search(command))
     row = {
         "event": "command",
-        "session_id": session,
+        "session_id": session['session_id'],
+        "session_started_at": session['session_started_at'],
+        "session_cwd": session['session_cwd'],
+        "session_pid": session['session_pid'],
         "started_at": started,
         "completed_at": completed,
         "cwd": cwd,
@@ -61,15 +105,16 @@ def record():
         "capture_scope": "first-simple-command",
         "redacted": redacted,
     }
-    layout = _storage.Layout.for_collector(*locations())
-    try:
-        directory = layout.ensure_day(completed[:10]) / "bash"
-    except _storage.DiscardedDay:
+    layout = _storage.Layout(session['storage_settings'])
+    day = session['session_started_at'][:10]
+    state = layout.record(day)
+    if (not state or state['disposition'] == 'discarded'
+            or state['workspace_id'] != session['workspace_id']):
         return
-    directory.mkdir(parents=True, exist_ok=True, mode=0o700)
-    flags = os.O_CREAT | os.O_APPEND | os.O_WRONLY
+    directory = layout.daily / day / 'bash'
+    flags = os.O_APPEND | os.O_WRONLY
     flags |= getattr(os, "O_NOFOLLOW", 0)
-    descriptor = os.open(directory / f"{session}.jsonl", flags, 0o600)
+    descriptor = os.open(directory / filename, flags)
     with os.fdopen(descriptor, "a", encoding="utf-8") as stream:
         stream.write(json.dumps(row, ensure_ascii=False) + "\n")
 
@@ -79,7 +124,7 @@ def main():
     if operation == "check":
         daily_root()
     elif operation == "session":
-        print(new_session(sys.argv[2]))
+        print(json.dumps(new_session(sys.argv[2], sys.argv[3]), ensure_ascii=False))
     elif operation == "time":
         print(now())
     elif operation == "record":
