@@ -46,13 +46,22 @@ python -m my_big_brother paths
 正式输出和 `daily` 须在同一文件系统。发布临时副本也放在日期目录，
 再原子替换正式文件。跨文件系统时会在替换任何输出之前报错。
 
-主项目初始化会生成 `C/storage.json`，只含 `schema_version: 2` 和 `data_root`。
-`day_start_hour` 等分析设置仅存在于主项目的 `C/config.json` 中。
+`C/raw-logs-path.txt` 是共享采集根路径，通常指向 D/daily。
+它只含一行 UTF-8 绝对路径，允许末尾一个 LF 或 CRLF，保留路径中的空格。
+不加引号、注释，不展开变量。缺失时使用平台默认位置，已有文件格式错误时报错。
+Bash、Vim，以及主项目的采集和分析目录使用同一路径。
+有意读取其他来源时，仍可显式设置来源路径。
 
-Bash 采集器可以不安装主项目、不准备用户配置文件而独立运行。
-`C/storage.json` 缺失时使用平台默认位置，运行登记状态自动建立。
-可选共享配置选择其他数据根，已有配置或登记损坏时报告错误。
-采集器不会替用户创建配置文件。
+初始化会写入解析后的 TXT 路径，但不覆盖已有文件。
+同时创建 `C/storage.json`，包含 `schema_version: 2` 和 `data_root`，
+用于主项目的长期 `memory` 与系统身份。记录器不需要这个 JSON。
+`day_start_hour` 等分析设置仅存在于 `C/config.json`。
+改变采集根不会移动长期输出或系统事实，采集根不能与长期知识或结果目录重叠。
+
+Bash 可独立使用，不要求安装或初始化主项目。
+它启动时读取一次 TXT，缺失时使用平台默认值。
+不读取 `storage.json`，不登记日期，也不创建用户配置。
+每个会话创建一个文件，文件或父目录删除后停止追加。
 
 独立 Vim 插件使用简单的三级路径规则：`record_dir`，
 然后是 `C/raw-logs-path.txt` 中的一条绝对路径，最后是平台数据目录下的 `daily`。
@@ -100,9 +109,10 @@ python -m my_big_brother analyze --date 2026-10-14 --recreate-deleted
 
 ## 采集器和扩展
 
-标准库协议实现在 `my_big_brother/storage.py`。
-Bash 采集器附带同一协议，使用该协议的程序通过持久化锁协调。
-Vim 只使用前述纯路径 TXT，不登记或检查日期的放弃状态。
+主项目协议实现在 `my_big_brother/storage.py`，受管理的写入通过持久化锁协调。
+独立 Bash 和 Vim 只读取前述纯路径 TXT，不登记或检查日期的放弃状态。
+已有 Bash 会话不会重建被删除的文件或目录，新会话使用它自己的当前启动日期。
+Bash 只携带很小的平台与路径辅助模块，原版为 `my_big_brother/collector_paths.py`。
 活动会话目录被移除后，Vim 退出时不会重建它。
 采集器不读取或共享分析日界线。
 

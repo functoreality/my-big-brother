@@ -94,9 +94,12 @@ Linux XDG values must be absolute. GUI editors, the installing Agent and
 scheduled runs must discover the same C and D under the intended account.
 WSL and remote machines have their own environments.
 
-Initialization creates `C/storage.json` and its durable registry. All v2
-collectors use its root and layout version when present. Recorders also work
-without this file, using platform defaults and automatic runtime registration.
+Initialization writes `C/raw-logs-path.txt`, containing the resolved capture
+root as one UTF-8 absolute path, unless the locator already exists. Bash, Vim,
+capture helpers and analysis daily storage use this path. Missing TXT means
+platform defaults. Malformed TXT is an error. Main application `C/storage.json`
+selects permanent memory/system storage and its registry. Bash and Vim do not
+read that JSON or maintain registries and work without application setup.
 Capture dates use each recording's creation date. Bash and Vim keep their
 start-date paths across midnight and months of uptime, while individual
 screenshots use their own capture dates. Disposable

@@ -19,7 +19,7 @@ class Paths:
 
     @property
     def layout(self):
-        return Layout.load(self.config)
+        return Layout.load(self.config, default_data_root=self.data)
 
     @property
     def daily(self):

@@ -66,12 +66,14 @@ Formal reports remain in `memory` or explicitly selected permanent targets.
 
 - Installing the main application or preparing its configuration is optional
   for using the Bash collector or the independent Vim plugin.
-- The main application and Bash use platform defaults when `C/storage.json`
-  is missing. Vim does not read this file.
-- An optional shared file selects a custom `data_root` and layout version.
-  It contains no review settings. A present malformed file reports an error.
-- The main application and Bash create date-registration metadata. It is separate
-  from optional user configuration and preserves deletion decisions.
+- `C/raw-logs-path.txt` is the shared one-line UTF-8 absolute capture-root
+  locator. Without it, recorders use the platform data directory's `daily`.
+  Bash, Vim and the main application's daily storage use this same path.
+  A present malformed locator is an error. Never silently choose another root.
+- Bash and Vim do not read `storage.json` or maintain day registries.
+  The main application uses `storage.json` for its permanent data root and
+  maintains minimal date-registration metadata for analysis and managed writes.
+  This does not impose that protocol on independent recorders.
 - Vim selects its root once: `record_dir`, then the one-path UTF-8
   `C/raw-logs-path.txt`, then the platform data directory's `daily`. It does
   not register dates or vendor the shared runtime protocol. All selections

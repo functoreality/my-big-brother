@@ -49,15 +49,25 @@ disposable daily storage. Atomic publication keeps its temporary copy inside
 the dated run, so formal outputs and `daily` must share a filesystem.
 Cross-filesystem publication stops before replacing any output.
 
-Main application initialization writes optional collector configuration
-`C/storage.json` with `schema_version: 2` and `data_root`. Review settings,
-including `day_start_hour`, belong only to `C/config.json`.
+`C/raw-logs-path.txt` is the shared capture-root locator. It contains one
+UTF-8 absolute path, normally D/daily, with an optional final LF or CRLF.
+Do not quote it, add comments or expand variables when reading it. Preserve
+spaces. A missing locator uses the platform default. A malformed existing
+locator reports an error. Bash, Vim and the main application's capture and
+analysis directories use this path. Explicit source-path overrides remain
+available for intentionally separate sources.
 
-The Bash collector works without the main application or either user
-configuration file. It uses platform defaults when `C/storage.json` is
-missing and creates runtime metadata automatically. An optional valid shared
-configuration selects a different data root. Malformed configuration or a
-damaged registry is an error. No collector writes user configuration.
+Initialization writes the resolved path to the TXT unless one already exists.
+It also writes `C/storage.json` with `schema_version: 2` and `data_root` for the
+main application's permanent `memory` and system identity. Recorders do not
+need this JSON. Review settings, including `day_start_hour`, remain in
+`C/config.json`. Moving the capture root does not move permanent outputs or
+system facts. Keep capture storage outside permanent memory and results.
+
+The Bash collector works without installing or initializing the application.
+It reads the TXT once and otherwise uses platform defaults. It does not read
+`storage.json`, register dates or create user configuration. It creates one
+session file and stops appending if that file or its parent is removed.
 
 The independent Vim plugin uses a smaller path contract: `record_dir`, then
 `C/raw-logs-path.txt` containing only an absolute capture-root path, then the
@@ -115,11 +125,13 @@ add this option themselves. Ordinary `--date` does not restore deleted dates.
 
 ## Collector and extension contract
 
-The canonical standard-library implementation is `my_big_brother/storage.py`.
-The Bash collector vendors the same protocol. Protocol writers coordinate
-using shared persistent locks. Vim uses only the one-path locator described
-above and does not register or check date dispositions. A removed active Vim
-session folder is not recreated at exit. No analysis calendar is shared.
+The managed application protocol is `my_big_brother/storage.py`. Its writers
+coordinate using persistent locks. Independent Bash and Vim recorders use only
+the one-path locator and do not register or check date dispositions. Removed
+active Bash files or Vim session folders are not recreated by those sessions.
+A new recorder session uses its own current start date. No analysis calendar
+is shared. Bash carries only the small platform/locator helper, whose canonical
+copy is `my_big_brother/collector_paths.py`.
 
 For an already configured capture program, `capture-path --source screenshots`
 returns a registered destination. `record-screenshot --image /absolute/image.jpg`

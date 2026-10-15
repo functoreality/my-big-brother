@@ -1,4 +1,4 @@
-"""Storage v2 protocol, also vendored by independent activity collectors.
+"""Storage v2 protocol for managed application writes.
 
 This module uses only the standard library and has no package imports.
 All writers register a calendar date before creating it. Missing registered
@@ -7,34 +7,16 @@ workspaces are abandoned, even if a review or a collector failed.
 
 import json
 import os
-import sys
 import uuid
 from contextlib import contextmanager
 from datetime import date, datetime, time, timedelta
 from pathlib import Path
 
+from .collector_paths import capture_root, platform_paths
+
 
 class DiscardedDay(ValueError):
     pass
-
-
-def platform_paths(system=None, home=None, environ=None):
-    system = sys.platform if system is None else system
-    home = Path.home() if home is None else Path(home)
-    env = os.environ if environ is None else environ
-    if system == "darwin":
-        base = home / "Library" / "Application Support" / "my-big-brother"
-        return base / "configs", base / "data"
-    if system == "win32":
-        base = Path(env.get("LOCALAPPDATA") or home / "AppData" / "Local") / "my-big-brother"
-        return base / "configs", base / "data"
-
-    def xdg(name, fallback):
-        value = Path(env.get(name, ""))
-        return value if value.is_absolute() else fallback
-
-    return (xdg("XDG_CONFIG_HOME", home / ".config") / "my-big-brother",
-            xdg("XDG_DATA_HOME", home / ".local" / "share") / "my-big-brother")
 
 
 def read_json(path):
@@ -105,7 +87,7 @@ def managed_layout(daily_root):
 
 
 class Layout:
-    def __init__(self, value):
+    def __init__(self, value, daily_root=None):
         if (set(value) != {"schema_version", "data_root"}
                 or type(value["schema_version"]) is not int or value["schema_version"] != 2):
             raise ValueError("storage.json requires the version 2 storage contract")
@@ -115,18 +97,23 @@ class Layout:
             raise ValueError("storage.data_root must be an absolute path")
         self.settings = value
         self.root = Path(root)
-        self.daily = self.root / "daily"
+        self.daily = Path(daily_root) if daily_root is not None else self.root / "daily"
         self.memory = self.root / "memory"
         self.system = self.memory / "_system"
+        daily, memory = self.daily.resolve(), self.memory.resolve()
+        if daily == memory or daily in memory.parents or memory in daily.parents:
+            raise ValueError('Capture storage and permanent memory must not overlap')
 
     @classmethod
-    def load(cls, config_dir, *, required=True):
+    def load(cls, config_dir, *, required=True, default_data_root=None):
         path = Path(config_dir) / "storage.json"
         if not path.exists():
             if required:
                 raise ValueError("Storage v2 is not initialized. Run init.")
             return None
-        result = cls(read_json(path))
+        settings = read_json(path)
+        default = platform_paths()[1] if default_data_root is None else default_data_root
+        result = cls(settings, capture_root(config_dir, default))
         result.check()
         return result
 
@@ -135,12 +122,17 @@ class Layout:
         path = Path(config_dir) / "storage.json"
         settings = {"schema_version": 2, "data_root": str(data_root)}
         if path.exists():
-            result = cls.load(config_dir)
+            result = cls.load(config_dir, default_data_root=data_root)
             if result.settings != settings:
                 raise ValueError("Existing storage preserved. Changing its root in place is unsupported.")
             return result
-        result = cls(settings).initialize_data()
+        result = cls(settings, capture_root(config_dir, data_root)).initialize_data()
         write_json(path, settings)
+        locator = Path(config_dir) / 'raw-logs-path.txt'
+        if not locator.exists():
+            with locator.open('x', encoding='utf-8', newline='\n') as stream:
+                stream.write(str(result.daily) + '\n')
+            locator.chmod(0o600)
         return result
 
     @classmethod
@@ -153,7 +145,7 @@ class Layout:
         path = Path(config_dir) / "storage.json"
         settings = read_json(path) if path.exists() else {
             "schema_version": 2, "data_root": str(data_root)}
-        return cls(settings).initialize_data()
+        return cls(settings, capture_root(config_dir, data_root)).initialize_data()
 
     def initialize_data(self):
         with file_lock(self.system / "locks" / "initialization.lock"):

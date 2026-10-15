@@ -16,6 +16,8 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import patch
 
+from my_big_brother.storage import Layout
+
 
 ROOT = Path(__file__).resolve().parents[1]
 HOOK = ROOT / "collectors" / "bash" / "session-recorder.sh"
@@ -43,25 +45,25 @@ class BashSessionNamingTests(unittest.TestCase):
     def test_same_second_sessions_are_distinguished_by_bash_pid(self):
         first = self.session('12345')
         second = self.session('12346')
-        self.assertEqual(first['filename'], '09-30-12_project_12345.jsonl')
-        self.assertEqual(second['filename'], '09-30-12_project_12346.jsonl')
+        self.assertEqual(Path(first['path']).name, '09-30-12_project_12345.jsonl')
+        self.assertEqual(Path(second['path']).name, '09-30-12_project_12346.jsonl')
 
     def test_existing_filename_is_not_overwritten_or_shared(self):
         first = self.session()
-        logfile = self.data / 'daily/2026-10-15/bash' / first['filename']
+        logfile = self.data / 'daily/2026-10-15/bash' / Path(first['path']).name
         logfile.write_text('existing session content')
         second = self.session()
-        self.assertNotEqual(first['filename'], second['filename'])
+        self.assertNotEqual(Path(first['path']).name, Path(second['path']).name)
         self.assertEqual(logfile.read_text(), 'existing session content')
 
     def test_directory_hint_is_bounded_and_keeps_unicode_head_and_tail(self):
         name = '首' * 30 + '中' * 30 + '尾' * 30
         session = self.session(cwd=self.root / name)
-        label = session['filename'][9:-len('_12345.jsonl')]
+        label = Path(session['path']).name[9:-len('_12345.jsonl')]
         self.assertLessEqual(len(label.encode('utf-8')), 64)
         self.assertTrue(label.startswith('首'))
         self.assertTrue(label.endswith('尾'))
-        event = json.loads((self.data / 'daily/2026-10-15/bash' / session['filename']).read_text())
+        event = json.loads((self.data / 'daily/2026-10-15/bash' / Path(session['path']).name).read_text())
         self.assertEqual(event['cwd'], str(self.root / name))
         self.assertEqual(recorder.directory_label(self.root / 'a:b?c*'), 'a_b_c_')
         self.assertEqual(recorder.directory_label(Path('/')), '')
@@ -102,7 +104,7 @@ class BashRecorderTests(unittest.TestCase):
         self.addCleanup(directory.cleanup)
         root = Path(directory.name)
         if initialize:
-            recorder._storage.Layout.install(root / "config/my-big-brother", root / "data/my-big-brother")
+            Layout.install(root / "config/my-big-brother", root / "data/my-big-brother")
         env = os.environ.copy()
         env.update(
             HOME=str(root), XDG_CONFIG_HOME=str(root / "config"),
@@ -346,20 +348,28 @@ class BashRecorderTests(unittest.TestCase):
         self.assertFalse(any("private" in r["command"] for r in rows))
         self.assertIn("printf public", [row["command"] for row in rows])
 
-    def test_shared_storage_path_spaces_and_missing_configuration(self):
+    def test_text_locator_defaults_and_ignores_storage_json(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
-            config = root / "config" / "my-big-brother"
-            target = root / "data space"
-            with patch.object(recorder, "locations", return_value=(config, target)):
-                session = recorder.new_session('12345', str(root))
-                self.assertTrue((target / 'daily' / session['date'] / 'bash' / session['filename']).is_file())
-                self.assertFalse((config / 'storage.json').exists())
-                recorder._storage.Layout.install(config, target)
-                self.assertEqual(recorder.new_session('12346', str(root))['storage_settings']['data_root'], str(target))
-                (config / 'storage.json').write_text('{broken')
-                with self.assertRaises(ValueError):
-                    recorder.new_session('12347', str(root))
+            config = root / 'config'
+            data = root / 'data'
+            with patch.object(recorder, 'locations', return_value=(config, data)):
+                first = Path(recorder.new_session('12345', str(root))['path'])
+                self.assertEqual(first.parents[2], data / 'daily')
+                self.assertFalse(config.exists())
+                self.assertFalse((data / 'memory').exists())
+                config.mkdir()
+                target = root / 'capture space'
+                locator = config / 'raw-logs-path.txt'
+                locator.write_bytes((str(target) + '\r\n').encode('utf-8'))
+                (config / 'storage.json').write_text('{irrelevant broken configuration')
+                second = Path(recorder.new_session('12346', str(root))['path'])
+                self.assertEqual(second.parents[2], target)
+                self.assertEqual(set(config.iterdir()), {locator, config / 'storage.json'})
+                for invalid in ('', 'relative', str(target) + '\nextra', '"' + str(target) + '"'):
+                    locator.write_text(invalid, encoding='utf-8')
+                    with self.assertRaises(ValueError):
+                        recorder.new_session('12347', str(root))
 
     @unittest.skipIf(os.name == "nt", "PTY test requires POSIX")
     def test_real_terminal_repeated_commands(self):
@@ -367,7 +377,7 @@ class BashRecorderTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as temporary:
             base = Path(temporary)
-            recorder._storage.Layout.install(base / "config/my-big-brother", base / "data/my-big-brother")
+            Layout.install(base / "config/my-big-brother", base / "data/my-big-brother")
             env = os.environ.copy()
             env.update(HOME=temporary, XDG_CONFIG_HOME=temporary + "/config",
                        XDG_DATA_HOME=temporary + "/data", HISTFILE=temporary + "/history",

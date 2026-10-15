@@ -229,7 +229,7 @@ class StorageTests(unittest.TestCase):
              patch.object(recorder.sys, 'stdin', SimpleNamespace(buffer=io.BytesIO(payload))):
             recorder.record()
         log = next((self.layout.daily / '2020-01-14/bash').glob('*.jsonl'))
-        self.assertEqual(log.name, session['filename'])
+        self.assertEqual(log.name, Path(session['path']).name)
         self.assertEqual(json.loads(log.read_text().splitlines()[1])['command'], 'synthetic command')
         self.discard('2020-01-14')
         with patch.object(recorder, 'locations', return_value=(self.paths.config, self.paths.data)), \
@@ -244,10 +244,41 @@ class StorageTests(unittest.TestCase):
             recorder.record()
         self.assertFalse((self.layout.daily / '2020-01-14/bash').exists())
 
-    def test_vendored_protocol_matches_canonical_source(self):
+    def test_vendored_locator_matches_canonical_source(self):
         root = Path(__file__).parents[1]
-        self.assertEqual((root / 'my_big_brother/storage.py').read_bytes(),
-                         (root / 'collectors/bash/storage.py').read_bytes())
+        self.assertEqual((root / 'my_big_brother/collector_paths.py').read_bytes(),
+                         (root / 'collectors/bash/paths.py').read_bytes())
+
+    def test_text_locator_is_shared_by_bash_capture_and_analysis(self):
+        from my_big_brother.collector_paths import capture_root
+
+        target = self.root / 'shared captures'
+        (self.paths.config / 'raw-logs-path.txt').write_text(str(target) + '\n')
+        self.assertEqual(self.paths.daily, target)
+        self.assertEqual(capture_root(self.paths.config, self.paths.data), target)
+        instant = datetime(2020, 1, 15, 3).astimezone()
+        selected = capture.directory(self.paths, 'screenshots', instant)
+        self.assertEqual(Path(selected['directory']), target / '2020-01-15/screenshots')
+        ticket = runner.prepare_run(self.paths, self.settings, '2020-01-15')
+        self.assertEqual(Path(ticket['run_dir']).parents[2], target)
+        self.assertEqual(self.paths.memory, self.paths.data / 'memory')
+        self.assertFalse((self.paths.data / 'daily/2020-01-15').exists())
+
+    def test_initialization_publishes_or_preserves_the_text_locator(self):
+        from my_big_brother.collector_paths import capture_root
+
+        self.assertEqual(capture_root(self.paths.config, self.paths.data), self.paths.daily)
+        fresh = Paths(self.root / 'fresh-config', self.root / 'fresh-data')
+        fresh.config.mkdir()
+        target = self.root / 'selected-captures'
+        (fresh.config / 'raw-logs-path.txt').write_bytes((str(target) + '\r\n').encode())
+        config.initialize(fresh, sources=['bash'], data_root=self.root / 'selected-data')
+        self.assertEqual(fresh.daily, target)
+        self.assertEqual((fresh.config / 'raw-logs-path.txt').read_bytes(), (str(target) + '\r\n').encode())
+        self.assertEqual(fresh.memory, self.root / 'selected-data/memory')
+        (fresh.config / 'raw-logs-path.txt').write_text(str(fresh.memory))
+        with self.assertRaisesRegex(ValueError, 'must not overlap'):
+            fresh.layout
 
     def test_existing_screenshot_is_registered_by_capture_time_and_discard_is_respected(self):
         source = self.root / 'synthetic.jpg'

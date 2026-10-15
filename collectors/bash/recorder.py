@@ -10,13 +10,13 @@ import re
 import sys
 import importlib.util
 
-_spec = importlib.util.spec_from_file_location("mbb_storage", Path(__file__).with_name("storage.py"))
-_storage = importlib.util.module_from_spec(_spec)
-_spec.loader.exec_module(_storage)
+_spec = importlib.util.spec_from_file_location("mbb_collector_paths", Path(__file__).with_name("paths.py"))
+_paths = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(_paths)
 
 
 def locations():
-    return _storage.platform_paths()
+    return _paths.platform_paths()
 
 
 SECRET = re.compile(r'(?i)(?:token|secret|password|api_?key)\s*=|sshpass|authorization:')
@@ -42,9 +42,7 @@ def new_session(pid, cwd):
         raise ValueError("invalid Bash process identifier")
     started = now()
     clock = dt.datetime.fromisoformat(started).strftime('%H-%M-%S')
-    layout = _storage.Layout.for_collector(*locations())
-    day = started[:10]
-    directory = layout.ensure_day(day) / 'bash'
+    directory = _paths.capture_root(*locations()) / started[:10] / 'bash'
     directory.mkdir(parents=True, exist_ok=True, mode=0o700)
     label = directory_label(cwd)
     counter = 1
@@ -64,11 +62,7 @@ def new_session(pid, cwd):
                              and getattr(error, 'winerror', None) not in (123, 206)):
                 raise
             label = ''
-    return {
-        'date': day,
-        'filename': filename, 'storage_settings': layout.settings,
-        'workspace_id': layout.record(day)['workspace_id'],
-    }
+    return {'path': str(directory / filename)}
 
 
 def record():
@@ -79,10 +73,7 @@ def record():
         value.decode("utf-8", errors="replace") for value in fields[:-1]
     ]
     session = json.loads(context)
-    filename = session['filename']
-    if (not filename.endswith('.jsonl') or Path(filename).name != filename
-            or '\\' in filename):
-        raise ValueError('invalid session filename')
+    path = Path(session['path'])
     if event not in ('command', 'session_end'):
         raise ValueError('invalid recorder event')
     row = {'event': event, 'cwd': cwd,
@@ -92,16 +83,12 @@ def record():
         row.update(command='<redacted:possible-secret>' if SECRET.search(command) else command,
                    exit_status=int(status),
                    started_at=dt.datetime.fromtimestamp(int(started)).astimezone().isoformat())
-    layout = _storage.Layout(session['storage_settings'])
-    day = session['date']
-    state = layout.record(day)
-    if (not state or state['disposition'] == 'discarded'
-            or state['workspace_id'] != session['workspace_id']):
-        return
-    directory = layout.daily / day / 'bash'
     flags = os.O_APPEND | os.O_WRONLY
     flags |= getattr(os, "O_NOFOLLOW", 0)
-    descriptor = os.open(directory / filename, flags)
+    try:
+        descriptor = os.open(path, flags)
+    except FileNotFoundError:
+        return
     with os.fdopen(descriptor, "a", encoding="utf-8") as stream:
         stream.write(json.dumps(row, ensure_ascii=False) + "\n")
 

@@ -43,17 +43,19 @@ the path used by your shell configuration.
 
 Each recorded shell process owns exactly one JSONL under
 `daily/YYYY-MM-DD/bash/`, using the local date when the recorder is enabled.
-The helper registers that date and creates the file once at startup.
-The path stays fixed across midnight, months of uptime, `cd`, or later shared
-configuration changes. Command start and completion times remain actual times.
-If its start-date workspace is discarded or replaced, the session stops writing
-without recreating it or switching to today's directory.
-The bundled standard-library protocol needs no installed Python package.
-The collector works without installing or initializing the main application.
-An optional `C/storage.json` selects a custom data root. When absent, platform
-defaults apply. Runtime registration is created automatically. An invalid
-existing configuration or damaged registry reports an error.
-See [Storage v2](STORAGE.md) for initialization.
+The helper creates the file once at startup. The path stays fixed across
+midnight, months of uptime, `cd`, or later shared configuration changes.
+Command start and completion times remain actual times. If the file or its
+parent is removed, appends stop without recreating it or selecting a new date.
+
+The collector works independently, using only Python's standard library.
+It reads `C/raw-logs-path.txt` once at startup, or uses the platform data
+folder's `daily` when the file is absent. The TXT contains one UTF-8 absolute
+capture-root path, without quotes, comments or variable expansion. One final
+LF or CRLF is allowed. Spaces in the path are preserved. A present invalid
+file is an error. It neither reads `storage.json` nor creates runtime registries
+or user configuration. The main application and Vim share this locator.
+See [Storage](STORAGE.md) for platform defaults and initialization.
 
 Filenames use `HH-MM-SS_<initial-directory-name>_<pid>.jsonl`, for example
 `09-30-12_my-project_12345.jsonl`. Time means when recording is enabled, not
