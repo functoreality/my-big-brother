@@ -43,7 +43,9 @@ the path used by your shell configuration.
 
 Each recorded shell process owns exactly one JSONL under
 `raw-logs/YYYY-MM-DD/bash/`, using the local date when the recorder is enabled.
-The helper creates the file once at startup. The path stays fixed across
+The helper creates the file once at startup. Bash caches the plain file path.
+Later appends neither reread the locator nor select a directory date.
+The path stays fixed across
 midnight, months of uptime, `cd`, or later shared configuration changes.
 Command start and completion times remain actual times. If the file or its
 parent is removed, appends stop without recreating it or selecting a new date.

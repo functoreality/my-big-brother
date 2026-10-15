@@ -218,21 +218,21 @@ class StorageTests(unittest.TestCase):
         recorder = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(recorder)
         clock = datetime(2020, 1, 15, 3).astimezone().isoformat()
-        with patch.object(recorder, 'locations', return_value=(self.paths.config, self.paths.data)), \
+        with patch.object(recorder._paths, 'platform_paths', return_value=(self.paths.config, self.paths.data)), \
              patch.object(recorder, 'now', return_value=datetime(2020, 1, 14, 23).astimezone().isoformat()):
             session = recorder.new_session('12345', str(self.root))
-        fields = [json.dumps(session), 'command', str(self.root), 'synthetic command', '0',
+        fields = [session, 'command', str(self.root), 'synthetic command', '0',
                   str(int(datetime.fromisoformat(clock).timestamp())), '']
         payload = '\0'.join(fields).encode()
-        with patch.object(recorder, 'locations', return_value=(self.paths.config, self.paths.data)), \
+        with patch.object(recorder._paths, 'platform_paths', return_value=(self.paths.config, self.paths.data)), \
              patch.object(recorder, 'now', return_value=clock), \
              patch.object(recorder.sys, 'stdin', SimpleNamespace(buffer=io.BytesIO(payload))):
             recorder.record()
         log = next((self.layout.raw_logs / '2020-01-14/bash').glob('*.jsonl'))
-        self.assertEqual(log.name, Path(session['path']).name)
+        self.assertEqual(log.name, Path(session).name)
         self.assertEqual(json.loads(log.read_text().splitlines()[1])['command'], 'synthetic command')
         self.discard('2020-01-14')
-        with patch.object(recorder, 'locations', return_value=(self.paths.config, self.paths.data)), \
+        with patch.object(recorder._paths, 'platform_paths', return_value=(self.paths.config, self.paths.data)), \
              patch.object(recorder, 'now', return_value=clock), \
              patch.object(recorder.sys, 'stdin', SimpleNamespace(buffer=io.BytesIO(payload))):
             recorder.record()

@@ -17,7 +17,7 @@ fi
 __mbb_python=${MBB_PYTHON:-python3}
 __mbb_helper=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/recorder.py
 __mbb_shell_pid=${BASHPID:-$$}
-__mbb_session=$("$__mbb_python" "$__mbb_helper" session "$__mbb_shell_pid" "$PWD") || return 0
+__mbb_record_file=$("$__mbb_python" "$__mbb_helper" session "$__mbb_shell_pid" "$PWD") || return 0
 
 __mbb_read_history() {
     local line HISTTIMEFORMAT='%s '
@@ -70,7 +70,7 @@ __mbb_observe_input() {
         __mbb_pending=1
         if [[ $__mbb_temporary_history == 1 ]]; then
             builtin history -d "$__mbb_history_id"
-            if [[ $__mbb_history_enabled == 1 && $__mbb_size != 0 ]]; then
+            if [[ $__mbb_size != 0 ]]; then
                 builtin history -s -- "$__mbb_history_command"
             fi
         fi
@@ -95,7 +95,7 @@ __mbb_preexec() {
 }
 
 __mbb_write() {
-    printf '%s\0' "$__mbb_session" "$1" "${5-$PWD}" "${2-}" "${3-}" "${4-}" |
+    printf '%s\0' "$__mbb_record_file" "$1" "${5-$PWD}" "${2-}" "${3-}" "${4-}" |
         "$__mbb_python" "$__mbb_helper" record
 }
 

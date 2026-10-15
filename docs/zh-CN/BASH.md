@@ -41,7 +41,9 @@ source "/absolute/path/to/my-big-brother/collectors/bash/session-recorder.sh"
 
 每个开启记录的 Bash 进程只对应一个 JSONL，保存到
 `raw-logs/YYYY-MM-DD/bash/`。日期取启用采集器时的本机自然日期。
-启动时创建文件，之后不因跨午夜、持续数月、执行 `cd`，
+启动时创建文件，Bash 只缓存这个文件的路径文本。
+后续追加不重读路径配置，也不重新选择目录日期。
+之后不因跨午夜、持续数月、执行 `cd`，
 或共享位置配置改变而更换路径。命令起止时间始终记录真实时间。
 文件或父目录被删除后停止追加，不重建它，也不改写到今天的目录。
 

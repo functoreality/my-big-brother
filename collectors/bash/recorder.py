@@ -15,10 +15,6 @@ _paths = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(_paths)
 
 
-def locations():
-    return _paths.platform_paths()
-
-
 SECRET = re.compile(r'(?i)(?:token|secret|password|api_?key)\s*=|sshpass|authorization:')
 
 
@@ -42,7 +38,7 @@ def new_session(pid, cwd):
         raise ValueError("invalid Bash process identifier")
     started = now()
     clock = dt.datetime.fromisoformat(started).strftime('%H-%M-%S')
-    directory = _paths.capture_root(*locations()) / started[:10] / 'bash'
+    directory = _paths.capture_root(*_paths.platform_paths()) / started[:10] / 'bash'
     directory.mkdir(parents=True, exist_ok=True, mode=0o700)
     label = directory_label(cwd)
     counter = 1
@@ -62,18 +58,17 @@ def new_session(pid, cwd):
                              and getattr(error, 'winerror', None) not in (123, 206)):
                 raise
             label = ''
-    return {'path': str(directory / filename)}
+    return str(directory / filename)
 
 
 def record():
     fields = sys.stdin.buffer.read().split(b"\0")
     if len(fields) != 7 or fields[-1]:
         raise ValueError("invalid recorder payload")
-    context, event, cwd, command, status, started = [
+    filename, event, cwd, command, status, started = [
         value.decode("utf-8", errors="replace") for value in fields[:-1]
     ]
-    session = json.loads(context)
-    path = Path(session['path'])
+    path = Path(filename)
     if event not in ('command', 'session_end'):
         raise ValueError('invalid recorder event')
     row = {'event': event, 'cwd': cwd,
@@ -96,7 +91,7 @@ def record():
 def main():
     operation = sys.argv[1]
     if operation == "session":
-        print(json.dumps(new_session(sys.argv[2], sys.argv[3]), ensure_ascii=False))
+        print(new_session(sys.argv[2], sys.argv[3]))
     elif operation == "record":
         record()
     else:

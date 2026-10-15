@@ -34,7 +34,7 @@ class BashSessionNamingTests(unittest.TestCase):
         self.root = Path(directory.name)
         self.config = self.root / 'config'
         self.data = self.root / 'data'
-        locations = patch.object(recorder, 'locations', return_value=(self.config, self.data))
+        locations = patch.object(recorder._paths, 'platform_paths', return_value=(self.config, self.data))
         locations.start()
         self.addCleanup(locations.stop)
 
@@ -45,25 +45,25 @@ class BashSessionNamingTests(unittest.TestCase):
     def test_same_second_sessions_are_distinguished_by_bash_pid(self):
         first = self.session('12345')
         second = self.session('12346')
-        self.assertEqual(Path(first['path']).name, '09-30-12_project_12345.jsonl')
-        self.assertEqual(Path(second['path']).name, '09-30-12_project_12346.jsonl')
+        self.assertEqual(Path(first).name, '09-30-12_project_12345.jsonl')
+        self.assertEqual(Path(second).name, '09-30-12_project_12346.jsonl')
 
     def test_existing_filename_is_not_overwritten_or_shared(self):
         first = self.session()
-        logfile = self.data / 'raw-logs/2026-10-15/bash' / Path(first['path']).name
+        logfile = self.data / 'raw-logs/2026-10-15/bash' / Path(first).name
         logfile.write_text('existing session content')
         second = self.session()
-        self.assertNotEqual(Path(first['path']).name, Path(second['path']).name)
+        self.assertNotEqual(Path(first).name, Path(second).name)
         self.assertEqual(logfile.read_text(), 'existing session content')
 
     def test_directory_hint_is_bounded_and_keeps_unicode_head_and_tail(self):
         name = '首' * 30 + '中' * 30 + '尾' * 30
         session = self.session(cwd=self.root / name)
-        label = Path(session['path']).name[9:-len('_12345.jsonl')]
+        label = Path(session).name[9:-len('_12345.jsonl')]
         self.assertLessEqual(len(label.encode('utf-8')), 64)
         self.assertTrue(label.startswith('首'))
         self.assertTrue(label.endswith('尾'))
-        event = json.loads((self.data / 'raw-logs/2026-10-15/bash' / Path(session['path']).name).read_text())
+        event = json.loads((self.data / 'raw-logs/2026-10-15/bash' / Path(session).name).read_text())
         self.assertEqual(event['cwd'], str(self.root / name))
         self.assertEqual(recorder.directory_label(self.root / 'a:b?c*'), 'a_b_c_')
         self.assertEqual(recorder.directory_label(Path('/')), '')
@@ -73,11 +73,11 @@ class BashSessionNamingTests(unittest.TestCase):
 
         session = self.session()
         for completed in ('2026-10-16T03:00:00+08:00', '2027-01-15T06:00:00+08:00'):
-            fields = [json.dumps(session), 'command', str(self.root / 'another-project'),
+            fields = [session, 'command', str(self.root / 'another-project'),
                       'printf synthetic', '0', str(int(recorder.dt.datetime.fromisoformat(completed).timestamp())), '']
             payload = '\0'.join(fields).encode()
             with patch.object(recorder, 'now', return_value=completed), \
-                 patch.object(recorder, 'locations', side_effect=AssertionError('must keep startup storage')), \
+                 patch.object(recorder._paths, 'platform_paths', side_effect=AssertionError('must keep startup storage')), \
                  patch.object(recorder.sys, 'stdin', SimpleNamespace(buffer=io.BytesIO(payload))):
                 recorder.record()
         logs = list((self.data / 'raw-logs').rglob('*.jsonl'))
@@ -374,8 +374,8 @@ class BashRecorderTests(unittest.TestCase):
             root = Path(temporary)
             config = root / 'config'
             data = root / 'data'
-            with patch.object(recorder, 'locations', return_value=(config, data)):
-                first = Path(recorder.new_session('12345', str(root))['path'])
+            with patch.object(recorder._paths, 'platform_paths', return_value=(config, data)):
+                first = Path(recorder.new_session('12345', str(root)))
                 self.assertEqual(first.parents[2], data / 'raw-logs')
                 self.assertFalse(config.exists())
                 self.assertFalse((data / 'memory').exists())
@@ -384,7 +384,7 @@ class BashRecorderTests(unittest.TestCase):
                 locator = config / 'raw-logs-path.txt'
                 locator.write_bytes((str(target) + '\r\n').encode('utf-8'))
                 (config / 'storage.json').write_text('{irrelevant broken configuration')
-                second = Path(recorder.new_session('12346', str(root))['path'])
+                second = Path(recorder.new_session('12346', str(root)))
                 self.assertEqual(second.parents[2], target)
                 self.assertEqual(set(config.iterdir()), {locator, config / 'storage.json'})
                 for invalid in ('', 'relative', str(target) + '\nextra', '"' + str(target) + '"'):
