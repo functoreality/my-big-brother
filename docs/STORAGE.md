@@ -48,7 +48,6 @@ python -m my_big_brother paths
 disposable daily storage. Atomic publication keeps its temporary copy inside
 the dated run, so formal outputs and `daily` must share a filesystem.
 Cross-filesystem publication stops before replacing any output.
-Do not use the old `--raw-logs-root` option in v2.
 
 Initialization writes `C/storage.json` with `schema_version: 2`, `data_root`,
 and `day_start_hour`. Collectors and preparation share this contract. Its
@@ -57,7 +56,6 @@ in `config.json`, or hand-create a storage pointer without its durable marker.
 Changing an existing root/calendar in place is unsupported.
 
 Default C and D discovery remains documented in [INSTALLATION.md](../INSTALLATION.md).
-The legacy `raw-logs-path.txt` is ignored once a valid v2 contract is present.
 A malformed v2 contract is an error and never causes fallback to old storage.
 
 ## Logical days and deletion

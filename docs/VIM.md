@@ -46,7 +46,7 @@ let g:vim_session_recorder#config = {
     \}
 ```
 
-## Share the raw-log location
+## Share the shared storage
 
 The plugin uses the same `C/storage.json`, data root and fixed logical-day
 boundary. V2-capable plugin versions register and write independent segments
@@ -70,7 +70,7 @@ Then set `sources.vim.enabled` to `true` in the personal configuration and
 run `prepare` for a date containing that closed session. Inspect the Vim
 manifest count, excerpt and artifact references before claiming success.
 
-The plugin publishes its final record on normal editor exit. A still-open
-session can have no manifest. Absence of records does not prove the user did
-no editor work. Long sessions can span dates, and whole-session diffs do not
+Shared recording publishes periodic checkpoints and independent logical-day
+segments. Standalone recording publishes at editor exit. Missing records do
+not prove an absence of editor work. Checkpoint diffs and boundary gaps do not
 establish the exact time of each edit. See [Input sources](INPUT-SOURCES.md).

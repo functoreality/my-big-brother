@@ -12,7 +12,7 @@ Vim 与截图都是可选来源，需要在个人配置中明确启用。
 ## Bash 会话上下文
 
 Bash 适配器读取按日期存储的 `YYYY-MM-DD/bash/*.jsonl`，
-也支持明确配置的平面旧会话根目录。
+也支持明确配置的平面会话来源目录。
 活动条目始终限定在复盘窗口内。
 如果命令或会话结束事件的起始记录位于更早时间，
 适配器会把最近一次先前起始记录放入 `session_context`，
@@ -44,12 +44,10 @@ daily/YYYY-MM-DD/vim/session/<modification diff artifacts>
 存储 v2 选择对应逻辑工作日的子树，各日分段独立。
 `segment_open` 表示活动检查点，不表示编辑器已经退出。
 `boundary_diff_file` 跨越未观察区间，不能将变化全部归到新一天。
-下面的旧会话递归规则适用于明确选择的旧根目录。
 
-适配器递归扫描每个 Vim 子目录，包括开始于更早日期的会话。
-会话在复盘窗口之前开始、在窗口内结束时仍会纳入索引。
-明确配置的旧 Vim 根目录可以保留原有会话布局，包括 `viewed/`。
-共享根目录还可以在 `legacy/vim/` 下保留导入的旧会话。
+明确配置的独立 Vim 来源会递归查找会话 manifest。
+会话在复盘窗口之前开始、在窗口内结束时仍纳入索引。
+共享模式只读取对应工作日的子目录。
 
 每条 manifest 都需要 `vim_start`。
 旧记录中的开放会话可以没有 `vim_close`。
@@ -94,7 +92,7 @@ daily/YYYY-MM-DD/vim/session/<modification diff artifacts>
 并标为 `session_status: open` 和 `diff_status: incomplete_session`。
 适配器不会声称它已有完整的最终 diff。
 
-当前版本 1 采集器只在编辑器退出时写入最终 manifest，没有定期检查点。
+共享模式定期发布检查点，独立模式在编辑器退出时写入最终 manifest。
 尚在运行或写入失败、没有 `record.json` 的会话无法被适配器发现。
 已识别的 Vim 子目录存在且可读、却没有匹配记录时，会返回成功的空索引。
 这只表示未找到记录，不代表采集正在运行或记录完整。
@@ -108,16 +106,12 @@ daily/YYYY-MM-DD/vim/session/<modification diff artifacts>
 共享存储结构如下：
 
 ```text
-raw/YYYY-MM-DD/screenshots/capture.png
-raw/YYYY-MM-DD/screenshots/manifest.json
+daily/YYYY-MM-DD/screenshots/capture.png
+daily/YYYY-MM-DD/screenshots/manifest.json
 ```
 
-支持 JPEG、PNG 和 WebP。
-明确配置的旧截图根目录可以直接包含平面的图片文件。
-共享根目录中还可将导入的平面文件存放在 `legacy/screenshots/`、
-`legacy/screen/` 或 `legacy/screen_record/`。
-采集器迁移期间，已有的 `YYYY-MM-DD/screen_record/` 目录也会被读取。
-新采集器应使用 `screenshots/`。
+支持 JPEG、PNG 和 WebP。共享存储只使用 `YYYY-MM-DD/screenshots/`。
+明确配置的截图来源也可以直接包含平面的图片文件。
 适配器不会去无关输入源目录寻找图片。
 
 没有 manifest 时，使用文件修改时间作为采集时间。

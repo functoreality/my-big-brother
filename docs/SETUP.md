@@ -117,6 +117,6 @@ and environment before relying on it.
 
 Bash recording is separately optional. See [BASH.md](BASH.md) before changing
 shell startup files. Published results and configuration should be backed up.
-Raw logs and private excerpts are not automatically cleaned in this release.
+Captures and private excerpts are not automatically cleaned in this release.
 See [Manual cleanup](CLEANUP.md) for removable run directories, startup logs,
 and completion state that should be retained.

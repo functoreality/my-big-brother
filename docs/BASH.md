@@ -46,7 +46,8 @@ boundary, and registers dates before writing `daily/YYYY-MM-DD/bash/`.
 Commands are assigned by completion time, with start time retained.
 A discarded day is skipped without recreating its directory.
 The bundled standard-library protocol needs no installed Python package.
-Without v2 configuration, legacy raw-log pointer behavior remains available.
+Initialize shared storage before attaching the collector. Missing or invalid
+configuration stops recording without selecting another directory.
 See [Storage v2](STORAGE.md) for initialization.
 
 New log files use random session IDs and POSIX mode `0600`.
@@ -127,7 +128,7 @@ MBB_BASH_RECORDING=1
 
 To disable it for a new shell, export `MBB_BASH_RECORDING=0` before sourcing.
 To uninstall, remove the source line and open a new shell. There is no automatic
-raw-log deletion in this MVP.
+capture deletion in this MVP.
 
 ## Tests
 
@@ -141,5 +142,5 @@ The Linux tests use temporary home/config/data directories, interactive Bash
 subprocesses, and one pseudo-terminal session. They cover duplicate commands,
 history filtering and disabling, scalar and array prompt hooks, exit-status
 preservation, existing DEBUG and EXIT traps, umask preservation, redaction,
-opt-out, pointer validation, and duplicate attachment. Tests use isolated
+opt-out, shared storage validation, and duplicate attachment. Tests use isolated
 subprocesses and do not install a recorder into your shell.

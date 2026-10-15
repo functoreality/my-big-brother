@@ -78,7 +78,7 @@ Use actual paths, without searching unrelated accounts or private folders.
 
 Use `--data-root` to choose a complete v2 data root on first initialization,
 `--day-start-hour` for its fixed logical-day boundary, and `--results-root` for
-an optional permanent output root. V2 does not use `--raw-logs-root`.
+an optional permanent output root.
 This pre-release uses the new layout directly and provides no old-data
 migration tool. See [Storage](docs/STORAGE.md).
 
@@ -100,7 +100,6 @@ captures and analysis live in `D/daily/YYYY-MM-DD/`. Permanent records and
 minimal system facts live in `D/memory/`. Native Agent histories remain with
 their applications. Do not hand-create only the shared config file.
 Confirm every active collector supports v2 before promising date-only cleanup.
-The old raw-log pointer is legacy compatibility, not a second v2 setting.
 
 ## 3. Configure outputs and personal context
 
@@ -153,14 +152,14 @@ Plug 'functoreality/session-recorder.vim'
 
 Adapt the declaration for another manager or Neovim Lua configuration.
 Do not replace the entire vimrc or assume a fixed configuration path.
-Use the shared raw-log locator. No extra path variable is normally needed.
-An existing `record_dir` override bypasses shared discovery; migrate it only
-with consent or explicitly configure a compatible legacy reader path.
+Use the shared storage configuration. No extra path variable is normally needed.
+An explicit `record_dir` override selects standalone recording.
+Ask before removing it to enable the shared logical-day lifecycle.
 Preserve exclusions and specify the intended native Python when needed.
 
 Ask the user to restart their editor, then check `:RecorderStatus`.
 Test a disposable file by opening, changing, saving and exiting normally.
-Verify its manifest, original snapshot and diff under the shared raw root,
+Verify its manifest, original snapshot and diff under the shared daily directory,
 then enable `sources.vim` and prepare a date containing that closed session.
 An open session may have no final manifest. Do not close unsaved user work.
 
@@ -193,8 +192,7 @@ python -m my_big_brother analyze --date 2026-01-15
 This prepares a work ticket and `prompt_path`, not an Agent launch.
 `prepare` is also available for direct preparation. Check the run's manifest,
 context, timestamps, source counts/gaps and resolved paths. The half-open
-logical-day window selects one managed logical-day directory. Explicit
-legacy roots may still span natural-date directories.
+logical-day window selects one managed logical-day directory.
 Omitting `--date` selects the last closed day. Use an explicit current date
 only for an honest partial review. `--snapshot-end` accepts a timestamp with
 UTC offset for a fixed cutoff.
@@ -337,9 +335,9 @@ outputs, collector decisions, any actual schedule and one reviewed report.
 Distinguish available mechanisms from untested runtime behavior.
 Explain how retained outputs support weekly summaries and other conversations.
 
-Back up configuration, results and completion state. Moving raw logs requires
-pausing collectors, moving records, updating the locator and restarting writers.
+Back up configuration, results and completion state. In-place relocation of
+initialized storage or changes to its fixed calendar are unsupported.
 Moving results needs only its own configuration update while reviews are stopped.
-Do not delete active records. This release does not automatically clean raw
-logs or derived materials. Do not replace existing user automation without
+Do not delete active records. This release does not automatically clean captures
+or derived materials. Do not replace existing user automation without
 an explicit cutover choice.

@@ -33,7 +33,7 @@ Host-injected AGENTS and environment context identified by native content-kind
 metadata are excluded even when stored with the user role. Unknown or mixed
 metadata remains evidence. Message wording alone is not an exclusion rule.
 Native histories remain at their configured location and are not moved into
-this project's raw log directory.
+this project's capture directory.
 
 Supported JSONL representations include `response_item` messages and known
 `event_msg` user/final-assistant forms. Unmarked assistant response items are
@@ -66,9 +66,8 @@ ambiguity rather than inventing a request.
 
 When enabled and installed, the bundled recorder writes local JSONL below
 `daily/YYYY-MM-DD/bash/` in storage v2. Dates use the shared logical-day
-boundary. Legacy roots can still contain sessions in an earlier start-date
-directory. The preparer selects by event time. Removed managed dates must
-never be recreated to recover legacy evidence.
+boundary. The preparer selects activity by event time inside that day.
+Removed managed dates must never be recreated to recover evidence.
 
 Command events are clues about actions and working directories. Their
 timestamps and status do not constitute a complete shell audit, prove file

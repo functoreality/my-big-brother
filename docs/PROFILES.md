@@ -191,14 +191,14 @@ Changing policy after preparation prevents stale publication. Changed policy
 also makes `due` reconsider a completed day. Reference data contents are not
 fingerprinted, so updating a ledger does not automatically rerun every day.
 Change the profile when an intentional new policy should invalidate completion.
-Source selection, language, day boundary and the shared raw-log location are
+Source selection, language, day boundary and shared storage are
 also checked against preparation and invalidate incompatible completion records.
 
 Source configuration also accepts `required: true`. An enabled required
 source marked `unavailable` blocks analysis. `partial` retains usable records
 and visible gaps, including legitimate boundary exclusions. A readable empty
 source is different from an unavailable one. Optional Vim and screenshot
-sources are disabled by default and use the shared raw-log root unless their
+sources are disabled by default and use the shared daily directory unless their
 configuration names an explicit `path`.
 Unexpected collection or asset-preparation errors also mark that source
 `unavailable`, preserving the error and traceback in `logs/<source>-error.json`.

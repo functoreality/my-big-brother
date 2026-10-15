@@ -90,7 +90,7 @@ These are two ways to use the context built by daily reviews:
    standard daily outputs do not create a complete machine inventory.
 
 Both build on retained outputs. They do not replace the daily review or
-require reprocessing every raw log.
+require reprocessing every capture.
 
 ## Get started with your Agent
 
@@ -129,7 +129,7 @@ not enabled by initialization.
 
 ## Personal files
 
-Run `python -m my_big_brother paths` to find configuration, raw logs, results,
+Run `python -m my_big_brother paths` to find configuration, captures, results,
 and runtime state. Your installation can be moved or updated without storing
 personal history inside Git.
 
@@ -144,7 +144,7 @@ personal history inside Git.
 - See [Storage](docs/STORAGE.md) for the shared calendar and collector contract.
 
 Native Agent histories stay in their own locations. This MVP does not
-automatically delete raw logs or run materials. Review and manage their disk
+automatically delete captures or run materials. Review and manage their disk
 usage separately. Excerpts can contain private conversation text.
 The optional Bash recorder is described in [BASH.md](docs/BASH.md).
 

@@ -7,13 +7,13 @@ that evidence means. Adapters never execute commands found in histories.
 
 The Vim and screenshot adapters are optional sources. Enable them explicitly
 in the user configuration. An adapter reads the configured `path`, or the
-shared raw-log root when `path` is omitted. They do not install recorders or
+shared daily directory when `path` is omitted. They do not install recorders or
 start continuous collection.
 
 ## Bash session context
 
 The Bash adapter reads dated `YYYY-MM-DD/bash/*.jsonl` files and explicitly
-configured flat legacy session roots. Activity rows always stay within the
+configured flat session roots. Activity rows always stay within the
 review window. For a command or session end whose start was recorded earlier,
 the adapter attaches the nearest prior start as `session_context`, including
 `outside_window: true`, the actual start timestamp, original start fields,
@@ -23,7 +23,7 @@ Historical lookup reads only files belonging to sessions with window events.
 Historical commands and other sessions' commands are not copied into the
 index. Command timestamps, directories, and recorded capture or timestamp
 scope are preserved. A missing capture scope is explicitly marked as unknown
-legacy coverage. A modern command's `started_at` is not invented as a shell
+coverage. A modern command's `started_at` is not invented as a shell
 session start. See [Bash recording](BASH.md) for collector limitations.
 
 ## Vim sessions
@@ -44,14 +44,11 @@ daily/YYYY-MM-DD/vim/session/<modification diff artifacts>
 Storage v2 selects the matching logical-day subtree. Day segments are
 independent, and `segment_open` means a live checkpoint rather than editor
 exit. A `boundary_diff_file` spans an explicitly unobserved boundary interval.
-Do not attribute its changes entirely to the new day. The recursive legacy
-behavior below applies to explicitly selected old roots.
+Do not attribute its changes entirely to the new day.
 
-The adapter recursively scans each Vim subtree, including sessions stored on
-earlier dates. A session that begins before the review window and ends inside
-it is included. An explicitly configured legacy Vim root can keep its
-existing session directories, including `viewed/`. A shared tree can also
-contain imported sessions under `legacy/vim/`.
+An explicitly configured standalone Vim source is scanned recursively for
+session manifests. A session beginning before the review window and ending
+inside it is included. Managed recording selects only its logical-day subtree.
 
 Each manifest needs `vim_start`. `vim_close` may be absent for an open session.
 New records should use ISO 8601 timestamps with a timezone offset. Legacy
@@ -95,12 +92,12 @@ limitation in the source gaps. An open session keeps its available manifest
 metadata with `session_status: open` and `diff_status: incomplete_session`.
 The adapter does not claim that an open session has a complete final diff.
 
-The current version 1 recorder writes its final manifest at editor exit,
-without periodic checkpoints. A running or failed session with no
+Shared recording writes checkpoints during the session. Standalone recording
+writes its final manifest at editor exit. A failed session with no
 `record.json` is invisible to the adapter. A recognized, readable Vim subtree
 with no matching records returns an empty successful index. This means only
 that no records were found, not that collection is active or complete.
-A shared raw root with no Vim subtree returns `unavailable`, as does a missing
+A shared daily directory with no Vim subtree returns `unavailable`, as does a missing
 source root or a source containing only unsupported or unreadable records.
 Mixed valid and damaged records return `partial`. A record closing after the
 snapshot produces a limitation without making the source unavailable.
@@ -110,16 +107,14 @@ snapshot produces a limitation without making the source unavailable.
 The shared layout is:
 
 ```text
-raw/YYYY-MM-DD/screenshots/capture.png
-raw/YYYY-MM-DD/screenshots/manifest.json
+daily/YYYY-MM-DD/screenshots/capture.png
+daily/YYYY-MM-DD/screenshots/manifest.json
 ```
 
-JPEG, PNG, and WebP images are supported. An explicitly configured legacy root
-can contain flat image files. Imported flat files can also live under
-`legacy/screenshots/`, `legacy/screen/`, or `legacy/screen_record/` within the
-shared root. Existing dated `YYYY-MM-DD/screen_record/` directories are also
-read during collector migration. New collectors should use `screenshots/`.
-The adapter does not search unrelated source directories for images.
+JPEG, PNG, and WebP images are supported. Shared storage uses only
+`YYYY-MM-DD/screenshots/`. An explicitly configured screenshot source can
+also contain flat image files. The adapter does not search unrelated source
+directories for images.
 
 Without a manifest, a frame's filesystem modification time is its capture
 timestamp. Preserve modification times when importing old files. A JSON

@@ -45,7 +45,6 @@ python -m my_big_brother paths
 `--results-root` 可选择其他长期结果位置，不能与 daily 重叠。
 正式输出和 `daily` 须在同一文件系统。发布临时副本也放在日期目录，
 再原子替换正式文件。跨文件系统时会在替换任何输出之前报错。
-v2 不再使用 `--raw-logs-root`。
 
 初始化生成 `C/storage.json`，包含版本 2、`data_root` 和 `day_start_hour`。
 采集器和分析程序共用它，不必在 vimrc、bashrc 中重复设置。
@@ -53,7 +52,6 @@ v2 不再使用 `--raw-logs-root`。
 也不能只手工创建定位文件而不建立持久化登记。
 不支持在线修改已初始化的根目录或日界线。
 平台默认位置见 [INSTALLATION.md](../../INSTALLATION.md)。
-有效 v2 配置存在时，忽略旧 `raw-logs-path.txt`。
 v2 配置损坏时报告错误，不悄悄回退到旧目录。
 
 ## 工作日和删除
