@@ -52,8 +52,10 @@ python -m my_big_brother doctor
 默认语言仍是英文。
 此设置影响生成的文字，不改变 JSON 字段名、命令或安装的任务指令语言。
 
-采集器通过 可选的 `storage.json` 指定共享数据根。采集器默认可独立运行，按系统自然日期归档。
-修改存储或迁移旧版本之前，先读[存储 v2](STORAGE.md)。
+`init` 为主程序创建 `storage.json`，指定长期数据根。
+独立 Bash、Vim 记录器读取 `C/raw-logs-path.txt` 或使用平台默认值，
+不要求 `storage.json`。采集器按系统自然日期归档。
+修改路径前先读[存储说明](STORAGE.md)，当前预发布版本不提供旧目录迁移工具。
 读取 Agent 原生历史不需要新的采集插件。
 
 可选 Vim、截图适配器的记录格式与回看资产见[输入来源](INPUT-SOURCES.md)。

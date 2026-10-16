@@ -53,9 +53,11 @@ This is one field inside `config.json`, not a replacement for the entire file.
 English remains the default. This setting affects generated prose, not JSON
 field names, commands, or the language of the installed task instructions.
 
-An optional `storage.json` selects a shared data root. Collectors use natural
-calendar dates and work without this configuration file.
-See [Storage v2](STORAGE.md) before changing storage or migrating v1.
+`init` creates the main application's `storage.json` for its permanent data
+root. Independent Bash and Vim recorders read `C/raw-logs-path.txt` or use
+platform defaults, without requiring `storage.json`. Collectors use natural
+calendar dates. See [Storage](STORAGE.md) before changing paths. This
+pre-release provides no old-layout migration tool.
 Reading native Agent histories does not require a new collector plugin.
 
 Optional Vim and screenshot adapters, record formats, and replay assets are
