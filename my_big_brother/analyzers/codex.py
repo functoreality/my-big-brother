@@ -3,6 +3,7 @@
 import argparse
 import json
 import os
+import shlex
 import signal
 import shutil
 import subprocess
@@ -12,9 +13,11 @@ from pathlib import Path
 
 
 def validate_settings(value):
-    if not isinstance(value, dict) or set(value) - {"executable", "timeout_seconds", "model"}:
-        raise ValueError("codex supports executable, timeout_seconds, and optional model")
-    settings = {"executable": "codex", "timeout_seconds": 1800, **value}
+    if not isinstance(value, dict) or set(value) - {"executable", "timeout_seconds", "model", "mode"}:
+        raise ValueError("codex supports executable, timeout_seconds, optional model, and mode")
+    settings = {"executable": "codex", "timeout_seconds": 1800, "mode": "exec", **value}
+    if settings["mode"] not in ("exec", "tmux"):
+        raise ValueError("codex.mode must be exec or tmux")
     if not isinstance(settings["executable"], str) or not settings["executable"]:
         raise ValueError("codex.executable must be a program name or absolute path")
     if type(settings["timeout_seconds"]) is not int or settings["timeout_seconds"] < 1:
@@ -26,6 +29,8 @@ def validate_settings(value):
 
 def command(settings, run_dir, *, write_paths=()):
     settings = validate_settings(settings)
+    if settings["mode"] == "tmux" and os.name == "nt":
+        raise ValueError("Codex tmux mode requires Linux, macOS or WSL. Use exec on native Windows.")
     executable = shutil.which(settings["executable"])
     if executable is None:
         raise ValueError("Codex executable not found. Install it and log in before using this launcher.")
@@ -36,10 +41,15 @@ def command(settings, run_dir, *, write_paths=()):
         if not script.is_file() or not node:
             raise ValueError("Unrecognized Windows Codex wrapper. Set codex.executable to the native codex.exe path.")
         prefix = [node, str(script)]
-    args = prefix + ["-c", 'approval_policy="never"', "exec",
-            "--sandbox", "workspace-write", "--skip-git-repo-check",
-            "--ephemeral", "--color", "never", "--cd", str(run_dir),
-            "--output-last-message", str(run_dir / "logs" / "last-message.txt")]
+    args = prefix + ["-c", 'approval_policy="never"']
+    if settings["mode"] == "exec":
+        args.extend(["exec", "--skip-git-repo-check", "--ephemeral", "--color", "never",
+                     "--output-last-message", str(run_dir / "logs" / "last-message.txt")])
+    else:
+        # Trust only this invocation, without changing the user's global configuration.
+        args.extend(["-c", 'projects.' + json.dumps(str(run_dir)) + '.trust_level="trusted"',
+                     "--no-alt-screen", "--no-daemon"])
+    args.extend(["--sandbox", "workspace-write", "--cd", str(run_dir)])
     if settings.get("model"):
         args.extend(["--model", settings["model"]])
     for name in write_paths:
@@ -47,8 +57,60 @@ def command(settings, run_dir, *, write_paths=()):
         if not path.is_absolute() or not path.is_dir():
             raise ValueError(f"Additional writable root must be an absolute directory: {name}")
         args.extend(["--add-dir", str(path)])
-    args.append("-")
+    args.append("-" if settings["mode"] == "exec" else
+                "<!-- my-big-brother:analysis -->\nRead " + str(run_dir / "prompt.md") +
+                " and perform its task in this session.")
     return args
+
+
+def _tmux_quote(value):
+    """Quote tmux configuration arguments without expanding environment values."""
+    return '"' + "".join(
+        "\\%03o" % ord(char) if ord(char) < 32 or ord(char) == 127 else
+        "\\" + char if char in '\\"$' else char for char in value) + '"'
+
+
+def launch_tmux(args, run_dir, environment):
+    tmux = shutil.which("tmux")
+    if tmux is None:
+        raise ValueError("tmux executable not found. Install tmux or select codex.mode exec.")
+    session = "mbb-" + run_dir.name
+    terminal_log = run_dir / "logs" / "terminal.log"
+    terminal_log.touch(mode=0o600)
+    # A temporary non-Agent pane lets us attach logging and remove stale variables
+    # before the single Codex process starts.
+    waiting_command = shlex.quote(tmux) + " wait-for " + shlex.quote(session)
+    shell_command = "exec " + " ".join(shlex.quote(arg) for arg in args)
+    create = ["new-session", "-d", "-E", "-s", session, "-c", str(run_dir), "-x", "160", "-y", "48"]
+    removed = []
+    previous = subprocess.run([tmux, "show-environment", "-g"], stdout=subprocess.PIPE,
+                              stderr=subprocess.PIPE, env=environment)
+    if previous.returncode == 0:
+        for line in previous.stdout.decode("utf-8").splitlines():
+            key, separator, _ = line.partition("=")
+            if separator and key not in environment:
+                removed.append(key)
+    for key, value in environment.items():
+        create.extend(["-e", key + "=" + value])
+    create.append(waiting_command)
+    # Credentials travel only over stdin to tmux's per-session environment.
+    # Do not persist this script or include it in subprocess error messages.
+    script = " ".join(_tmux_quote(arg) for arg in create) + "\n"
+    for key in removed:
+        script += "set-environment -r -t " + _tmux_quote(session) + " " + _tmux_quote(key) + "\n"
+    script += "pipe-pane -o -t " + _tmux_quote(session) + " " + _tmux_quote(
+        "cat >> " + shlex.quote(str(terminal_log))) + "\n"
+    script += "respawn-pane -k -t " + _tmux_quote(session) + " " + _tmux_quote(shell_command) + "\n"
+    process = subprocess.run([tmux, "start-server", ";", "source-file", "-"],
+                             input=script.encode("utf-8"), stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE, env=environment)
+    if process.returncode:
+        subprocess.run([tmux, "kill-session", "-t", session], stdout=subprocess.PIPE,
+                       stderr=subprocess.PIPE, env=environment)
+        raise ValueError("tmux session startup failed (exit %s). Check tmux installation and configuration."
+                         % process.returncode)
+    return {"status": "session-started", "session_name": session,
+            "attach_command": " ".join(shlex.quote(arg) for arg in [tmux, "attach-session", "-t", session])}
 
 
 def launch(settings, run_dir, prompt, *, write_paths=(), environment=None):
@@ -56,6 +118,8 @@ def launch(settings, run_dir, prompt, *, write_paths=(), environment=None):
     args = command(settings, run_dir, write_paths=write_paths)
     (run_dir / "logs" / "command.json").write_text(
         json.dumps(args, indent=2) + "\n", encoding="utf-8")
+    if settings["mode"] == "tmux":
+        return launch_tmux(args, run_dir, dict(os.environ) if environment is None else environment)
     with (run_dir / "logs" / "stdout.log").open("w", encoding="utf-8") as out:
         with (run_dir / "logs" / "stderr.log").open("w", encoding="utf-8") as err:
             process = subprocess.Popen(args, stdin=subprocess.PIPE, stdout=out, stderr=err,
@@ -106,10 +170,12 @@ def writable_roots(paths, settings):
     return [str(root) for root in roots]
 
 
-def automate(paths, settings, *, review_date=None, snapshot_end=None, allow_empty=False, task=None, write_dirs=()):
+def automate(paths, settings, *, review_date=None, snapshot_end=None, allow_empty=False, task=None, write_dirs=(), mode=None):
     """Start one Agent. It owns the common prepare, review and finish workflow."""
     from .. import config, runner
     backend = validate_settings(settings["codex"])
+    if mode is not None:
+        backend = validate_settings({**backend, "mode": mode})
     if not review_date and (snapshot_end is not None or allow_empty):
         raise ValueError("snapshot-end and allow-empty require --date")
     if snapshot_end is not None and (
@@ -156,10 +222,14 @@ def automate(paths, settings, *, review_date=None, snapshot_end=None, allow_empt
     environment.update(TMPDIR=str(temporary_root), TMP=str(temporary_root), TEMP=str(temporary_root))
     runner.state(launch_dir, "running", invocation_id=invocation_id)
     try:
-        launch(backend, launch_dir, prompt, write_paths=write_paths, environment=environment)
+        started = launch(backend, launch_dir, prompt, write_paths=write_paths, environment=environment)
     except BaseException as error:
         runner.state(launch_dir, "failed", invocation_id=invocation_id, error=str(error))
         raise
+    if backend["mode"] == "tmux":
+        runner.state(launch_dir, "session-started", invocation_id=invocation_id,
+                     session_name=started["session_name"], attach_command=started["attach_command"])
+        return {**started, "launch_dir": str(launch_dir)}
     runner.state(launch_dir, "agent-exited", invocation_id=invocation_id)
     return {"status": "agent-exited", "launch_dir": str(launch_dir)}
 
@@ -169,6 +239,7 @@ def main(argv=None):
     from ..paths import discover
     parser = argparse.ArgumentParser(prog="python -m my_big_brother.analyzers.codex")
     parser.add_argument("--date")
+    parser.add_argument("--mode", choices=("exec", "tmux"), help="Override this invocation's Codex launch mode")
     parser.add_argument("--write-dir", action="append", default=[], help="Explicit additional Agent write permission")
     parser.add_argument("--task", help="Absolute task file, default the shared automation task")
     parser.add_argument("--snapshot-end")
@@ -178,7 +249,8 @@ def main(argv=None):
         paths = discover()
         cutoff = datetime.fromisoformat(args.snapshot_end.replace("Z", "+00:00")) if args.snapshot_end else None
         result = automate(paths, config.load(paths), review_date=args.date,
-                          snapshot_end=cutoff, allow_empty=args.allow_empty, task=args.task, write_dirs=args.write_dir)
+                          snapshot_end=cutoff, allow_empty=args.allow_empty, task=args.task,
+                          write_dirs=args.write_dir, mode=args.mode)
         print(json.dumps(result, indent=2, ensure_ascii=False))
         return 0
     except (ValueError, OSError, KeyError, TypeError, subprocess.TimeoutExpired) as error:
