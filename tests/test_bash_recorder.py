@@ -270,6 +270,18 @@ class BashRecorderTests(unittest.TestCase):
         self.assertIn('Session start/end times and directories are still recorded.', result.stderr)
         self.assertEqual(result.returncode, 0)
 
+    def test_history_disabled_notice_precedes_return_from_sourcing(self):
+        load = (f"source {shlex.quote(str(HOOK))}; "
+                "printf '\\n__AFTER_RECORDER_LOAD__\\n' >&2")
+        result, rows, root = self.shell(['set +o history'],
+            [load, f"source {shlex.quote(str(HOOK))}", 'printf disabled'], recording=False)
+        notice = 'my-big-brother: command recording paused'
+        self.assertLess(result.stderr.index(notice),
+                        result.stderr.index('\n__AFTER_RECORDER_LOAD__\n'))
+        self.assertEqual(result.stderr.count(notice), 1)
+        self.assertEqual(rows, [])
+        self.assertEqual(result.returncode, 0)
+
     def test_disabling_history_in_compound_input_does_not_hide_that_input(self):
         command = 'set +o history; printf same-input'
         result, rows, root = self.shell([], [command, 'printf subsequent-input',

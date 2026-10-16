@@ -112,9 +112,10 @@ It then restores the size before commands and prompt hooks execute.
 It does not use `BASH_COMMAND` as the recorded text.
 
 **Recording pause:** `set +o history` disables command capture. The recorder
-respects that choice and does not force history on. Before the next input,
-it prints one notice to stderr when it first observes history off or observes
-a transition from on to off. It does not repeat the notice at every prompt.
+respects that choice and does not force history on. If history is already off
+when the recorder is sourced, it prints a notice to stderr immediately.
+Later on-to-off transitions produce a notice before the next input.
+The first prompt does not repeat a startup notice, and continued pauses stay quiet.
 Session start/end times and directories are still recorded.
 `set -o history` resumes capture of subsequent inputs.
 This is a supported exclusion, distinct from disabling history-file persistence.

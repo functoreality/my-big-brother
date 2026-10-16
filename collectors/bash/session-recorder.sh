@@ -28,6 +28,15 @@ __mbb_read_history() {
     __mbb_history_command=${BASH_REMATCH[3]}
 }
 
+__mbb_check_history() {
+    if [[ ! -o history && ${__mbb_history_enabled:-1} != 0 ]]; then
+        printf '%s\n' 'my-big-brother: command recording paused (set +o history). Session start/end times and directories are still recorded. set -o history resumes command recording.' >&2
+    fi
+    __mbb_history_enabled=0
+    [[ -o history ]] && __mbb_history_enabled=1
+    return 0
+}
+
 # Observe complete input before native history filtering. Replay it through
 # Bash's own history builtin with the original settings before executing.
 __mbb_ready() {
@@ -42,11 +51,7 @@ __mbb_ready() {
     __mbb_ignore_set=${HISTIGNORE+x}
     __mbb_size=${HISTSIZE-}
     __mbb_size_set=${HISTSIZE+x}
-    if [[ ! -o history && ${__mbb_history_enabled:-1} != 0 ]]; then
-        printf '%s\n' 'my-big-brother: command recording paused (set +o history). Session start/end times and directories are still recorded. set -o history resumes command recording.' >&2
-    fi
-    __mbb_history_enabled=0
-    [[ -o history ]] && __mbb_history_enabled=1
+    __mbb_check_history
     __mbb_temporary_history=0
     if [[ $__mbb_history_enabled == 1 &&
           ( -n $__mbb_control || -n $__mbb_ignore || $__mbb_size == 0 ) ]]; then
@@ -159,3 +164,4 @@ else
     PROMPT_COMMAND="$__mbb_first_prefix"$'\n'"${__mbb_previous_prompt[0]-}"$'\n''__mbb_ready'
 fi
 __mbb_attached=1
+__mbb_check_history
