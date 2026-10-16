@@ -474,21 +474,21 @@ class ProfileTests(unittest.TestCase):
         self.assertFalse(runner.completed(self.paths, self.settings, DAY))
         self.assertTrue((run_dir / "actions/action_receipt.json").exists())
 
-    def test_publication_retry_recovers_own_partial_file_replacements(self):
+    def test_publication_retry_continues_after_complete_file_writes(self):
         run_dir, context = self.staged()
-        real_replace = os.replace
+        real_open = os.open
         finals = set(context["final_output_paths"])
-        replacements = 0
+        writes = 0
 
-        def fail_second_file(source, target):
-            nonlocal replacements
+        def fail_second_file(target, *args, **kwargs):
+            nonlocal writes
             if str(target) in finals:
-                replacements += 1
-                if replacements == 2:
+                writes += 1
+                if writes == 2:
                     raise OSError("fixture interrupted publication")
-            return real_replace(source, target)
+            return real_open(target, *args, **kwargs)
 
-        with patch.object(runner.os, "replace", side_effect=fail_second_file):
+        with patch.object(runner.os, "open", side_effect=fail_second_file):
             with self.assertRaisesRegex(OSError, "interrupted publication"):
                 runner.finish_run(self.paths, self.settings, run_dir)
         journal = Path(runner.read_object(run_dir / "context.json")["publication_journal"])

@@ -188,10 +188,13 @@ Retries after partial work must not duplicate messages, duration samples or
 memory facts. Receipts prove declared completion and validation, not that the
 Agent independently measured every semantic condition.
 
-Report publication is atomic per file and records its progress in
-`publication.json`. After an interrupted publication, retry `finish` with the
-same run to continue safely. A conflicting human edit stops further writes.
-This does not make all reports and later operations one filesystem transaction.
+Reports use ordinary file writes, with progress in `publication.json`.
+Publication is not atomic. An interrupted write can leave a partial target.
+Retrying `finish` continues only when destination digests still match the
+prepared originals or complete drafts. Conflicts stop further writes.
+Intact staged drafts remain available for manual recovery.
+See [Storage](STORAGE.md#publication-and-interrupted-writes) before recovering
+an interrupted write. Reports and later operations are not one transaction.
 
 The profile fingerprint includes its JSON, named instruction/task contents
 and declared validator scripts with `.py`, `.sh`, `.js` or `.ps1` suffixes.
@@ -232,6 +235,5 @@ all of that state without undoing applied changes. Explicitly requested reruns
 must verify external effects because no permanent operation history remains.
 Extensions must verify their own idempotence.
 
-Formal output overrides must be outside `raw-logs` and on the same filesystem
-as raw-log storage so publication can atomically replace them using dated
-temporary files. See [Storage](STORAGE.md).
+Formal output overrides must be outside `raw-logs`. They may use another
+filesystem or mount with appropriate write permissions. See [Storage](STORAGE.md).

@@ -152,6 +152,10 @@ formal reports and accumulated knowledge stay in permanent destinations.
 One fixed-size `raw-logs/.publish.lock` coordinates publication without date
 history. Native Agent histories remain with their applications.
 Confirm every active collector follows these paths before promising date-only cleanup.
+Formal outputs can use another writable filesystem or mount. Publication uses
+ordinary file writes, so an interrupted write may require manual recovery from
+the intact dated drafts. Explain this boundary and the recovery instructions in
+[Storage](docs/STORAGE.md#publication-and-interrupted-writes).
 
 ## 3. Configure outputs and personal context
 

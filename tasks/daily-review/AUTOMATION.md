@@ -117,6 +117,10 @@ If it reports `completed`, retain that final result.
 If it reports `actions-pending`, continue with the next phase.
 If publication or validation fails, preserve diagnostics and stop.
 Never bypass conflict checks to overwrite newer user edits.
+Publication uses ordinary file writes. An interruption may leave a partial
+formal file. Keep the intact staged drafts and report the affected paths for
+manual recovery. Do not automatically overwrite a conflicting target or claim
+that retrying will repair a partial write. See `docs/STORAGE.md`.
 
 ## Execute configured post-review work
 

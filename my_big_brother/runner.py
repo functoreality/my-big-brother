@@ -7,7 +7,6 @@ import os
 import shutil
 import stat
 import subprocess
-import tempfile
 import traceback
 import uuid
 from contextlib import contextmanager
@@ -291,8 +290,8 @@ def day_entry(paths, review_date):
     return (paths.layout.record(review_date) or {}).get("review", {})
 
 
-def publish_outputs(run_dir, context, layout, profile_digest, file_mode=None):
-    """Journal per-file replacement so a retry recognizes its own partial writes."""
+def publish_outputs(context, layout, profile_digest, file_mode=None):
+    """Publish validated drafts, retaining progress for retry or manual recovery."""
     journal_path = Path(context["publication_journal"])
     stage_digests = {item["staged"]: digest(Path(item["staged"])) for item in layout}
     if journal_path.exists():
@@ -311,16 +310,13 @@ def publish_outputs(run_dir, context, layout, profile_digest, file_mode=None):
     for item in layout:
         target = Path(item["final"])
         target.parent.mkdir(parents=True, exist_ok=True)
-        if target.parent.stat().st_dev != run_dir.stat().st_dev:
-            raise ValueError("Atomic publication requires formal outputs and raw-log storage "
-                             "on the same filesystem: " + str(target))
         current = digest(Path(item["final"]))
         staged = stage_digests[item["staged"]]
         original = context["original_digests"].get(item["final"])
         if item["final"] in journal["published"]:
             allowed = current == staged
         else:
-            # The rename may have succeeded just before a crash writing the journal.
+            # A complete write may have succeeded before the journal was updated.
             allowed = current in (original, staged)
         if not allowed:
             raise ValueError(f"Result changed after prepare, preserving it: {item['final']}")
@@ -330,16 +326,14 @@ def publish_outputs(run_dir, context, layout, profile_digest, file_mode=None):
             continue
         target = Path(item["final"])
         target.parent.mkdir(parents=True, exist_ok=True)
-        publication_dir = run_dir / "publication"
-        publication_dir.mkdir(exist_ok=True, mode=0o700)
-        fd, temporary = tempfile.mkstemp(prefix=".mbb-", dir=publication_dir)
+        content = Path(item["staged"]).read_bytes()
+        mode = int(file_mode, 8) if file_mode is not None else (
+            stat.S_IMODE(target.stat().st_mode) if target.exists() else 0o600)
+        fd = os.open(target, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
         with os.fdopen(fd, "wb") as handle:
-            handle.write(Path(item["staged"]).read_bytes())
-        if os.name == 'posix':
-            mode = int(file_mode, 8) if file_mode is not None else (
-                stat.S_IMODE(target.stat().st_mode) if target.exists() else 0o600)
-            os.chmod(temporary, mode)
-        os.replace(temporary, target)
+            if os.name == "posix":
+                os.fchmod(handle.fileno(), mode)
+            handle.write(content)
         journal["published"].append(item["final"])
         write_json(journal_path, journal)
     journal.update(status="published", published_at=now().isoformat())
@@ -461,9 +455,9 @@ def finish_run(paths, config, run_dir):
         if profile and profile["validation_command"]:
             run_validation(profile["validation_command"], run_dir, review_date, "review-validation")
     # Different review dates can share cumulative targets. Serialize the digest
-    # check and replacements so the second publisher sees the first one's edit.
+    # check and writes so the second publisher sees the first one's edit.
     with file_lock(paths.raw_logs / ".publish.lock"):
-        publish_outputs(run_dir, context, layout, profile_digest,
+        publish_outputs(context, layout, profile_digest,
                         file_mode=profile.get('output_file_mode') if profile else None)
     entry = {"run_id": context["run_id"], "run_dir": str(run_dir),
              "closed_day": context["window"]["closed_day"], "profile_digest": profile_digest,

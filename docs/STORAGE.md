@@ -69,11 +69,34 @@ On first installation, `--data-root /absolute/path` is a convenience that select
 that path's `raw-logs` and `memory` through the locator and `results_root`.
 It does not create a separate persistent data-root setting. Existing settings
 are preserved. `--results-root` can select a separate permanent output root.
-It cannot overlap raw-log storage. Formal outputs and `raw-logs` must share a
-filesystem because publication atomically replaces files using dated temporary
-copies. Cross-filesystem publication stops before replacing any output.
+It cannot overlap raw-log storage. Formal outputs may use another filesystem
+or mount, provided the executing Agent has permission to write there.
 Changing the capture locator does not move existing outputs.
 Platform C and D defaults are in [INSTALLATION.md](../INSTALLATION.md).
+
+## Publication and interrupted writes
+
+`finish` validates the staged outputs and checks destination digests before
+writing reports. A publication lock serializes cooperating publishers.
+Validated drafts are read and written directly to their formal destinations,
+without an additional temporary publication copy or cross-directory rename.
+Existing POSIX file modes are preserved. New files default to `0600` unless
+the profile explicitly selects another mode.
+
+Publication is not atomic, either per file or across the output set.
+A reader may briefly see incomplete content. An interrupted write can leave an
+empty or partial destination, while the complete draft remains in
+`raw-logs/DATE/_analysis/RUN/drafts/`. There is no automatic rollback or extra
+backup of the previous formal content.
+
+`publication.json` in that run records completed file writes. Retry `finish`
+with the same run if remaining targets still match their prepared originals
+or complete drafts. A partial write or newer human edit causes a digest conflict
+and stops publication. Inspect the affected target before manually restoring
+its intact draft or merging edits. Use `context.json`'s `output_mapping` to
+match each `staged` path to its `final` destination. After restoring the exact
+draft, retry `finish`. If you merge different content, prepare a new review.
+Do not discard newer edits or remove the dated recovery material prematurely.
 
 ## Natural capture dates and analysis windows
 

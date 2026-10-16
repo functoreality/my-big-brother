@@ -320,39 +320,77 @@ class StorageTests(unittest.TestCase):
         self.assertTrue(launch.is_dir())
         self.assertEqual(list(self.paths.memory.iterdir()), [])
 
-    def test_failed_publication_leaves_large_temporary_copy_only_in_daily(self):
+    def publication_fixture(self):
         self.settings['outputs'] = ['worklog']
         ticket = runner.prepare_run(self.paths, self.settings, '2020-01-15')
         run = Path(ticket['run_dir'])
         context = runner.read_object(run / 'context.json')
-        Path(context['output_paths'][0]).write_text('# Synthetic result\n')
+        staged = Path(context['output_paths'][0])
+        staged.write_text('# Synthetic result\n')
         config.write_json(run / 'completion.json', context['completion_example'])
-        destination = Path(context['final_output_paths'][0])
-        replace = runner.os.replace
+        return run, context, staged, Path(context['final_output_paths'][0])
 
-        def interrupted(source, target):
-            if Path(target) == destination:
-                raise OSError('Synthetic interruption before replacing report')
-            return replace(source, target)
+    def test_partial_write_preserves_draft_and_requires_manual_recovery(self):
+        run, context, staged, destination = self.publication_fixture()
+        fdopen = os.fdopen
 
-        with patch.object(runner.os, 'replace', side_effect=interrupted):
-            with self.assertRaisesRegex(OSError, 'Synthetic interruption'):
+        def interrupted(fd, mode, *args, **kwargs):
+            handle = fdopen(fd, mode, *args, **kwargs)
+            if mode == 'wb':
+                write = handle.write
+
+                def partial_write(content):
+                    write(content[:4])
+                    raise OSError('Synthetic interrupted write')
+
+                handle.write = partial_write
+            return handle
+
+        with patch.object(runner.os, 'fdopen', side_effect=interrupted):
+            with self.assertRaisesRegex(OSError, 'Synthetic interrupted write'):
                 runner.finish_run(self.paths, self.settings, run)
-        self.assertFalse(destination.exists())
-        self.assertTrue(list((run / 'publication').glob('.mbb-*')))
+        self.assertEqual(destination.read_bytes(), staged.read_bytes()[:4])
+        self.assertEqual(staged.read_text(), '# Synthetic result\n')
+        self.assertFalse(runner.completed(self.paths, self.settings, '2020-01-15'))
+        journal = runner.read_object(Path(context['publication_journal']))
+        self.assertEqual(journal['status'], 'publishing')
+        self.assertEqual(journal['published'], [])
+        self.assertFalse((run / 'publication').exists())
         self.assertFalse(list(self.paths.memory.rglob('.mbb-*')))
+        with self.assertRaisesRegex(ValueError, 'Result changed after prepare'):
+            runner.finish_run(self.paths, self.settings, run)
+        # Simulate a human checking the target and restoring the intact draft.
+        destination.write_bytes(staged.read_bytes())
         self.assertEqual(runner.finish_run(self.paths, self.settings, run)['status'], 'completed')
 
-    def test_cross_filesystem_publication_stops_before_replacing_any_report(self):
+    def test_unreadable_draft_does_not_truncate_existing_report(self):
         self.settings['outputs'] = ['worklog']
-        ticket = runner.prepare_run(self.paths, self.settings, '2020-01-15')
-        run = Path(ticket['run_dir'])
-        context = runner.read_object(run / 'context.json')
-        Path(context['output_paths'][0]).write_text('# Synthetic result\n')
-        config.write_json(run / 'completion.json', context['completion_example'])
-        target = Path(context['final_output_paths'][0])
+        first, _, _, target = self.publication_fixture()
+        runner.finish_run(self.paths, self.settings, first)
+        original = target.read_bytes()
+        run, _, staged, _ = self.publication_fixture()
+        read_bytes = Path.read_bytes
+        reads = 0
+
+        def unreadable(path):
+            nonlocal reads
+            if path == staged:
+                reads += 1
+                if reads == 2:
+                    raise OSError('Synthetic draft read failure')
+            return read_bytes(path)
+
+        with patch.object(Path, 'read_bytes', unreadable):
+            with self.assertRaisesRegex(OSError, 'draft read failure'):
+                runner.finish_run(self.paths, self.settings, run)
+        self.assertEqual(reads, 2)
+        self.assertEqual(target.read_bytes(), original)
+
+    def test_cross_filesystem_publication_needs_no_final_rename(self):
+        run, _, staged, target = self.publication_fixture()
         target.parent.mkdir(parents=True, exist_ok=True)
         original_stat = Path.stat
+        replace = os.replace
 
         def different_device(path, *args, **kwargs):
             result = original_stat(path, *args, **kwargs)
@@ -362,10 +400,19 @@ class StorageTests(unittest.TestCase):
                 return os.stat_result(values)
             return result
 
-        with patch.object(Path, 'stat', different_device):
-            with self.assertRaisesRegex(ValueError, 'same filesystem'):
-                runner.finish_run(self.paths, self.settings, run)
-        self.assertFalse(target.exists())
+        def no_final_rename(source, destination):
+            if Path(destination) == target:
+                raise OSError('Synthetic cross-mount rename rejected')
+            return replace(source, destination)
+
+        with patch.object(Path, 'stat', different_device), patch.object(
+                runner.os, 'replace', side_effect=no_final_rename):
+            result = runner.finish_run(self.paths, self.settings, run)
+        self.assertEqual(result['status'], 'completed')
+        self.assertEqual(target.read_bytes(), staged.read_bytes())
+        self.assertFalse((run / 'publication').exists())
+        if os.name == 'posix':
+            self.assertEqual(target.stat().st_mode & 0o777, 0o600)
 
 
 if __name__ == '__main__':

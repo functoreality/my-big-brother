@@ -68,7 +68,7 @@ Optional `codex.working_directory` selects an existing absolute main workspace
 for either mode, with workspace write access and normal Codex project-instruction
 discovery. By default, the Agent starts in its dated launch directory. Choosing
 another workspace keeps prompts, logs and temporary files in the dated run.
-It does not resolve cross-mount publication restrictions.
+Write permission for formal outputs outside that workspace must still be granted.
 A per-invocation override is:
 
 ```sh

@@ -90,8 +90,9 @@ publication without keeping date history. See [Storage](STORAGE.md).
    structured output, and conflicts with user edits made after preparation.
    Publication stops when these checks fail.
 5. Valid drafts are published to stable dated paths and recorded in the
-   dated `review.json`. File replacement is atomic per file, not across the
-   entire set of outputs. Run diagnostics remain available on failure.
+   dated `review.json`. Publication uses ordinary file writes across any
+   writable filesystem or mount. A failed write may leave a partial formal
+   file, with intact drafts retained for manual recovery. See [Storage](STORAGE.md).
 6. The same executing Agent performs a configured post-review task after publication,
    with its own context, permitted write directories, receipt, and validator.
    A failed operation phase remains pending and resumes without redoing the
