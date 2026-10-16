@@ -48,33 +48,60 @@ On Windows, the standard npm `codex.cmd` shim needs its adjacent JavaScript
 entry and discoverable Node. Other batch wrappers are rejected. Configure a
 native `codex.exe` path if that setup does not apply.
 
-## 2. Select inputs and initialize personal locations
+## 2. Discover native histories and initialize personal locations
 
-Ask which histories and collectors the user wants. Check for Vim/Neovim
+The installing Agent discovers native conversation sources and resolves their
+paths. Do not ask the user to identify routine history directories or provide
+a list of installed Agents before checking the intended computer and account.
+Currently supported native readers are Codex sessions and OpenCode SQLite.
+
+Inspect installed applications, known history locations, relevant environment
+settings and application configuration. Start with this project's current path
+defaults, honoring settings such as `CODEX_HOME` and `XDG_DATA_HOME`, and check
+the actual location and readable format. Locations have defaults, but are not
+one hardcoded path for every account or installation. Do not search unrelated
+accounts or private folders. A usable history can be included even when its
+Agent executable is no longer installed. Conversely, finding an executable
+does not prove readable history exists.
+
+On a first installation, configure detected supported native sources by default
+and tell the user which sources and locations will feed daily reviews. The user
+can exclude a source. Honor existing explicit inclusions, exclusions and path
+settings instead of overriding them during reinstallation. Do not ask again
+for every clearly identified native source. Ask for help only when a location
+cannot be established, permissions prevent discovery, or multiple candidates
+cannot be distinguished. If an installed supported Agent has no histories yet,
+configure its known expected location and explain that no records exist yet.
+Future records can use that configuration. Missing/unreadable histories remain
+coverage gaps, never successful evidence. Unsupported formats are not added
+merely because the application is installed.
+
+Choose inputs independently of the executor. If its own format is unsupported,
+use supported histories actually detected instead of silently substituting
+Codex. Reading existing native histories does not install a new collector.
+New Bash, Vim or screenshot recording remains a separate user choice.
+
+Ask which additional collectors the user wants. Check for Vim/Neovim
 executables, existing editor configuration or a recorder installation.
 If these exist or the user regularly uses the editor, recommend the separate
 plugin described in step 4 and ask whether to install it and update their
 active configuration. Detection is not recording consent.
 
-Choose inputs independently of the executor. If its own history format is
-unsupported, offer the supported records the user actually has. Do not enable
-Codex history merely because it is the first example below. Existing compatible
-records can be used without starting a new collector.
-
-For a first installation using Codex history:
+Initialize using the discovered, non-excluded source set. For example, when
+Codex is the detected native source:
 
 ```sh
 python -m my_big_brother init --sources codex
 python -m my_big_brother paths
 ```
 
-Use `--sources codex,opencode` for both supported native histories.
-The choice does not select the executing Agent. For existing Bash records,
-`init --sources bash` is also a valid standalone starting point. Set that
-source's path to the selected existing records. Enable `bash`, `vim` or
-`screenshots` only for wanted records, after checking existing compatible
-records or completing the corresponding collector setup. Initialization does not read histories or install recording hooks.
-Use actual paths, without searching unrelated accounts or private folders.
+Use `--sources codex,opencode` when both native sources are detected and included.
+These are examples, not a reason to enable an undetected Codex source.
+This choice does not select the executing Agent. For existing Bash records,
+`init --sources bash` is also a valid standalone starting point. Resolve that
+source's actual path. Enable `bash`, `vim` or `screenshots` only for wanted
+records, after checking existing compatible records or completing the chosen
+collector setup. Initialization does not read histories or install hooks.
 
 Use `--data-root` as a first-install shortcut selecting its raw-logs and memory,
 `--day-start-hour` for its analysis-only working-day boundary, and `--results-root` for
@@ -116,7 +143,8 @@ Confirm every active collector follows these paths before promising date-only cl
 
 Read the generated JSON and keep it valid. Configure:
 
-- `sources`: enabled records and their actual paths. Optional sources can
+- `sources`: detected native records and any chosen additional records, with
+  paths resolved by the installing Agent. Optional sources can
   remain visibly unavailable. A source marked `required` blocks publication
   if it is unavailable.
 - `outputs`: selected `worklog`, `time-use`, `insights`, `time-estimates`,

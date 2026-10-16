@@ -3,9 +3,11 @@
 [English](SETUP.md) | [简体中文](zh-CN/SETUP.md)
 
 Give [INSTALLATION.md](../INSTALLATION.md) to an Agent that can work on your
-computer. It is the shared English installation guide. Tell the Agent which
-histories you want included, your preferred report language, and whether you
-want a daily schedule or optional Bash recording.
+computer. It is the shared English installation guide. The installer discovers
+supported local Agent histories, resolves their paths and tells you which
+sources will be included. You do not need to know their history directories.
+Tell it any sources to exclude, your preferred report language, and whether
+you want a daily schedule or optional Bash recording.
 
 ## Requirements
 
@@ -18,8 +20,9 @@ want a daily schedule or optional Bash recording.
 - A working, authenticated Codex CLI for the bundled unattended launcher.
   Another capable Agent can instead use prepare/task/finish itself.
 
-Use `python3` if that selects your intended Python 3 interpreter. Run these commands from
-the cloned repository:
+Use `python3` if that selects your intended Python 3 interpreter. The commands
+below show a manual first installation with Codex history. An installing Agent
+uses the detected, non-excluded source set. Run them from the cloned repository:
 
 ```sh
 python -m my_big_brother init --sources codex
