@@ -340,6 +340,31 @@ class AutomationTests(unittest.TestCase):
                     codex.automate(self.paths, self.settings, **options)
             rejected.assert_not_called()
 
+    def test_nested_output_grants_do_not_enumerate_children(self):
+        profile = self.root / "profile.json"
+        nested = Path(self.settings["results_root"]) / "nested"
+        config.write_json(profile, {"output_paths": {"worklog": str(nested / "{date}.md")}})
+        self.settings["local_profile"] = str(profile)
+        with patch.object(codex, "launch") as launch:
+            codex.automate(self.paths, self.settings, review_date=DAY)
+        self.assertEqual(set(launch.call_args.kwargs["write_paths"]),
+                         {str(self.paths.raw_logs), self.settings["results_root"]})
+
+    def test_explicit_workspace_grant_covers_its_output_children(self):
+        workspace = self.root / "workspace"
+        profile = self.root / "profile.json"
+        config.write_json(profile, {"output_paths": {
+            "worklog": str(workspace / "records" / "{date}.md"),
+            "insights": str(workspace / "insights" / "{date}.md")}})
+        self.settings["local_profile"] = str(profile)
+        with patch.object(codex, "launch") as launch:
+            result = codex.automate(self.paths, self.settings, review_date=DAY,
+                                    write_dirs=[str(workspace)])
+        self.assertEqual(set(launch.call_args.kwargs["write_paths"]),
+                         {str(workspace), str(self.paths.raw_logs), self.settings["results_root"]})
+        context = runner.read_object(Path(result["launch_dir"]) / "context.json")
+        self.assertEqual(context["extra_write_paths"], [str(workspace)])
+
     def test_generic_automation_cli_has_no_agent_import(self):
         from my_big_brother import __main__ as cli
         with patch.object(cli, "discover", return_value=self.paths), \

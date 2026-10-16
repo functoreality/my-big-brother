@@ -198,6 +198,9 @@ def automate(paths, settings, *, review_date=None, snapshot_end=None, allow_empt
         root.mkdir(parents=True, exist_ok=True, mode=0o700)
         if str(root) not in write_paths:
             write_paths.append(str(root))
+    roots = {Path(name) for name in write_paths}
+    write_paths = [str(root) for root in sorted(roots)
+                   if not any(parent in roots for parent in root.parents)]
     launch_dir = paths.layout.launch_directory(review_date)
     invocation_id = launch_dir.name
     (launch_dir / "logs").mkdir(mode=0o700)

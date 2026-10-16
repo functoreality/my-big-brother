@@ -86,6 +86,13 @@ The installing Agent can write a local entry using its installed execution
 interface. Read installed help or official documentation when needed.
 The bundled example is `python -m my_big_brother.analyzers.codex`.
 A new entry can live outside the checkout or be contributed under `analyzers/`.
+The Codex entry derives write roots from raw logs, results and the selected
+profile's destinations. A local entry can add an explicitly authorized root
+with `--write-dir /absolute/directory`. Covered child roots are omitted before
+launch, without changing the combined permission scope. The entry never grants
+an unselected common parent merely to shorten the list. Task output bindings
+and post-review operation scopes remain separate from these filesystem grants.
+
 The entry only starts one Agent and carries necessary execution settings and
 logs. It must not plan review dates, prepare inputs, publish results,
 or verify business completion. The executing Agent calls `begin-automation`

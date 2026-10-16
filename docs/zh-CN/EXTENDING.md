@@ -81,6 +81,12 @@ Bash、Vim 和截图来源即使明确配置根路径，也必须采用日期/�
 安装 Agent 可以根据本机执行接口编写入口，不确定时查询本机帮助或官方文档。
 内置示例是 `python -m my_big_brother.analyzers.codex`。
 新入口可保存在安装仓库之外，也可作为 PR 加入 `analyzers/`。
+Codex 入口根据原始日志、结果与所选 profile 的目标准备写权限目录。
+本机入口可用 `--write-dir /absolute/directory` 增加用户明确授权的目录。
+启动前省略被已授权父目录覆盖的子目录，整体权限范围不变。
+不能仅为缩短列表就授予未选定的共同父目录。
+任务的输出绑定和后操作范围与这些文件系统授权分别保留。
+
 入口只启动一次 Agent，传递必要的执行设置并保留日志。
 日期规划、输入准备、发布和业务完成校验都由执行 Agent 负责。
 有启动上下文时，Agent 自己调用 `begin-automation` 和 `complete-automation`。
