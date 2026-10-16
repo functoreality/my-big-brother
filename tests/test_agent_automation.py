@@ -61,7 +61,7 @@ class AutomationTests(unittest.TestCase):
             tickets = [runner.analyze(self.paths, self.settings, context["date"],
                                       snapshot_end=cutoff, allow_empty=context["allow_empty"])]
         else:
-            tickets = runner.due(self.paths, self.settings, context["max_days"])
+            tickets = runner.due(self.paths, self.settings)
         config.write_json(Path(context["tickets_path"]), tickets)
         results = []
         for ticket in tickets:
@@ -111,17 +111,29 @@ class AutomationTests(unittest.TestCase):
         self.assertEqual(environment["PYTHONDONTWRITEBYTECODE"], "1")
         self.assertEqual(runner.read_object(launch_dir / "state.json")["status"], "agent-exited")
 
-    def test_bounded_catchup_and_empty_dates_are_verified(self):
+    def test_scheduled_invocation_only_analyzes_previous_closed_day(self):
+        older = self.paths.layout.ensure_day("2020-01-13")
         with patch.object(runner, "latest_closed_date", return_value=DAY):
-            result = self.automate(max_days=2)
-        self.assertEqual([item["date"] for item in result["results"]], ["2020-01-14", DAY])
-        self.assertEqual([item["status"] for item in result["results"]], ["empty", "completed"])
+            result = self.automate()
+        self.assertEqual([item["date"] for item in result["results"]], [DAY])
+        self.assertEqual([item["status"] for item in result["results"]], ["completed"])
+        self.assertEqual(list(older.iterdir()), [])
+        self.assertFalse((self.paths.raw_logs / "2020-01-14").exists())
 
-    def test_catchup_confirms_already_completed_from_ledger(self):
+    def test_scheduled_empty_previous_day_is_verified_without_older_catchup(self):
+        with patch.object(runner, "latest_closed_date", return_value="2020-01-16"):
+            result = self.automate()
+        self.assertEqual([item["date"] for item in result["results"]], ["2020-01-16"])
+        self.assertEqual(result["results"][0]["status"], "empty")
+        self.assertFalse(runner.day_entry(self.paths, DAY))
+
+    def test_scheduled_invocation_confirms_dated_completion(self):
         self.automate(review_date=DAY)
         with patch.object(runner, "latest_closed_date", return_value=DAY):
-            result = self.automate(max_days=1)
+            result = self.automate()
         self.assertEqual(result["results"][0]["status"], "already-completed")
+        record = runner.read_object(self.paths.raw_logs / DAY / "review.json")
+        self.assertEqual(record["review"]["status"], "completed")
 
     def test_snapshot_and_explicit_empty_are_completed_by_same_agent(self):
         cutoff = runner.window(DAY, 0)[0] + timedelta(hours=12)
@@ -197,14 +209,14 @@ class AutomationTests(unittest.TestCase):
         self.assertTrue((destination / DAY / 'worklog.md').is_file())
 
     def test_completed_claim_must_match_published_outputs(self):
-        def incomplete_ledger(settings, launch_dir, prompt, **kwargs):
+        def incomplete_record(settings, launch_dir, prompt, **kwargs):
             self.current_agent(settings, launch_dir, prompt, **kwargs)
             entry = runner.day_entry(self.paths, DAY)
             entry["outputs"] = []
             runner.update_completion(self.paths, DAY, entry)
             automation.complete(self.paths, self.settings, launch_dir)
 
-        with patch.object(codex, "launch", side_effect=incomplete_ledger):
+        with patch.object(codex, "launch", side_effect=incomplete_record):
             with self.assertRaisesRegex(ValueError, "configuration"):
                 codex.automate(self.paths, self.settings, review_date=DAY)
 
@@ -222,7 +234,7 @@ class AutomationTests(unittest.TestCase):
              patch.object(config, "load", return_value=self.settings), \
              patch.object(codex, "automate", side_effect=ValueError("fixture startup failed")), \
              patch("builtins.print") as output:
-            self.assertEqual(codex.main(["--max-days", "2"]), 1)
+            self.assertEqual(codex.main([]), 1)
         self.assertIn("fixture startup failed", output.call_args.args[0])
 
     def test_agent_exit_without_business_receipt_reports_only_process_exit(self):
@@ -251,8 +263,8 @@ class AutomationTests(unittest.TestCase):
                     codex.automate(self.paths, self.settings, review_date=DAY)
             launch.assert_not_called()
 
-    def test_launch_flags_require_a_date_and_bounded_catchup(self):
-        for kwargs in ({"allow_empty": True}, {"snapshot_end": runner.window(DAY, 0)[0]}, {"max_days": 0}, {"max_days": 32}):
+    def test_launch_snapshot_and_empty_flags_require_an_explicit_date(self):
+        for kwargs in ({"allow_empty": True}, {"snapshot_end": runner.window(DAY, 0)[0]}):
             with self.subTest(kwargs=kwargs), patch.object(codex, "launch") as launch:
                 with self.assertRaises(ValueError):
                     codex.automate(self.paths, self.settings, **kwargs)
@@ -275,7 +287,7 @@ class AutomationTests(unittest.TestCase):
                 for name in names:
                     stack.enter_context(patch.object(module, name, side_effect=AssertionError("Startup performed " + name)))
             launch = stack.enter_context(patch.object(codex, "launch"))
-            for request in ({"review_date": DAY}, {"max_days": 3}):
+            for request in ({"review_date": DAY}, {}):
                 value = codex.automate(self.paths, self.settings, **request)
                 self.assertEqual(value["status"], "agent-exited")
                 context = runner.read_object(Path(value["launch_dir"]) / "context.json")
@@ -284,23 +296,30 @@ class AutomationTests(unittest.TestCase):
                 self.assertFalse((Path(value["launch_dir"]) / "automation-context.json").exists())
             self.assertEqual(launch.call_count, 2)
 
-    def test_agent_selected_queue_dates_and_zero_work_use_one_startup(self):
-        for dates in (["2020-01-13", "2020-01-14", DAY], []):
-            def current(settings, launch_dir, prompt, **kwargs):
-                context = automation.begin(self.paths, self.settings, launch_dir, dates=dates)
-                tickets = [runner.analyze(self.paths, self.settings, item) for item in dates]
-                results = [self.write_review(ticket) if ticket["status"] == "prepared" else ticket
-                           for ticket in tickets]
-                config.write_json(Path(context["tickets_path"]), tickets)
-                config.write_json(Path(context["receipt_path"]), {
-                    "invocation_id": context["invocation_id"],
-                    "results": [{key: item[key] for key in ("date", "status", "run_dir")} for item in results]})
-                automation.complete(self.paths, self.settings, launch_dir)
-            with self.subTest(dates=dates), patch.object(codex, "launch", side_effect=current) as launch:
-                value = codex.automate(self.paths, self.settings, max_days=1)
-            launch.assert_called_once()
-            complete = runner.read_object(Path(value["launch_dir"]) / "automation-result.json")
-            self.assertEqual([item["date"] for item in complete["results"]], dates)
+    def test_agent_date_override_must_match_single_selected_day(self):
+        for review_date in (None, "2020-01-13"):
+            selected = review_date or DAY
+            for dates in ([selected], [], ["2020-01-14", DAY], ["2020-01-12"]):
+                def current(settings, launch_dir, prompt, **kwargs):
+                    context = automation.begin(self.paths, self.settings, launch_dir, dates=dates)
+                    self.assertEqual(context["dates"], [selected])
+                with self.subTest(review_date=review_date, dates=dates), \
+                     patch.object(runner, "latest_closed_date", return_value=DAY), \
+                     patch.object(codex, "launch", side_effect=current) as launch:
+                    if dates == [selected]:
+                        value = codex.automate(self.paths, self.settings, review_date=review_date)
+                        self.assertEqual(value["status"], "agent-exited")
+                    else:
+                        with self.assertRaises(ValueError):
+                            codex.automate(self.paths, self.settings, review_date=review_date)
+                launch.assert_called_once()
+
+    def test_removed_catchup_option_is_rejected_before_launch(self):
+        with patch.object(codex, "launch") as launch, patch("sys.stderr"):
+            with self.assertRaises(SystemExit) as rejected:
+                codex.main(["--max-days", "2"])
+        self.assertEqual(rejected.exception.code, 2)
+        launch.assert_not_called()
 
     def test_custom_task_and_explicit_import_permissions_are_passed_without_importing(self):
         task = self.root / "private-task.md"
@@ -329,11 +348,17 @@ class AutomationTests(unittest.TestCase):
             startup = codex.automate(self.paths, self.settings, review_date=DAY)
             launch.assert_called_once()
             launch.reset_mock()
-            self.assertEqual(cli.main(["begin-automation", "--launch-dir", startup["launch_dir"], "--dates"]), 0)
+            self.assertEqual(cli.main(["begin-automation", "--launch-dir", startup["launch_dir"],
+                                       "--dates", DAY]), 0)
             directory = Path(startup["launch_dir"])
             context = runner.read_object(directory / "automation-context.json")
-            config.write_json(directory / "tickets.json", [])
-            config.write_json(directory / "completion.json", context["receipt_example"])
+            ticket = runner.analyze(self.paths, self.settings, DAY)
+            result = self.write_review(ticket)
+            config.write_json(directory / "tickets.json", [ticket])
+            config.write_json(directory / "completion.json", {
+                "invocation_id": context["invocation_id"],
+                "results": [{key: result[key] for key in ("date", "status", "run_dir")}],
+            })
             self.assertEqual(cli.main(["complete-automation", "--launch-dir", startup["launch_dir"]]), 0)
             launch.assert_not_called()
         self.assertEqual(runner.read_object(directory / "automation-result.json")["status"], "completed")

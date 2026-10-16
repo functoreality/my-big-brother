@@ -1,20 +1,18 @@
 """Common automation planning and completion, called by the executing Agent."""
 
 import json
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from pathlib import Path
 
 from . import config, runner
 
 
-def invocation_dates(settings, review_date, max_days):
+def invocation_dates(settings, review_date):
     if review_date:
-        date.fromisoformat(review_date)
+        if date.fromisoformat(review_date).isoformat() != review_date:
+            raise ValueError("Dates must use YYYY-MM-DD")
         return [review_date]
-    if type(max_days) is not int or not 1 <= max_days <= 31:
-        raise ValueError("max_days must be from 1 to 31")
-    latest = date.fromisoformat(runner.latest_closed_date(settings["day_start_hour"]))
-    return [(latest - timedelta(days=offset)).isoformat() for offset in reversed(range(max_days))]
+    return [runner.latest_closed_date(settings["day_start_hour"])]
 
 
 def launch_context(paths, launch_dir):
@@ -35,14 +33,10 @@ def begin(paths, settings, launch_dir, dates=None):
     if context.get("snapshot_end"):
         runner.snapshot_window(context["date"], settings["day_start_hour"],
                                datetime.fromisoformat(context["snapshot_end"]))
-    if dates is None:
-        dates = invocation_dates(settings, context.get("date"), context.get("max_days"))
-    else:
-        for value in dates:
-            if date.fromisoformat(value).isoformat() != value:
-                raise ValueError("Automation dates must use YYYY-MM-DD")
-        if dates != sorted(set(dates)):
-            raise ValueError("Automation dates must be unique and oldest first")
+    selected = invocation_dates(settings, context.get("date"))
+    if dates is not None and dates != selected:
+        raise ValueError("Automation must select only the requested date or previous closed day")
+    dates = selected
     value = {**context, "dates": dates, "tickets_path": str(directory / "tickets.json"),
              "receipt_path": str(directory / "completion.json"),
              "receipt_example": {"invocation_id": context["invocation_id"],
@@ -74,11 +68,6 @@ def validate_receipt(paths, settings, launch_dir, context):
             if (ticket.get("status") != status or not runner.completed(paths, settings, review_date)
                 or run_dir != runner.day_entry(paths, review_date).get("run_dir")):
                 raise ValueError("Unverified already-completed automation result")
-        elif status == "discarded":
-            record = paths.layout.record(review_date)
-            if (ticket.get("status") != status or run_dir is not None
-                    or not record or record["disposition"] != "discarded"):
-                raise ValueError("Unverified discarded automation result")
         elif status == "completed":
             entry = runner.day_entry(paths, review_date)
             if (ticket.get("status") not in {"prepared", "actions-pending", "completed"}
@@ -88,7 +77,7 @@ def validate_receipt(paths, settings, launch_dir, context):
             review = runner.read_object(Path(run_dir) / "context.json")
             selected = config.load_profile(settings)
             expected_outputs = [item["final"] for item in runner.output_layout(
-                settings, review_date, paths.state, selected)]
+                settings, review_date, paths.raw_logs / review_date, selected)]
             if (review.get("date") != review_date or review.get("run_id") != entry.get("run_id")
                 or entry.get("profile_digest") != (selected["digest"] if selected else None)
                 or entry.get("review_configuration") != runner.review_configuration(paths, settings)

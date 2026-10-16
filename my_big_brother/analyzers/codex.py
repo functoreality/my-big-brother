@@ -84,7 +84,7 @@ def writable_roots(paths, settings):
     raw_logs = paths.raw_logs.resolve()
     if result_root == raw_logs or raw_logs in result_root.parents:
         raise ValueError("Formal results overlap disposable raw-log storage: " + str(result_root))
-    roots = [paths.state, paths.raw_logs, Path(settings["results_root"])]
+    roots = [paths.raw_logs, Path(settings["results_root"])]
     if profile:
         for template in profile["output_paths"].values():
             prefix = template.split("{date}", 1)[0]
@@ -106,12 +106,10 @@ def writable_roots(paths, settings):
     return [str(root) for root in roots]
 
 
-def automate(paths, settings, *, review_date=None, max_days=7, snapshot_end=None, allow_empty=False, task=None, write_dirs=()):
+def automate(paths, settings, *, review_date=None, snapshot_end=None, allow_empty=False, task=None, write_dirs=()):
     """Start one Agent. It owns the common prepare, review and finish workflow."""
     from .. import config, runner
     backend = validate_settings(settings["codex"])
-    if not 1 <= max_days <= 31:
-        raise ValueError("max_days must be from 1 to 31")
     if not review_date and (snapshot_end is not None or allow_empty):
         raise ValueError("snapshot-end and allow-empty require --date")
     if snapshot_end is not None and (
@@ -139,7 +137,7 @@ def automate(paths, settings, *, review_date=None, max_days=7, snapshot_end=None
     (launch_dir / "logs").mkdir(mode=0o700)
     context = {"invocation_id": invocation_id, "checkout": str(runner.REPO),
                "python_executable": sys.executable, "config": str(paths.config / "config.json"),
-               "date": review_date, "max_days": None if review_date else max_days,
+               "date": review_date,
                "snapshot_end": snapshot_end.isoformat() if snapshot_end else None,
                "allow_empty": allow_empty, "task": str(selected_task),
                "extra_write_paths": [str(Path(name).resolve()) for name in write_dirs]}
@@ -170,9 +168,7 @@ def main(argv=None):
     from .. import config
     from ..paths import discover
     parser = argparse.ArgumentParser(prog="python -m my_big_brother.analyzers.codex")
-    selector = parser.add_mutually_exclusive_group()
-    selector.add_argument("--date")
-    selector.add_argument("--max-days", type=int, default=7)
+    parser.add_argument("--date")
     parser.add_argument("--write-dir", action="append", default=[], help="Explicit additional Agent write permission")
     parser.add_argument("--task", help="Absolute task file, default the shared automation task")
     parser.add_argument("--snapshot-end")
@@ -181,7 +177,7 @@ def main(argv=None):
     try:
         paths = discover()
         cutoff = datetime.fromisoformat(args.snapshot_end.replace("Z", "+00:00")) if args.snapshot_end else None
-        result = automate(paths, config.load(paths), review_date=args.date, max_days=args.max_days,
+        result = automate(paths, config.load(paths), review_date=args.date,
                           snapshot_end=cutoff, allow_empty=args.allow_empty, task=args.task, write_dirs=args.write_dir)
         print(json.dumps(result, indent=2, ensure_ascii=False))
         return 0

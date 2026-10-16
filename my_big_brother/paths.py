@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from .storage import Layout
-from .collector_paths import platform_paths
+from .collector_paths import capture_root, platform_paths
 
 
 @dataclass(frozen=True)
@@ -13,20 +13,20 @@ class Paths:
     data: Path
 
     @property
-    def state(self) -> Path:
-        return self.layout.system
-
-    @property
     def layout(self):
-        return Layout.load(self.config, default_data_root=self.data)
+        return Layout(self.raw_logs)
 
     @property
     def raw_logs(self):
-        return self.layout.raw_logs
+        return capture_root(self.config, self.data)
 
     @property
     def memory(self):
-        return self.layout.memory
+        config = self.config / "config.json"
+        if config.exists():
+            import json
+            return Path(json.loads(config.read_text(encoding="utf-8")).get("results_root", str(self.data / "memory")))
+        return self.data / "memory"
 
 
 def discover(*, system=None, home=None, environ=None) -> Paths:

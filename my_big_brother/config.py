@@ -8,7 +8,6 @@ from pathlib import Path
 from string import Formatter
 
 from .paths import Paths, absolute, is_within
-from .storage import Layout
 
 DEFAULT_OUTPUTS = ("worklog", "time-use", "insights", "time-estimates")
 OUTPUTS = DEFAULT_OUTPUTS + ("user-model", "machine-context")
@@ -211,18 +210,17 @@ def load_profile(config):
 def initialize(paths, *, sources=None, results_root=None, data_root=None, day_start_hour=0):
     paths.config.mkdir(parents=True, exist_ok=True, mode=0o700)
     config_path = paths.config / "config.json"
-    if config_path.exists() and not (paths.config / "storage.json").exists():
-        raise ValueError("Existing configuration has no shared storage. Initialize a fresh configuration directory.")
-    if (paths.config / "storage.json").exists():
-        layout = paths.layout
-        if data_root is not None and Path(data_root) != layout.root:
-            raise ValueError("Existing storage preserved. In-place relocation is not supported.")
-    else:
-        layout = Layout.install(paths.config, data_root or paths.data)
     if not config_path.exists():
         config = defaults(paths)
         config["day_start_hour"] = day_start_hour
-        config["results_root"] = str(layout.memory)
+        if data_root is not None:
+            root = absolute(str(data_root), "data_root")
+            locator = paths.config / "raw-logs-path.txt"
+            if not locator.exists():
+                with locator.open("x", encoding="utf-8", newline="\n") as stream:
+                    stream.write(str(root / "raw-logs") + "\n")
+                locator.chmod(0o600)
+            config["results_root"] = str(root / "memory")
         enabled = SOURCES if sources is None else sources
         config["sources"] = {name: spec for name, spec in config["sources"].items() if name in enabled}
         if sources is not None:
@@ -231,9 +229,9 @@ def initialize(paths, *, sources=None, results_root=None, data_root=None, day_st
         if results_root:
             config["results_root"] = str(absolute(results_root, "results_root"))
         write_json(config_path, config)
-    elif sources is not None or results_root:
+    elif sources is not None or results_root or data_root is not None:
         raise ValueError("Existing config preserved. Edit config.json to change settings.")
     config = load(paths)
-    for directory in (paths.raw_logs, Path(config["results_root"]), paths.state):
+    for directory in (paths.raw_logs, Path(config["results_root"])):
         directory.mkdir(parents=True, exist_ok=True, mode=0o700)
     return config

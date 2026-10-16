@@ -1,4 +1,4 @@
-"""Deletion is a supported lifecycle transition, not a cleanup command."""
+"""Daily runtime material is disposable and needs no permanent registry."""
 
 import json
 import os
@@ -15,7 +15,7 @@ from pathlib import Path
 from my_big_brother import config, runner
 from my_big_brother import capture
 from my_big_brother.paths import Paths
-from my_big_brother.storage import DiscardedDay, Layout, write_json
+from my_big_brother.storage import write_json
 from my_big_brother.sources import bash, vim, calendar_dates
 from my_big_brother import __main__ as cli
 from my_big_brother.sources import screenshots
@@ -31,9 +31,9 @@ class StorageTests(unittest.TestCase):
         self.settings = config.initialize(self.paths, sources=['bash'], day_start_hour=4)
         self.layout = self.paths.layout
 
-    def discard(self, day):
+    def remove_day(self, day):
         directory = self.layout.raw_logs / day
-        directory.rename(self.root / ('discarded-' + day))
+        directory.rename(self.root / ('removed-' + day))
 
     def test_collectors_use_system_calendar_dates(self):
         before = datetime(2020, 1, 15, 3, 59).astimezone()
@@ -43,28 +43,28 @@ class StorageTests(unittest.TestCase):
 
     def test_default_collectors_need_no_application_configuration(self):
         paths = Paths(self.root / 'standalone-config', self.root / 'standalone-data')
-        result = capture.directory(paths, 'bash', datetime(2020, 1, 15, 3).astimezone())
+        instant = datetime(2020, 1, 15, 3).astimezone()
+        result = capture.directory(paths, 'bash', instant)
         self.assertEqual(Path(result['directory']), paths.data / 'raw-logs/2020-01-15/bash')
         self.assertFalse(paths.config.exists())
-        layout = Layout.for_collector(paths.config, paths.data)
-        (layout.raw_logs / '2020-01-15').rename(self.root / 'removed-default-date')
-        self.assertEqual(capture.directory(paths, 'bash', datetime(2020, 1, 15, 3).astimezone())['status'], 'discarded')
-        self.assertFalse((layout.raw_logs / '2020-01-15').exists())
-        (layout.system / 'identity.json').rename(self.root / 'saved-identity.json')
-        with self.assertRaisesRegex(ValueError, 'Do not reset'):
-            Layout.for_collector(paths.config, paths.data)
-        self.assertTrue((layout.system / 'days/2020-01-15.json').exists())
+        self.assertEqual(list(paths.data.iterdir()), [paths.raw_logs])
+        (paths.raw_logs / '2020-01-15').rename(self.root / 'removed-default-date')
+        recreated = capture.directory(paths, 'bash', instant)
+        self.assertEqual(recreated['status'], 'ready')
+        self.assertTrue(Path(recreated['directory']).is_dir())
+        self.assertFalse((paths.data / 'memory').exists())
 
-    def test_concurrent_default_collectors_initialize_one_registry_without_config(self):
-        config_dir, data = self.root / 'fresh-config', self.root / 'fresh-data'
-        def create(_):
-            layout = Layout.for_collector(config_dir, data)
-            layout.ensure_day('2020-01-15')
-            return layout.record('2020-01-15')['workspace_id']
+    def test_concurrent_default_collectors_share_plain_date_paths(self):
+        paths = Paths(self.root / 'fresh-config', self.root / 'fresh-data')
+        instant = datetime(2020, 1, 15, 3).astimezone()
         with ThreadPoolExecutor(max_workers=8) as pool:
-            identifiers = list(pool.map(create, range(24)))
-        self.assertEqual(len(set(identifiers)), 1)
-        self.assertFalse(config_dir.exists())
+            results = list(pool.map(lambda _: capture.directory(paths, 'bash', instant), range(24)))
+        self.assertEqual({row['directory'] for row in results},
+                         {str(paths.raw_logs / '2020-01-15/bash')})
+        self.assertFalse(paths.config.exists())
+        self.assertEqual(list(paths.data.rglob('*')),
+                         [paths.raw_logs, paths.raw_logs / '2020-01-15',
+                          paths.raw_logs / '2020-01-15/bash'])
 
     def test_capture_cli_works_before_application_initialization(self):
         paths = Paths(self.root / 'capture-config', self.root / 'capture-data')
@@ -147,72 +147,74 @@ class StorageTests(unittest.TestCase):
         self.assertEqual(row['session_status'], 'closed')
         self.assertIn('Whole-session', row['diff_scope'])
 
-    def test_deleted_failed_day_stays_discarded_until_explicit_restore(self):
+    def test_explicit_older_day_can_be_prepared_after_deletion(self):
         first = runner.prepare_run(self.paths, self.settings, '2020-01-15')
-        workspace = self.layout.record('2020-01-15')['workspace_id']
-        self.discard('2020-01-15')
-        self.assertEqual(runner.analyze(self.paths, self.settings, '2020-01-15')['status'], 'discarded')
-        self.assertEqual(runner.prepare_run(self.paths, self.settings, '2020-01-15')['status'], 'discarded')
-        self.assertFalse((self.layout.raw_logs / '2020-01-15').exists())
-        restored = runner.analyze(self.paths, self.settings, '2020-01-15', recreate_deleted=True)
-        self.assertNotEqual(restored['run_dir'], first['run_dir'])
-        self.assertNotEqual(self.layout.record('2020-01-15')['workspace_id'], workspace)
-        self.assertEqual(self.layout.record('2020-01-15')['disposition'], 'retained')
+        self.remove_day('2020-01-15')
+        self.assertIsNone(self.layout.record('2020-01-15'))
+        rerun = runner.analyze(self.paths, self.settings, '2020-01-15', allow_empty=True)
+        self.assertEqual(rerun['status'], 'prepared')
+        self.assertNotEqual(rerun['run_dir'], first['run_dir'])
+        self.assertTrue(Path(rerun['run_dir']).is_dir())
 
-    def test_completion_fact_survives_workspace_deletion(self):
+    def test_completion_fact_is_deleted_with_its_day(self):
         self.layout.ensure_day('2020-01-15')
-        self.layout.update_review('2020-01-15', {'status': 'completed', 'closed_day': True})
-        self.discard('2020-01-15')
-        value = self.layout.record('2020-01-15')
-        self.assertEqual(value['disposition'], 'discarded')
-        self.assertEqual(value['review']['status'], 'completed')
-        self.assertFalse((self.paths.state / 'completed.json').exists())
+        review = {'status': 'completed', 'closed_day': True}
+        self.layout.update_review('2020-01-15', review)
+        record = {'date': '2020-01-15', 'review': review}
+        self.assertEqual(self.layout.record('2020-01-15'), record)
+        self.assertEqual(json.loads((self.paths.raw_logs / '2020-01-15/review.json').read_text()), record)
+        self.remove_day('2020-01-15')
+        self.assertIsNone(self.layout.record('2020-01-15'))
+        self.assertEqual(list(self.paths.memory.iterdir()), [])
 
-    def test_concurrent_first_writers_share_one_generation(self):
-        def create(_):
-            self.layout.ensure_day('2020-01-15')
-            return self.layout.record('2020-01-15')['workspace_id']
+    def test_concurrent_first_writers_create_one_plain_directory(self):
         with ThreadPoolExecutor(max_workers=8) as pool:
-            identifiers = list(pool.map(create, range(24)))
-        self.assertEqual(len(set(identifiers)), 1)
+            directories = list(pool.map(lambda _: self.layout.ensure_day('2020-01-15'), range(24)))
+        self.assertEqual(set(directories), {self.paths.raw_logs / '2020-01-15'})
+        self.assertIsNone(self.layout.record('2020-01-15'))
+        self.assertEqual(list(directories[0].iterdir()), [])
 
-    def test_corrupt_registry_and_missing_system_are_not_reset(self):
-        self.layout.ensure_day('2020-01-15')
-        record = self.paths.state / 'days/2020-01-15.json'
+    def test_corrupt_daily_review_is_reported_without_replacement(self):
+        directory = self.layout.ensure_day('2020-01-15')
+        record = directory / 'review.json'
         record.write_text('{broken')
         with self.assertRaises(ValueError):
-            self.layout.ensure_day('2020-01-15')
+            self.layout.record('2020-01-15')
         self.assertEqual(record.read_text(), '{broken')
-        (self.paths.state / 'days').rename(self.paths.state / 'days-backup')
-        with self.assertRaises(ValueError):
-            Layout.load(self.paths.config)
-        with self.assertRaises(ValueError):
-            Layout.install(self.root / 'replacement-config', self.paths.data)
-        self.assertFalse((self.layout.system / 'days').exists())
+        self.assertEqual(list(self.paths.memory.iterdir()), [])
+        self.assertEqual(list(self.paths.config.iterdir()), [self.paths.config / 'config.json'])
 
-    def test_stale_run_rejected_after_explicit_restoration(self):
+    def test_run_must_exist_inside_retained_daily_analysis(self):
         ticket = runner.prepare_run(self.paths, self.settings, '2020-01-15')
         directory = Path(ticket['run_dir'])
-        context = runner.read_object(directory / 'context.json')
-        self.discard('2020-01-15')
-        self.layout.ensure_day('2020-01-15', recreate=True)
-        with self.assertRaises(DiscardedDay):
-            self.layout.check_run(directory, context['workspace_id'])
+        self.layout.check_run(directory)
+        self.remove_day('2020-01-15')
+        self.layout.ensure_day('2020-01-15')
+        with self.assertRaises(ValueError):
+            self.layout.check_run(directory)
+        outside = self.root / 'unmanaged-run'
+        outside.mkdir()
+        with self.assertRaises(ValueError):
+            self.layout.check_run(outside)
 
-    def test_analysis_boundary_does_not_change_storage(self):
-        original = (self.paths.config / 'storage.json').read_bytes()
+    def test_analysis_boundary_does_not_change_capture_paths(self):
+        original = self.paths.raw_logs
         self.settings['day_start_hour'] = 3
         config.write_json(self.paths.config / 'config.json', self.settings)
         self.assertEqual(config.load(self.paths)['day_start_hour'], 3)
-        self.assertEqual((self.paths.config / 'storage.json').read_bytes(), original)
-        self.assertNotIn('day_start_hour', self.layout.settings)
+        self.assertEqual(self.paths.raw_logs, original)
+        instant = datetime(2020, 1, 15, 2).astimezone()
+        self.assertEqual(capture.directory(self.paths, 'bash', instant)['date'], '2020-01-15')
+        self.assertFalse((self.paths.config / 'storage.json').exists())
+        self.assertFalse((self.paths.memory / '_system').exists())
 
-    def test_restore_rejects_invalid_date_before_creating_paths(self):
-        with self.assertRaises(ValueError):
-            self.layout.ensure_day('../escape', recreate=True)
-        self.assertFalse((self.paths.data / 'escape').exists())
+    def test_invalid_date_is_rejected_before_creating_paths(self):
+        for day in ('../escape', '2020-02-30', '20200115'):
+            with self.assertRaises(ValueError):
+                self.layout.ensure_day(day)
+        self.assertEqual(list(self.paths.raw_logs.iterdir()), [])
 
-    def test_bash_writer_keeps_start_date_and_never_recreates_discarded_day(self):
+    def test_bash_writer_keeps_start_date_and_does_not_recreate_removed_active_session(self):
         helper = Path(__file__).parents[1] / 'collectors/bash/recorder.py'
         spec = importlib.util.spec_from_file_location('test_v2_bash', helper)
         recorder = importlib.util.module_from_spec(spec)
@@ -231,14 +233,14 @@ class StorageTests(unittest.TestCase):
         log = next((self.layout.raw_logs / '2020-01-14/bash').glob('*.jsonl'))
         self.assertEqual(log.name, Path(session).name)
         self.assertEqual(json.loads(log.read_text().splitlines()[1])['command'], 'synthetic command')
-        self.discard('2020-01-14')
+        self.remove_day('2020-01-14')
         with patch.object(recorder._paths, 'platform_paths', return_value=(self.paths.config, self.paths.data)), \
              patch.object(recorder, 'now', return_value=clock), \
              patch.object(recorder.sys, 'stdin', SimpleNamespace(buffer=io.BytesIO(payload))):
             recorder.record()
         self.assertFalse((self.layout.raw_logs / '2020-01-14').exists())
 
-        self.layout.ensure_day('2020-01-14', recreate=True)
+        self.layout.ensure_day('2020-01-14')
         with patch.object(recorder, 'now', return_value=clock), \
              patch.object(recorder.sys, 'stdin', SimpleNamespace(buffer=io.BytesIO(payload))):
             recorder.record()
@@ -277,10 +279,24 @@ class StorageTests(unittest.TestCase):
         self.assertEqual((fresh.config / 'raw-logs-path.txt').read_bytes(), (str(target) + '\r\n').encode())
         self.assertEqual(fresh.memory, self.root / 'selected-data/memory')
         (fresh.config / 'raw-logs-path.txt').write_text(str(fresh.memory))
-        with self.assertRaisesRegex(ValueError, 'must not overlap'):
-            fresh.layout
+        with self.assertRaisesRegex(ValueError, 'outside disposable'):
+            config.load(fresh)
 
-    def test_existing_screenshot_is_registered_by_capture_time_and_discard_is_respected(self):
+    def test_first_install_root_shortcut_stores_only_locator_and_config(self):
+        paths = Paths(self.root / 'custom-config', self.root / 'platform-data')
+        selected = self.root / 'selected-data'
+        settings = config.initialize(paths, sources=['bash'], data_root=selected)
+        self.assertEqual(paths.raw_logs, selected / 'raw-logs')
+        self.assertEqual(paths.memory, selected / 'memory')
+        self.assertEqual(settings['results_root'], str(selected / 'memory'))
+        self.assertNotIn('data_root', settings)
+        self.assertEqual({path.name for path in paths.config.iterdir()},
+                         {'raw-logs-path.txt', 'config.json'})
+        self.assertEqual({path.name for path in selected.iterdir()}, {'raw-logs', 'memory'})
+        self.assertEqual(list(paths.memory.iterdir()), [])
+        self.assertFalse(paths.data.exists())
+
+    def test_existing_screenshot_uses_capture_date_and_daily_manifest(self):
         source = self.root / 'synthetic.jpg'
         source.write_bytes(b'fixture bytes, no image decoding requested')
         instant = datetime(2020, 1, 15, 3).astimezone()
@@ -289,16 +305,20 @@ class StorageTests(unittest.TestCase):
         self.assertEqual(Path(result['image']).read_bytes(), source.read_bytes())
         metadata = json.loads((Path(result['directory']) / 'manifest.jsonl').read_text())
         self.assertEqual(metadata['captured_at'], instant.isoformat())
-        self.discard('2020-01-15')
-        self.assertEqual(capture.screenshot(self.paths, source, instant)['status'], 'discarded')
-        self.assertFalse((self.layout.raw_logs / '2020-01-15').exists())
+        self.assertTrue((Path(result['directory']) / '.manifest.lock').is_file())
+        self.remove_day('2020-01-15')
+        repeated = capture.screenshot(self.paths, source, instant)
+        self.assertEqual(repeated['status'], 'ready')
+        self.assertTrue(Path(repeated['image']).exists())
+        self.assertEqual(list(self.paths.memory.iterdir()), [])
 
-    def test_log_fallback_does_not_resurrect_target_day(self):
+    def test_launch_logs_use_requested_day_without_permanent_registry(self):
         self.layout.ensure_day('2020-01-15')
-        self.discard('2020-01-15')
+        self.remove_day('2020-01-15')
         launch = self.layout.launch_directory('2020-01-15')
-        self.assertEqual(launch.parent.parent.name, self.layout.day())
-        self.assertFalse((self.layout.raw_logs / '2020-01-15').exists())
+        self.assertEqual(launch.parent.parent, self.paths.raw_logs / '2020-01-15')
+        self.assertTrue(launch.is_dir())
+        self.assertEqual(list(self.paths.memory.iterdir()), [])
 
     def test_failed_publication_leaves_large_temporary_copy_only_in_daily(self):
         self.settings['outputs'] = ['worklog']

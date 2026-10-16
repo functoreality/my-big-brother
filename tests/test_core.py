@@ -67,21 +67,49 @@ class CoreTests(unittest.TestCase):
             self.assertEqual(cli.main(['analyze', '--date', '2020-01-15']), 1)
             self.assertEqual(cli.main(['due']), 1)
 
-    def test_shared_storage_supports_spaces_and_rejects_missing_configuration(self):
-        self.assertEqual(self.paths.raw_logs, self.paths.layout.raw_logs)
-        (self.paths.config / "storage.json").rename(self.paths.config / "saved-storage.json")
-        with self.assertRaisesRegex(ValueError, 'not initialized'):
-            self.paths.raw_logs
+    def test_paths_work_without_application_or_storage_configuration(self):
+        paths = Paths(self.root / "fresh config", self.root / "fresh data")
+        self.assertEqual(paths.raw_logs, paths.data / "raw-logs")
+        self.assertEqual(paths.layout.raw_logs, paths.raw_logs)
+        self.assertEqual(paths.memory, paths.data / "memory")
+        with patch.object(cli, "discover", return_value=paths), \
+             contextlib.redirect_stdout(io.StringIO()) as output:
+            self.assertEqual(cli.main(["paths"]), 0)
+        resolved = json.loads(output.getvalue())
+        self.assertEqual(resolved["raw_logs"], str(paths.raw_logs))
+        self.assertEqual(resolved["results"], str(paths.memory))
+        self.assertNotIn("storage_config", resolved)
+        self.assertNotIn("state", resolved)
+        self.assertFalse(paths.config.exists())
+        self.assertFalse(paths.data.exists())
 
-    def test_init_preserves_existing_settings_and_storage(self):
+    def test_sparse_configuration_keeps_default_memory_path(self):
+        config.write_json(self.paths.config / "config.json", {})
+        settings = config.load(self.paths)
+        self.assertEqual(self.paths.memory, self.paths.data / "memory")
+        self.assertEqual(cli.resolved(self.paths, settings)["memory"],
+                         str(self.paths.data / "memory"))
+
+    def test_init_preserves_existing_settings_without_storage_configuration(self):
         self.settings["language"] = "zh"
         config.write_json(self.paths.config / "config.json", self.settings)
-        storage = (self.paths.config / "storage.json").read_bytes()
+        original = (self.paths.config / "config.json").read_bytes()
         initialized = config.initialize(self.paths)
         self.assertEqual(initialized["language"], "zh")
-        self.assertEqual((self.paths.config / "storage.json").read_bytes(), storage)
+        self.assertEqual((self.paths.config / "config.json").read_bytes(), original)
+        self.assertFalse((self.paths.config / "storage.json").exists())
+        self.assertFalse((self.paths.memory / "_system").exists())
         with self.assertRaises(ValueError):
             config.initialize(self.paths, results_root=str(self.root / "other"))
+        self.assertEqual((self.paths.config / "config.json").read_bytes(), original)
+
+    def test_cli_has_no_automatic_catchup_or_deleted_day_options(self):
+        for argv in (['due', '--max-days', '3'], ['plan-due', '--max-days', '3'],
+                     ['prepare', '--recreate-deleted'], ['analyze', '--recreate-deleted']):
+            with self.subTest(argv=argv), contextlib.redirect_stderr(io.StringIO()):
+                with self.assertRaises(SystemExit) as error:
+                    cli.parser().parse_args(argv)
+                self.assertEqual(error.exception.code, 2)
 
     def test_invalid_config_is_reported(self):
         for field, value in (("day_start_hour", True), ("day_start_hour", 24),
@@ -190,18 +218,16 @@ class CoreTests(unittest.TestCase):
         result = runner.analyze(self.paths, loaded, "2020-01-15")
         self.assertEqual(result["status"], "prepared")
 
-    def test_due_returns_bounded_tickets_oldest_first_without_launch(self):
+    def test_due_prepares_only_latest_closed_day_without_launch(self):
         self.evidence("2020-01-14")
         self.evidence("2020-01-15")
         with patch.object(runner, "latest_closed_date", return_value="2020-01-15"), \
              patch("my_big_brother.analyzers.codex.launch") as launch:
-            tickets = runner.due(self.paths, self.settings, 3)
-        self.assertEqual([item["date"] for item in tickets], ["2020-01-13", "2020-01-14", "2020-01-15"])
-        self.assertEqual([item["status"] for item in tickets], ["empty", "prepared", "prepared"])
+            tickets = runner.due(self.paths, self.settings)
+        self.assertEqual([item["date"] for item in tickets], ["2020-01-15"])
+        self.assertEqual([item["status"] for item in tickets], ["prepared"])
+        self.assertFalse((self.paths.raw_logs / "2020-01-14").exists())
         launch.assert_not_called()
-        for limit in (0, 32):
-            with self.assertRaises(ValueError):
-                runner.due(self.paths, self.settings, limit)
 
     def test_explicit_empty_review_produces_a_task_ticket(self):
         ticket = runner.analyze(self.paths, self.settings, "2020-01-15", allow_empty=True)
@@ -215,21 +241,38 @@ class CoreTests(unittest.TestCase):
         runner.finish_run(self.paths, self.settings, run)
         with patch.object(runner, "latest_closed_date", return_value="2020-01-15"):
             with patch("my_big_brother.analyzers.codex.launch") as launch:
-                results = runner.due(self.paths, self.settings, 1)
+                results = runner.due(self.paths, self.settings)
         self.assertEqual(results[0]["status"], "already-completed")
         launch.assert_not_called()
 
-    def test_due_rechecks_completion_after_date_lock(self):
-        with patch.object(runner, "latest_closed_date", return_value="2020-01-15"):
-            with patch.object(runner, "completed", side_effect=[False, True]) as check:
-                with patch("my_big_brother.analyzers.codex.launch") as launch:
-                    results = runner.due(self.paths, self.settings, 1)
+    def test_due_checks_completion_under_date_lock(self):
+        original_lock = runner.lock
+        held = []
+
+        @contextlib.contextmanager
+        def observed_lock(paths, review_date):
+            with original_lock(paths, review_date):
+                held.append(review_date)
+                try:
+                    yield
+                finally:
+                    held.pop()
+
+        def already_completed(paths, settings, review_date):
+            self.assertEqual(held, [review_date])
+            return True
+
+        with patch.object(runner, "latest_closed_date", return_value="2020-01-15"), \
+             patch.object(runner, "lock", observed_lock), \
+             patch.object(runner, "completed", side_effect=already_completed) as check, \
+             patch("my_big_brother.analyzers.codex.launch") as launch:
+            results = runner.due(self.paths, self.settings)
         self.assertEqual(results[0]["status"], "already-completed")
-        self.assertEqual(check.call_count, 2)
+        check.assert_called_once()
         launch.assert_not_called()
 
     @unittest.skipIf(os.name == "nt", "POSIX lock concurrency is executed on Linux")
-    def test_two_dates_finish_without_losing_shared_ledger(self):
+    def test_two_dates_finish_with_separate_daily_status(self):
         self.evidence("2020-01-15")
         self.evidence("2020-01-16")
         first, _ = self.staged_review("2020-01-15")

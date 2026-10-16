@@ -130,6 +130,10 @@ def main():
         assert review["status"] == "completed", review
         run_dir = Path(review["run_dir"])
         context = json.loads((run_dir / "context.json").read_text())
+        assert run_dir.parent == Path(paths["raw_logs"]) / DAY / "_analysis"
+        assert (Path(paths["raw_logs"]) / DAY / "review.json").is_file()
+        assert Path(context["publication_journal"]) == run_dir / "publication.json"
+        assert not (Path(paths["memory"]) / "_system").exists()
         assert len(context["final_output_paths"]) == (7 if args.with_knowledge else 5)
         for output in context["final_output_paths"]:
             assert Path(output).is_file(), output
@@ -140,7 +144,7 @@ def main():
             assert json.loads(marker.read_text()) == {"count": 1}
             assert (run_dir / "actions/action_receipt.json").is_file()
             assert not (run_dir / "actions/logs/command.json").exists(), "Post-review must not start another Agent"
-            assert len(list(Path(paths["state"]).glob("launches/*/logs/command.json"))) == 1
+            assert len(list(Path(paths["raw_logs"]).glob("*/_launches/*/logs/command.json"))) == 1
             summary["same_agent_post_review"] = True
     (root / "summary.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(summary, indent=2))

@@ -388,6 +388,11 @@ class ProfileTests(unittest.TestCase):
         self.assertEqual(result["status"], "completed")
         self.assertTrue(runner.completed(self.paths, self.settings, DAY))
         self.assertEqual(runner.read_object(run_dir / "actions/state.json")["status"], "completed")
+        action_context = runner.read_object(run_dir / "actions/context.json")
+        self.assertNotIn("operation_state_dir", action_context)
+        self.assertEqual(run_dir.parent, self.paths.raw_logs / DAY / "_analysis")
+        self.assertEqual(Path(context["publication_journal"]), run_dir / "publication.json")
+        self.assertFalse((self.paths.memory / "_system").exists())
 
     def test_failed_actions_resume_same_run_without_rewriting_reports(self):
         self.select_profile(post=True)
@@ -399,7 +404,7 @@ class ProfileTests(unittest.TestCase):
         final.write_text("Human addition after review publication\n", encoding="utf-8")
         with patch.object(runner, "latest_closed_date", return_value=DAY), \
              patch("my_big_brother.analyzers.codex.launch") as launch:
-            results = runner.due(self.paths, self.settings, 1)
+            results = runner.due(self.paths, self.settings)
             self.assertEqual(results[0]["status"], "actions-pending")
             self.finish_current_actions(run_dir)
         launch.assert_not_called()

@@ -16,7 +16,8 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from my_big_brother.storage import Layout
+from my_big_brother import config
+from my_big_brother.paths import Paths
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -104,7 +105,7 @@ class BashRecorderTests(unittest.TestCase):
         self.addCleanup(directory.cleanup)
         root = Path(directory.name)
         if initialize:
-            Layout.install(root / "config/my-big-brother", root / "data/my-big-brother")
+            config.initialize(Paths(root / "config/my-big-brother", root / "data/my-big-brother"))
         env = os.environ.copy()
         env.update(
             HOME=str(root), XDG_CONFIG_HOME=str(root / "config"),
@@ -398,7 +399,7 @@ class BashRecorderTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as temporary:
             base = Path(temporary)
-            Layout.install(base / "config/my-big-brother", base / "data/my-big-brother")
+            config.initialize(Paths(base / "config/my-big-brother", base / "data/my-big-brother"))
             env = os.environ.copy()
             env.update(HOME=temporary, XDG_CONFIG_HOME=temporary + "/config",
                        XDG_DATA_HOME=temporary + "/data", HISTFILE=temporary + "/history",

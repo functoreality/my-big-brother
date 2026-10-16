@@ -74,18 +74,19 @@ class KnowledgeOutputTests(unittest.TestCase):
 
     def test_opt_in_preserves_default_outputs_and_resolves_stable_paths(self):
         defaults = config.defaults(self.paths)
+        run_dir = self.paths.raw_logs / DAY / "_analysis" / "layout-fixture"
         self.assertEqual(defaults["outputs"], ["worklog", "time-use", "insights", "time-estimates"])
-        self.assertEqual(len(runner.output_layout(defaults, DAY, self.paths.state, None)), 5)
+        self.assertEqual(len(runner.output_layout(defaults, DAY, run_dir, None)), 5)
         config.write_json(self.paths.config / "config.json", self.settings)
         self.assertEqual(config.load(self.paths)["outputs"], list(config.OUTPUTS))
-        first = runner.output_layout(self.settings, DAY, self.paths.state, None)
-        second = runner.output_layout(self.settings, NEXT_DAY, self.paths.state, None)
+        first = runner.output_layout(self.settings, DAY, run_dir, None)
+        second = runner.output_layout(self.settings, NEXT_DAY, run_dir, None)
         self.assertEqual(len(first), 7)
         expected = {"user_model": "USER-MODEL.md", "machine_context": "MACHINE-CONTEXT.md"}
         for item in first[-2:]:
             relative = expected[item["kind"]]
             self.assertEqual(item["final"], str(Path(self.settings["results_root"]) / relative))
-            self.assertEqual(item["staged"], str(self.paths.state / "drafts" / relative))
+            self.assertEqual(item["staged"], str(run_dir / "drafts" / relative))
         self.assertEqual([item["final"] for item in first[-2:]],
                          [item["final"] for item in second[-2:]])
 
@@ -153,6 +154,30 @@ class KnowledgeOutputTests(unittest.TestCase):
         self.assertFalse(Path(context["publication_journal"]).exists())
         self.assertFalse(Path(context["final_output_paths"][0]).exists())
 
+    def test_removing_date_removes_completion_and_journal_but_keeps_outputs(self):
+        directory, context = self.prepare()
+        self.drafts(directory, context, addition="A retained supported observation.\n")
+        runner.finish_run(self.paths, self.settings, directory)
+        day_dir = self.paths.raw_logs / DAY
+        self.assertEqual(directory.parent, day_dir / "_analysis")
+        record = day_dir / "review.json"
+        self.assertEqual(runner.read_object(record)["review"]["run_dir"], str(directory))
+        journal = Path(context["publication_journal"])
+        self.assertEqual(journal, directory / "publication.json")
+        self.assertTrue(journal.is_file())
+        outputs = {Path(name): Path(name).read_bytes() for name in context["final_output_paths"]}
+        self.assertEqual(set(path.name for path in self.paths.raw_logs.iterdir()),
+                         {DAY, ".publish.lock"})
+        self.assertEqual(set(path.name for path in self.paths.memory.iterdir()),
+                         {"records", "USER-MODEL.md", "MACHINE-CONTEXT.md"})
+        day_dir.rename(self.root / "removed-day")
+        self.assertFalse(record.exists())
+        self.assertFalse(journal.exists())
+        self.assertFalse(runner.day_entry(self.paths, DAY))
+        self.assertFalse(runner.completed(self.paths, self.settings, DAY))
+        self.assertFalse(day_dir.exists())
+        self.assertEqual({path: path.read_bytes() for path in outputs}, outputs)
+
     def test_later_updates_keep_prior_day_and_automation_completion_valid(self):
         first, older = self.prepare()
         self.drafts(first, older, addition="Earlier observation.\n")
@@ -164,19 +189,18 @@ class KnowledgeOutputTests(unittest.TestCase):
         self.assertTrue(runner.completed(self.paths, self.settings, NEXT_DAY))
         for item in self.knowledge_items(newer):
             self.assertIn("Earlier observation.\nLater observation.", Path(item["final"]).read_text())
-        launch = self.root / "launch"
-        launch.mkdir()
-        invocation = {"invocation_id": "isolated", "dates": [DAY, NEXT_DAY],
-                      "date": None, "snapshot_end": None, "allow_empty": False}
-        tickets = [{"date": day, "status": "prepared", "run_dir": str(run)}
-                   for day, run in ((DAY, first), (NEXT_DAY, second))]
-        config.write_json(launch / "tickets.json", tickets)
-        config.write_json(launch / "completion.json", {
-            "invocation_id": "isolated",
-            "results": [{**ticket, "status": "completed"} for ticket in tickets],
-        })
-        results = automation.validate_receipt(self.paths, self.settings, launch, invocation)
-        self.assertEqual([item["date"] for item in results], [DAY, NEXT_DAY])
+        for day, directory in ((DAY, first), (NEXT_DAY, second)):
+            launch = self.paths.layout.launch_directory(day)
+            invocation = {"invocation_id": "isolated-" + day, "dates": [day],
+                          "date": day, "snapshot_end": None, "allow_empty": False}
+            ticket = {"date": day, "status": "prepared", "run_dir": str(directory)}
+            config.write_json(launch / "tickets.json", [ticket])
+            config.write_json(launch / "completion.json", {
+                "invocation_id": invocation["invocation_id"],
+                "results": [{**ticket, "status": "completed"}],
+            })
+            results = automation.validate_receipt(self.paths, self.settings, launch, invocation)
+            self.assertEqual([item["date"] for item in results], [day])
 
     @unittest.skipIf(os.name == "nt", "POSIX lock concurrency is executed on Linux")
     def test_concurrent_dates_cannot_overwrite_each_others_cumulative_updates(self):
@@ -254,7 +278,7 @@ class KnowledgeOutputTests(unittest.TestCase):
             runner.finish_run(self.paths, self.settings, directory)
         launch.assert_not_called()
 
-    def test_plan_due_lists_dates_without_preparation_or_mutations(self):
+    def test_plan_due_lists_only_previous_day_without_preparation_or_mutations(self):
         config.write_json(self.paths.config / "config.json", self.settings)
         original = {path: path.read_bytes() for path in self.root.rglob("*") if path.is_file()}
         with patch.object(runner, "latest_closed_date", return_value=NEXT_DAY), \
@@ -262,24 +286,24 @@ class KnowledgeOutputTests(unittest.TestCase):
              patch.object(runner, "analyze") as analyze, \
              patch("my_big_brother.sources.bash.collect") as collect, \
              patch("my_big_brother.analyzers.codex.launch") as launch:
-            status, value = self.invoke_cli(["plan-due", "--max-days", "2"])
+            status, value = self.invoke_cli(["plan-due"])
         self.assertEqual(status, 0)
-        self.assertEqual(value, {"dates": [DAY, NEXT_DAY]})
+        self.assertEqual(value, {"dates": [NEXT_DAY]})
         for action in (prepare, analyze, collect, launch):
             action.assert_not_called()
         self.assertEqual({path: path.read_bytes() for path in self.root.rglob("*") if path.is_file()}, original)
-        for limit in ("0", "32"):
-            status, message = self.invoke_cli(["plan-due", "--max-days", limit])
-            self.assertEqual(status, 1)
-            self.assertIn("max_days must be from 1 to 31", message)
+        with self.assertRaises(SystemExit) as rejected:
+            self.invoke_cli(["plan-due", "--max-days", "2"])
+        self.assertEqual(rejected.exception.code, 2)
 
-    def test_cli_sequential_catchup_merges_both_dates_without_another_agent(self):
+    def test_cli_explicit_older_review_and_previous_day_merge_without_another_agent(self):
         config.write_json(self.paths.config / "config.json", self.settings)
         with patch.object(runner, "latest_closed_date", return_value=NEXT_DAY), \
              patch("my_big_brother.analyzers.codex.launch") as launch:
-            status, plan = self.invoke_cli(["plan-due", "--max-days", "2"])
+            status, plan = self.invoke_cli(["plan-due"])
             self.assertEqual(status, 0)
-            for day in plan["dates"]:
+            self.assertEqual(plan["dates"], [NEXT_DAY])
+            for day in [DAY] + plan["dates"]:
                 rows = [{"content": "Dated user statement.", "timestamp": day + "T10:00:00+00:00"}]
                 with patch("my_big_brother.sources.bash.collect", return_value=SourceResult(rows=rows)):
                     status, ticket = self.invoke_cli(["analyze", "--date", day, "--skip-completed"])

@@ -21,13 +21,13 @@ def parser():
     init.add_argument("--results-root")
     init.add_argument("--data-root")
     init.add_argument("--day-start-hour", type=int, default=0)
-    capture = commands.add_parser("capture-path", help="Allocate a registered calendar-date source directory")
+    capture = commands.add_parser("capture-path", help="Allocate a calendar-date source directory")
     capture.add_argument("--source", required=True, choices=('bash', 'vim', 'screenshots'))
     capture.add_argument("--timestamp")
     screenshot = commands.add_parser("record-screenshot", help="Store an existing capture, without taking screenshots")
     screenshot.add_argument("--image", required=True)
     screenshot.add_argument("--timestamp")
-    failure = commands.add_parser("log-startup-error", help="Append a diagnostic inside a registered day")
+    failure = commands.add_parser("log-startup-error", help="Append a diagnostic inside the previous closed day")
     failure.add_argument("--message", required=True)
     commands.add_parser("paths", help="Show resolved paths without changing them")
     commands.add_parser("doctor", help="Check configuration and input paths")
@@ -35,8 +35,6 @@ def parser():
         command = commands.add_parser(name)
         command.add_argument("--date", help="Review date YYYY-MM-DD, default last closed logical day")
         command.add_argument("--snapshot-end", help="Optional fixed ISO snapshot cutoff with UTC offset")
-        command.add_argument("--recreate-deleted", action="store_true",
-                             help="Explicit user-authorized restoration of a discarded day")
         if name == "analyze":
             command.add_argument("--allow-empty", action="store_true", help="Explicitly analyze a day with no evidence")
             command.add_argument("--skip-completed", action="store_true", help="Skip a matching completed daily review")
@@ -47,10 +45,8 @@ def parser():
     begin.add_argument("--dates", nargs="*", help="Explicit oldest-first dates selected by a local task, including an empty list")
     complete = commands.add_parser("complete-automation", help="Verify automation completed by the current Agent")
     complete.add_argument("--launch-dir", required=True)
-    due = commands.add_parser("due", help="Prepare missing daily reviews for the current Agent")
-    due.add_argument("--max-days", type=int, default=7)
-    plan = commands.add_parser("plan-due", help="List oldest-first review dates without preparing evidence")
-    plan.add_argument("--max-days", type=int, default=7)
+    commands.add_parser("due", help="Prepare the previous closed daily review for the current Agent")
+    commands.add_parser("plan-due", help="List the previous closed review date without preparing evidence")
     return result
 
 
@@ -60,10 +56,9 @@ def resolved(paths, settings=None):
     return {"config": str(paths.config / "config.json"),
             "local_profile": profile["path"] if profile else None,
             "output_overrides": profile["output_paths"] if profile else {},
-            "storage_config": str(paths.config / "storage.json"),
             "raw_logs": str(paths.raw_logs), "memory": str(paths.memory),
             "results": settings["results_root"],
-            "state": str(paths.state), "checkout": str(runner.REPO)}
+            "checkout": str(runner.REPO)}
 
 
 def main(argv=None):
@@ -100,11 +95,7 @@ def main(argv=None):
                 print(json.dumps(value, indent=2, ensure_ascii=False))
                 return 0
             elif args.command == 'log-startup-error':
-                from .storage import DiscardedDay
-                try:
-                    directory = paths.layout.ensure_day(runner.latest_closed_date(settings['day_start_hour']))
-                except DiscardedDay:
-                    directory = paths.layout.ensure_day(paths.layout.day())
+                directory = paths.layout.ensure_day(runner.latest_closed_date(settings['day_start_hour']))
                 with (directory / 'scheduler.log').open('a', encoding='utf-8') as stream:
                     stream.write(datetime.now().astimezone().isoformat() + ' ' + args.message + '\n')
                 value = {'status': 'recorded', 'path': str(directory / 'scheduler.log')}
@@ -118,29 +109,23 @@ def main(argv=None):
                 review_date = args.date or runner.latest_closed_date(settings["day_start_hour"])
                 with runner.lock(paths, review_date):
                     cutoff = datetime.fromisoformat(args.snapshot_end.replace("Z", "+00:00")) if args.snapshot_end else None
-                    if args.recreate_deleted and not args.date:
-                        raise ValueError("recreate-deleted requires an explicit date")
-                    value = runner.prepare_run(paths, settings, review_date, snapshot_end=cutoff,
-                                               recreate_deleted=args.recreate_deleted)
+                    value = runner.prepare_run(paths, settings, review_date, snapshot_end=cutoff)
             elif args.command == "analyze":
-                if args.recreate_deleted and not args.date:
-                    raise ValueError("recreate-deleted requires an explicit date")
                 value = runner.analyze(paths, settings,
                                        args.date or runner.latest_closed_date(settings["day_start_hour"]),
                                        allow_empty=args.allow_empty,
                                        skip_completed=args.skip_completed,
-                                       recreate_deleted=args.recreate_deleted,
                                        snapshot_end=datetime.fromisoformat(args.snapshot_end.replace("Z", "+00:00"))
                                        if args.snapshot_end else None)
             elif args.command == "plan-due":
                 from . import automation
-                value = {"dates": automation.invocation_dates(settings, None, args.max_days)}
+                value = {"dates": automation.invocation_dates(settings, None)}
             elif args.command == "finish":
                 context = runner.read_object(Path(args.run_dir) / "context.json")
                 with runner.lock(paths, context["date"]):
                     value = runner.finish_run(paths, settings, args.run_dir)
             else:
-                value = runner.due(paths, settings, args.max_days)
+                value = runner.due(paths, settings)
         print(json.dumps(value, indent=2, ensure_ascii=False))
         if args.command == "analyze" and value.get("status") == "blocked":
             return 1
