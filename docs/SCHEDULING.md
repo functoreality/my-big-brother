@@ -60,6 +60,23 @@ Use this route when your setup has no suitable native scheduler:
 python -m my_big_brother.analyzers.codex
 ```
 
+Choose `codex.mode` in personal configuration. The default `exec` runs
+noninteractively. `tmux` starts a real interactive Codex TUI in a detached
+session on Linux, macOS or WSL with tmux installed. Native Windows uses exec.
+The installing Agent asks for this preference unless it is already clear.
+A per-invocation override is:
+
+```sh
+python -m my_big_brother.analyzers.codex --mode tmux
+```
+
+The tmux entry returns `session-started`, `session_name` and `attach_command`.
+Attach to that session to watch or send follow-up instructions. Detaching does
+not stop it, and completion leaves the TUI available until you close it.
+A missing/unsupported tmux setup fails rather than silently switching modes.
+Terminal logs are kept under the invocation's dated `logs/` directory.
+Neither a started session nor a successful scheduler exit proves completion.
+
 This starts one Codex session. It follows the shared task, using `plan-due` to
 select only the latest closed logical day, then prepares and completes its
 review and pending actions. A retained completed date is skipped. Empty dates
@@ -68,7 +85,8 @@ still considers only its latest closed logical day. Older empty, failed or
 missed dates are not queued for automatic catch-up.
 
 The Agent calls `begin-automation` and `complete-automation` itself.
-The entry reports `agent-exited`, which only records process exit. Inspect the
+In exec mode the entry reports `agent-exited`, which only records process exit.
+In tmux mode it returns before completion. Inspect the
 Agent-written `automation-result.json` in its returned `launch_dir` to confirm
 checked review completion. Failed or blocked results cannot pass that check.
 For a user-requested older rerun, use the external entry's `--date`, or ask the
@@ -86,9 +104,11 @@ Before installing a timer:
   environment. Do not assume interactive aliases or shell startup files load.
 - The launcher writes logs inside date directories under `raw-logs`. Do not add
   a permanent aggregate log outside `raw-logs`. Pre-log setup errors may only be
-  available as stderr or the host scheduler's own diagnostics.
+  available as stderr or the host scheduler's own diagnostics. Check that any
+  outer redirection has a valid parent before relying on runner notifications.
 - Allow enough time for the review and post-review work.
-  `codex.timeout_seconds` applies to the entire Agent session.
+  `codex.timeout_seconds` applies to the exec Agent session. tmux sessions stay
+  available for user interaction until explicitly closed.
 
 ### Linux: cron
 

@@ -149,8 +149,9 @@ python -m my_big_brother complete-automation --launch-dir /absolute/launch/direc
 
 This checks receipts against prepared evidence and the retained dated status,
 then writes `automation-result.json`. Require its returned `completed` status.
-The startup entry only returns `agent-exited` after your process exits.
-That status is not a review completion claim. Never restart an Agent or invoke
+The exec startup entry returns `agent-exited` after your process exits.
+The tmux entry returns `session-started` while your interactive session runs.
+Neither status is a review completion claim. Never restart an Agent or invoke
 another startup entry to repair a failed completion check.
 
 Without a launcher context, report the same final results to your native

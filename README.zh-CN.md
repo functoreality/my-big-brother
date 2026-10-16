@@ -100,6 +100,9 @@ Agent 负责理解记录，也可以通过显式个人配置维护长期背景�
 分析 Agent 不限于内置启动器，但尚未打包的后端需要安装时完成接入与验证。
 输入历史与分析 Agent 是两个独立选择。
 
+Codex 入口可选 `exec` 或可接入的 `tmux` 交互会话，安装时由 Agent 说明并询问偏好。
+tmux 模式需在 Linux、macOS 或 WSL 中安装 tmux，接入与完成检查见[定时运行](docs/zh-CN/SCHEDULING.md)。
+
 推荐 Python 3.11 或更新版本，旧版本未经验证，不保证兼容。
 核心只使用标准库，截图功能需要可选依赖 Pillow。
 在个人 JSON 配置中将 `language` 设为 `"zh-CN"`，即可请求生成中文报告。

@@ -84,7 +84,8 @@ Bash、Vim 和截图来源即使明确配置根路径，也必须采用日期/�
 入口只启动一次 Agent，传递必要的执行设置并保留日志。
 日期规划、输入准备、发布和业务完成校验都由执行 Agent 负责。
 有启动上下文时，Agent 自己调用 `begin-automation` 和 `complete-automation`。
-内置入口返回的 `agent-exited` 只表示进程正常退出，
+内置 exec 入口返回的 `agent-exited` 只表示进程正常退出，
+可选 tmux 模式返回 `session-started` 和同一交互会话的接入命令，两者都不代表业务完成。
 Agent 写出的 `automation-result.json` 才记录经过校验的业务完成状态。
 不要在每个入口里复制分析算法，或自动另启 Agent 执行后操作。
 

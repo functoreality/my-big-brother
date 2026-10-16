@@ -57,6 +57,20 @@ Agent 可以自行决定通过自身工具委派子任务。
 python -m my_big_brother.analyzers.codex
 ```
 
+在个人配置中选择 `codex.mode`。默认 `exec` 为非交互运行，
+`tmux` 在已安装 tmux 的 Linux、macOS 或 WSL 中启动后台交互式 Codex TUI。
+原生 Windows 使用 exec。安装 Agent 应询问偏好，已有明确选择时直接落实。
+也可只覆盖本次启动：
+
+```sh
+python -m my_big_brother.analyzers.codex --mode tmux
+```
+
+tmux 入口返回 `session-started`、`session_name` 和 `attach_command`。
+接入同一会话即可查看或补充指令，断开不停止运行，复盘完成后也保留 TUI，直到用户关闭。
+tmux 缺失或环境不支持时明确失败，不静默切换模式。
+终端日志留在本次调用日期内的 `logs/`，会话启动或定时器成功退出不代表复盘完成。
+
 这会启动一次 Codex 会话，遵循共享任务，用 `plan-due` 只选择最近一个
 已闭合逻辑日，再准备并完成其复盘和后操作。
 仍有完成标记的日期会跳过。空日不生成虚构报告，也不会标为完成。
@@ -64,7 +78,7 @@ python -m my_big_brother.analyzers.codex
 更早的空日、失败或错过的日期不会排队自动补做。
 
 Agent 自己调用 `begin-automation` 和 `complete-automation`。
-入口返回的 `agent-exited` 仅表示进程退出，
+exec 入口返回的 `agent-exited` 仅表示进程退出，tmux 入口则在分析完成前返回。
 应检查返回的 `launch_dir` 中由 Agent 写出的 `automation-result.json`，
 确认经过校验的复盘完成状态。失败或 blocked 不能通过该校验。
 用户明确要求重跑更早日期时，可用外部入口的 `--date`，
@@ -82,8 +96,9 @@ Agent 自己调用 `begin-automation` 和 `complete-automation`。
   不要假定交互式别名或 Shell 启动文件会加载。
 - 启动器将输出保存在日期目录。
   不要在日期区之外持续追加总日志。启动前错误可能只出现在标准错误或调度器自身诊断中。
+  外层重定向的父目录也要核实，否则脚本尚未进入就失败，内部通知无法执行。
 - 为复盘和后操作预留足够时间。
-  `codex.timeout_seconds` 限制整个 Agent 会话。
+  `codex.timeout_seconds` 限制 exec 会话，tmux 会话保留到用户主动关闭。
 
 ### Linux：cron
 

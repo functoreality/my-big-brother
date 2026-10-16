@@ -90,8 +90,10 @@ The entry only starts one Agent and carries necessary execution settings and
 logs. It must not plan review dates, prepare inputs, publish results,
 or verify business completion. The executing Agent calls `begin-automation`
 and `complete-automation` when using a launch context, and checks actual
-completion against common run state. The bundled entry returns `agent-exited`,
-while the Agent writes the checked `automation-result.json`.
+completion against common run state. In exec mode the bundled entry returns
+`agent-exited`. Its optional tmux mode returns `session-started` with an attach
+command for the same interactive TUI. Neither status means checked completion.
+The Agent writes the checked `automation-result.json`.
 Do not copy the analysis algorithm into each startup script or automatically
 launch a second Agent for post-review operations.
 

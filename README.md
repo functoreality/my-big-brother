@@ -110,6 +110,10 @@ Agent. They are not restricted to the bundled launcher, but an unbundled
 backend needs setup and verification. Input histories and the analyzer are
 independent choices.
 
+The Codex entry offers `exec` or an attachable interactive `tmux` session.
+The installer helps you choose. tmux mode needs Linux, macOS or WSL with tmux.
+See [Scheduling](docs/SCHEDULING.md) for joining and completion checks.
+
 Python 3.11+ is recommended. Older versions are unverified and compatibility
 is not guaranteed. The core uses only the standard library. Optional
 screenshots need Pillow. Configure `language: "zh-CN"` in your personal JSON

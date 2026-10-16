@@ -48,6 +48,20 @@ On Windows, the standard npm `codex.cmd` shim needs its adjacent JavaScript
 entry and discoverable Node. Other batch wrappers are rejected. Configure a
 native `codex.exe` path if that setup does not apply.
 
+If using the bundled Codex entry, ask which startup mode the user wants,
+unless already specified:
+
+- `exec` (default): a noninteractive run with captured logs and a timeout.
+- `tmux`: a detached, interactive Codex TUI that the user can attach to, watch
+  and message. It stays available after the review until the user closes it.
+
+Record this as `codex.mode`. tmux mode needs tmux in a Linux, macOS or WSL
+execution environment. Native Windows supports exec here. Do not silently
+substitute exec if a requested tmux setup is unavailable. Both modes start
+one Agent with the same task and permissions. tmux does not mean exec in a pane.
+For tmux, check that the installed Codex supports `--no-daemon`. The interactive
+entry uses it so this invocation does not reuse another server's environment.
+
 ## 2. Discover native histories and initialize personal locations
 
 The installing Agent discovers native conversation sources and resolves their
@@ -157,7 +171,9 @@ Read the generated JSON and keep it valid. Configure:
   field does not cause the core to launch that Agent.
 - `local_profile`: optional personal task rules, read-only references,
   output bindings, schema validators and scoped post-review operations.
-- `codex`: startup options only if using the bundled Codex entry.
+- `codex`: startup options only if using the bundled Codex entry, including
+  `mode: "exec"` or `mode: "tmux"`. `timeout_seconds` applies to exec, not the
+  retained interactive tmux session.
 
 Read [PROFILES.md](docs/PROFILES.md) before configuring personal extensions.
 Files under `local-tasks/` are used only when explicitly selected.
@@ -276,11 +292,21 @@ python -m my_big_brother.analyzers.codex --date 2026-01-15
 This can consume account quota and send selected evidence to the Agent's
 configured provider. It starts one Agent, which executes the common workflow
 and its configured post-review itself. It also calls `begin-automation` and
-`complete-automation` to plan and verify the invocation. The startup entry's
-`agent-exited` status only means that process exited successfully. Inspect
+`complete-automation` to plan and verify the invocation. In exec mode, the
+startup entry's `agent-exited` status only means that its process exited
+successfully. Inspect
 `automation-result.json` in the returned `launch_dir`, its completed status,
 receipts, reports and actual coverage. Without usable evidence, preserve an
 honest empty result. Required-source failures remain blocked.
+
+In tmux mode, the entry returns `session-started` with `session_name` and an
+attach command. It returns before analysis finishes. Attach to that exact
+session, verify a real interactive TUI accepts input, and check the same
+`automation-result.json` after the Agent completes its work. Detaching must
+leave it running. The session remains open for user follow-up after completion.
+Terminal diagnostics stay under that invocation's dated `logs/`. The exec
+process timeout does not kill a retained TUI. Never start another Agent merely
+to provide interaction or check business completion.
 
 For another Agent, use its native task or create a local one-shot startup
 runner with its supported execution interface. The runner launches that Agent
@@ -357,6 +383,11 @@ this interactive session. Confirm `paths` selects the same configuration,
 raw-log and output paths, inputs remain readable, and required writes complete without an
 unexpected approval wait. Interactive verification alone is not a test of
 the scheduled environment.
+
+Check the scheduled command's outer redirections too. A missing log parent
+prevents the shell from entering the runner, so its failure notification cannot
+run. Use existing dated diagnostics or prepare an authorized dated log inside
+the local wrapper. Do not redirect to a removed permanent state directory.
 
 Keep each trigger to one executing Agent. Do not configure an Agent-target
 notification, handoff, or job retry that automatically starts another Agent

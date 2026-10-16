@@ -82,7 +82,9 @@ python -m my_big_brother.analyzers.codex --date 2026-01-15
 这会使用已安装的 Codex 账号，可能消耗额度。
 选中的证据可能发送给该 Agent 配置的模型服务商。
 没有可用证据时，由已经启动的 Agent 记录空结果。
-入口返回的 `agent-exited` 只表示进程退出。
+`codex.mode` 默认 `exec`，此时返回的 `agent-exited` 只表示进程退出。
+选择 `tmux` 时返回 `session-started` 和接入命令，交互式 TUI 继续运行，
+可以接入同一会话查看进度或补充指令。tmux 需安装在 Linux、macOS 或 WSL 中。
 请检查返回的 `launch_dir` 中由 Agent 写出的 `automation-result.json`，
 再查看生成文件及其中说明的限制。
 
