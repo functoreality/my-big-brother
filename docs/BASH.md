@@ -111,11 +111,19 @@ With an original size of zero it removes the observation without retaining it.
 It then restores the size before commands and prompt hooks execute.
 It does not use `BASH_COMMAND` as the recorded text.
 
-**Known gap:** `set +o history` disables the input mechanism itself. Command
-capture is unavailable while that option is off, although session boundaries
-remain. The recorder preserves the disabled option. Turning it back on resumes
-capture. This is different from disabling history-file persistence and is an
-unresolved limitation, not an intentional recording exclusion.
+**Recording pause:** `set +o history` disables command capture. The recorder
+respects that choice and does not force history on. Before the next input,
+it prints one notice to stderr when it first observes history off or observes
+a transition from on to off. It does not repeat the notice at every prompt.
+Session start/end times and directories are still recorded.
+`set -o history` resumes capture of subsequent inputs.
+This is a supported exclusion, distinct from disabling history-file persistence.
+
+The complete input is observed before execution, so an input that turns history
+off may itself be recorded, including later commands in that same compound or
+multiline input. Submit `set +o history` separately and wait for the next prompt
+before sensitive input. Switching it off does not erase existing records or
+make the session untraceable.
 
 When the history list reaches `HISTSIZE`, temporarily reserving one slot and
 restoring the limit can renumber history entries. History content and duplicate
@@ -151,6 +159,13 @@ Other secrets and private text may still be recorded. History exclusions do
 not disable this recorder. Pause with `MBB_BASH_RECORDING=0` before sensitive
 input and set it back to `1` afterward. Selected evidence can be
 sent to the configured Analyzer provider. File names also reveal directory hints.
+
+If a command was also saved in native history, JSONL redaction does not remove
+that other copy. Native history may remain only in memory or exclude commands,
+so it does not establish that a secret has already been saved to disk or leaked.
+The extra JSONL copy can have different retention, synchronization and analysis
+destinations. Redaction reduces exposure in this copy, with limited protection
+and no guarantee that all secrets are detected.
 
 ## Why Bash uses a Python helper
 

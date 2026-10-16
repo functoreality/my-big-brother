@@ -42,6 +42,9 @@ __mbb_ready() {
     __mbb_ignore_set=${HISTIGNORE+x}
     __mbb_size=${HISTSIZE-}
     __mbb_size_set=${HISTSIZE+x}
+    if [[ ! -o history && ${__mbb_history_enabled:-1} != 0 ]]; then
+        printf '%s\n' 'my-big-brother: command recording paused (set +o history). Session start/end times and directories are still recorded. set -o history resumes command recording.' >&2
+    fi
     __mbb_history_enabled=0
     [[ -o history ]] && __mbb_history_enabled=1
     __mbb_temporary_history=0

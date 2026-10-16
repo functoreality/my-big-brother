@@ -246,22 +246,39 @@ class BashRecorderTests(unittest.TestCase):
 
     def test_history_can_be_disabled_and_enabled_during_a_recorded_session(self):
         result, rows, root = self.shell([], ['set +o history', 'printf disabled',
-            'HISTSIZE=0', 'printf zero', 'HISTSIZE=20', 'set -o history',
-            'printf enabled', 'history > observed-history'])
+            'set +o history', 'HISTSIZE=0', 'printf zero', 'HISTSIZE=20', 'set -o history',
+            'printf enabled', 'set +o history', 'printf disabled-again',
+            'set -o history', 'printf enabled-again', 'history > observed-history'])
         recorded = [row['command'] for row in rows]
         self.assertNotIn('printf disabled', recorded)
         self.assertNotIn('printf zero', recorded)
         self.assertIn('printf enabled', recorded)
+        self.assertNotIn('printf disabled-again', recorded)
+        self.assertIn('printf enabled-again', recorded)
+        self.assertEqual(result.stderr.count('my-big-brother: command recording paused'), 2)
         self.assertNotIn('printf disabled', (root / 'observed-history').read_text())
         self.assertNotIn('printf zero', (root / 'observed-history').read_text())
         self.assertEqual(result.returncode, 0)
 
-    def test_history_disabled_is_an_explicit_capture_gap(self):
+    def test_history_disabled_pauses_commands_but_retains_session_boundaries(self):
         result, rows, root = self.shell(['set +o history'], ['printf disabled'])
         self.assertEqual(rows, [])
         events = [json.loads(line) for path in root.rglob('*.jsonl')
                   for line in path.read_text().splitlines()]
         self.assertEqual([event['event'] for event in events], ['session_start', 'session_end'])
+        self.assertEqual(result.stderr.count('my-big-brother: command recording paused'), 1)
+        self.assertIn('Session start/end times and directories are still recorded.', result.stderr)
+        self.assertEqual(result.returncode, 0)
+
+    def test_disabling_history_in_compound_input_does_not_hide_that_input(self):
+        command = 'set +o history; printf same-input'
+        result, rows, root = self.shell([], [command, 'printf subsequent-input',
+                                            'set -o history', 'printf resumed'])
+        recorded = [row['command'] for row in rows]
+        self.assertIn(command, recorded)
+        self.assertNotIn('printf subsequent-input', recorded)
+        self.assertIn('printf resumed', recorded)
+        self.assertEqual(result.stderr.count('my-big-brother: command recording paused'), 1)
         self.assertEqual(result.returncode, 0)
 
     def test_original_exit_hook_observes_original_settings_on_eof(self):
@@ -362,6 +379,7 @@ class BashRecorderTests(unittest.TestCase):
         matches = [r for r in rows if r["command"] == "printf first; printf second"]
         self.assertEqual(len(matches), 1)
         self.assertNotIn("capture_scope", matches[0])
+        self.assertNotIn('my-big-brother: command recording paused', result.stderr)
 
     def test_redaction_and_disable(self):
         result, rows, root = self.shell([], ["TOKEN=secret", "MBB_BASH_RECORDING=0", "printf private",

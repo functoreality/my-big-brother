@@ -241,8 +241,10 @@ leading-space input and HISTIGNORE matches. The native history list keeps its
 original filtering rules. Zero history size and disabled history-file saving
 do not stop JSONL capture. Explain that history exclusions no longer provide
 recorder privacy. Use `MBB_BASH_RECORDING=0` to pause recording.
-The unresolved `set +o history` case has no command capture. Do not promise
-full coverage for that setup. A full history list can be renumbered, affecting
+`set +o history` intentionally pauses subsequent command capture, with one
+notice when observed off. Session boundaries remain. Explain that the switching
+input itself may already be captured, so users must submit it separately before
+sensitive input. `set -o history` resumes capture. A full history list can be renumbered, affecting
 numeric expansion such as `!123`, as documented in BASH.md. Do not enable it
 for users requiring stable numbers. Keep the existing redaction rule.
 Do not source it in a different shell or treat it as a PowerShell recorder.

@@ -50,8 +50,10 @@ Do not repeat session IDs, PIDs or session-start metadata on every command.
 JSONL must not lose commands because of native duplicate rules, leading-space
 filters, HISTIGNORE, zero history size or disabled history-file persistence.
 Preserve the user's native history content and execution settings.
-`set +o history` is an unresolved capture gap, explicitly documented in
-[Bash](BASH.md), along with the accepted history-numbering limitation.
+`set +o history` intentionally pauses subsequent command capture, with one
+notice when first observed off or after another on-to-off transition.
+Session boundaries remain. See [Bash](BASH.md) for the input boundary and
+the accepted history-numbering limitation.
 
 ## Review windows belong to analysis
 

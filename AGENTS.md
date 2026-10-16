@@ -29,7 +29,8 @@ Do not treat this file as the daily analysis task itself.
   first-simple-command capture. JSONL includes inputs excluded by native
   history filters and supports zero history size and disabled history-file
   persistence. Preserve native history contents and execution settings.
-  `set +o history` remains an explicit unresolved capture gap. See docs/BASH.md before changing this behavior.
+  `set +o history` intentionally pauses subsequent command capture, with one
+  notice when observed off. Session boundaries remain. See docs/BASH.md.
 - Treat source adapters and analyzer launchers as independent capabilities.
 - Keep Agent invocation only in independent startup entries. Common review
   scripts never launch a harness. The executing Agent follows AUTOMATION.md

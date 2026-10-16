@@ -81,7 +81,9 @@ Background jobs can outlive a foreground command.
 The bundled recorder captures complete history entries, including compound
 and multiline input. HISTIGNORE, leading-space filters, duplicate policies,
 zero history size and history-file persistence settings do not exclude JSONL
-commands. The unresolved `set +o history` case provides no command events.
+commands. `set +o history` intentionally pauses subsequent command capture,
+while session boundaries remain. Do not infer inactivity or a sensitive task
+from missing command events. The switching input itself may still be recorded.
 Command `started_at` comes from second-resolution history time. `completed_at`
 is observed at the prompt or normal exit, and command `cwd` is the shell
 directory before the full submitted input starts executing. Session boundary
