@@ -60,6 +60,10 @@ python -m my_big_brother.analyzers.codex
 在个人配置中选择 `codex.mode`。默认 `exec` 为非交互运行，
 `tmux` 在已安装 tmux 的 Linux、macOS 或 WSL 中启动后台交互式 Codex TUI。
 原生 Windows 使用 exec。安装 Agent 应询问偏好，已有明确选择时直接落实。
+可选 `codex.working_directory` 为已有主工作区的绝对路径，适用于两种模式，
+同时授予该工作区写权限，并按 Codex 规则加载项目指令。
+默认仍在日期内的启动目录运行。另选工作区不改变提示词、日志和临时文件的日期归属，
+也不解决跨挂载原子发布限制。
 也可只覆盖本次启动：
 
 ```sh

@@ -64,6 +64,11 @@ Choose `codex.mode` in personal configuration. The default `exec` runs
 noninteractively. `tmux` starts a real interactive Codex TUI in a detached
 session on Linux, macOS or WSL with tmux installed. Native Windows uses exec.
 The installing Agent asks for this preference unless it is already clear.
+Optional `codex.working_directory` selects an existing absolute main workspace
+for either mode, with workspace write access and normal Codex project-instruction
+discovery. By default, the Agent starts in its dated launch directory. Choosing
+another workspace keeps prompts, logs and temporary files in the dated run.
+It does not resolve cross-mount publication restrictions.
 A per-invocation override is:
 
 ```sh

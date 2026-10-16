@@ -13,8 +13,10 @@ from pathlib import Path
 
 
 def validate_settings(value):
-    if not isinstance(value, dict) or set(value) - {"executable", "timeout_seconds", "model", "mode"}:
-        raise ValueError("codex supports executable, timeout_seconds, optional model, and mode")
+    if not isinstance(value, dict) or set(value) - {
+        "executable", "timeout_seconds", "model", "mode", "working_directory"
+    }:
+        raise ValueError("codex supports executable, timeout_seconds, model, mode, and working_directory")
     settings = {"executable": "codex", "timeout_seconds": 1800, "mode": "exec", **value}
     if settings["mode"] not in ("exec", "tmux"):
         raise ValueError("codex.mode must be exec or tmux")
@@ -24,11 +26,17 @@ def validate_settings(value):
         raise ValueError("codex.timeout_seconds must be a positive integer")
     if "model" in settings and (not isinstance(settings["model"], str) or not settings["model"]):
         raise ValueError("codex.model must be a nonempty string")
+    if "working_directory" in settings:
+        directory = settings["working_directory"]
+        if (not isinstance(directory, str) or not Path(directory).is_absolute()
+            or not Path(directory).is_dir()):
+            raise ValueError("codex.working_directory must be an existing absolute directory")
     return settings
 
 
 def command(settings, run_dir, *, write_paths=()):
     settings = validate_settings(settings)
+    workspace = Path(settings.get("working_directory", run_dir)).resolve()
     if settings["mode"] == "tmux" and os.name == "nt":
         raise ValueError("Codex tmux mode requires Linux, macOS or WSL. Use exec on native Windows.")
     executable = shutil.which(settings["executable"])
@@ -47,16 +55,17 @@ def command(settings, run_dir, *, write_paths=()):
                      "--output-last-message", str(run_dir / "logs" / "last-message.txt")])
     else:
         # Trust only this invocation, without changing the user's global configuration.
-        args.extend(["-c", 'projects.' + json.dumps(str(run_dir)) + '.trust_level="trusted"',
+        args.extend(["-c", 'projects.' + json.dumps(str(workspace)) + '.trust_level="trusted"',
                      "--no-alt-screen", "--no-daemon"])
-    args.extend(["--sandbox", "workspace-write", "--cd", str(run_dir)])
+    args.extend(["--sandbox", "workspace-write", "--cd", str(workspace)])
     if settings.get("model"):
         args.extend(["--model", settings["model"]])
     for name in write_paths:
         path = Path(name)
         if not path.is_absolute() or not path.is_dir():
             raise ValueError(f"Additional writable root must be an absolute directory: {name}")
-        args.extend(["--add-dir", str(path)])
+        if path.resolve() != workspace:
+            args.extend(["--add-dir", str(path)])
     args.append("-" if settings["mode"] == "exec" else
                 "<!-- my-big-brother:analysis -->\nRead " + str(run_dir / "prompt.md") +
                 " and perform its task in this session.")
@@ -70,7 +79,7 @@ def _tmux_quote(value):
         "\\" + char if char in '\\"$' else char for char in value) + '"'
 
 
-def launch_tmux(args, run_dir, environment):
+def launch_tmux(args, run_dir, environment, *, working_directory=None):
     tmux = shutil.which("tmux")
     if tmux is None:
         raise ValueError("tmux executable not found. Install tmux or select codex.mode exec.")
@@ -81,7 +90,8 @@ def launch_tmux(args, run_dir, environment):
     # before the single Codex process starts.
     waiting_command = shlex.quote(tmux) + " wait-for " + shlex.quote(session)
     shell_command = "exec " + " ".join(shlex.quote(arg) for arg in args)
-    create = ["new-session", "-d", "-E", "-s", session, "-c", str(run_dir), "-x", "160", "-y", "48"]
+    workspace = run_dir if working_directory is None else working_directory
+    create = ["new-session", "-d", "-E", "-s", session, "-c", str(workspace), "-x", "160", "-y", "48"]
     removed = []
     previous = subprocess.run([tmux, "show-environment", "-g"], stdout=subprocess.PIPE,
                               stderr=subprocess.PIPE, env=environment)
@@ -115,15 +125,17 @@ def launch_tmux(args, run_dir, environment):
 
 def launch(settings, run_dir, prompt, *, write_paths=(), environment=None):
     settings = validate_settings(settings)
+    workspace = Path(settings.get("working_directory", run_dir)).resolve()
     args = command(settings, run_dir, write_paths=write_paths)
     (run_dir / "logs" / "command.json").write_text(
         json.dumps(args, indent=2) + "\n", encoding="utf-8")
     if settings["mode"] == "tmux":
-        return launch_tmux(args, run_dir, dict(os.environ) if environment is None else environment)
+        return launch_tmux(args, run_dir, dict(os.environ) if environment is None else environment,
+                           working_directory=workspace)
     with (run_dir / "logs" / "stdout.log").open("w", encoding="utf-8") as out:
         with (run_dir / "logs" / "stderr.log").open("w", encoding="utf-8") as err:
             process = subprocess.Popen(args, stdin=subprocess.PIPE, stdout=out, stderr=err,
-                                       start_new_session=os.name != "nt", env=environment)
+                                       start_new_session=os.name != "nt", env=environment, cwd=workspace)
             try:
                 process.communicate(prompt.encode("utf-8"), timeout=settings["timeout_seconds"])
             except (subprocess.TimeoutExpired, KeyboardInterrupt):
@@ -187,7 +199,10 @@ def automate(paths, settings, *, review_date=None, snapshot_end=None, allow_empt
         raise ValueError("task must be a readable absolute task file")
     write_paths = writable_roots(paths, settings)
     # Extra roots are an explicit installation grant, for example a private importer.
-    for name in write_dirs:
+    extra_roots = list(write_dirs)
+    if "working_directory" in backend:
+        extra_roots.append(backend["working_directory"])
+    for name in extra_roots:
         root = Path(name)
         if not root.is_absolute():
             raise ValueError("write-dir must be absolute")
@@ -216,6 +231,7 @@ def automate(paths, settings, *, review_date=None, snapshot_end=None, allow_empt
               f"Task: {selected_task}\n"
               f"Launch context: {launch_dir / 'context.json'}\n"
               "Read that task and context, then invoke the common CLI yourself.\n"
+              f"Keep scratch files in {launch_dir} or the dated review run, not the working directory.\n"
               "Do not invoke another startup entry. Do not modify configuration or the checkout.\n")
     (launch_dir / "prompt.md").write_text(prompt, encoding="utf-8")
     environment = dict(os.environ)

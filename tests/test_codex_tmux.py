@@ -57,6 +57,82 @@ class CodexTmuxTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "native Windows"):
                 codex.command({"mode": "tmux"}, self.run)
 
+    def test_selected_workspace_keeps_dated_prompts_and_logs(self):
+        workspace = self.root / "personal workspace"
+        workspace.mkdir()
+        for mode in ("exec", "tmux"):
+            with self.subTest(mode=mode), \
+                 patch.object(codex.shutil, "which", return_value="/tools/codex"):
+                command = codex.command({"mode": mode, "working_directory": str(workspace)}, self.run,
+                                        write_paths=[str(workspace), str(self.run)])
+            self.assertEqual(command[command.index("--cd") + 1], str(workspace))
+            self.assertEqual(command.count("--add-dir"), 1)
+            self.assertEqual(command[command.index("--add-dir") + 1], str(self.run))
+            if mode == "exec":
+                self.assertEqual(command[command.index("--output-last-message") + 1],
+                                 str(self.run / "logs/last-message.txt"))
+            else:
+                self.assertIn('projects.' + json.dumps(str(workspace)) + '.trust_level="trusted"', command)
+                self.assertIn(str(self.run / "prompt.md"), command[-1])
+
+    def test_workspace_requires_an_existing_absolute_directory(self):
+        for value in (None, "", [], 7, "relative", str(self.root / "missing"),
+                      str(self.run / "prompt.md")):
+            with self.subTest(value=value), self.assertRaisesRegex(ValueError, "working_directory"):
+                codex.validate_settings({"working_directory": value})
+
+    def test_process_working_directory_is_independent_of_logs_in_both_modes(self):
+        workspace = self.root / "workspace"
+        workspace.mkdir()
+        for mode in ("exec", "tmux"):
+            with self.subTest(mode=mode), \
+                 patch.object(codex.shutil, "which", return_value="/tools/codex"), \
+                 patch.object(codex, "launch_tmux") as tmux, \
+                 patch.object(codex.subprocess, "Popen") as popen:
+                popen.return_value.returncode = 0
+                codex.launch({"mode": mode, "working_directory": str(workspace)},
+                             self.run, "task", environment={})
+            if mode == "exec":
+                tmux.assert_not_called()
+                self.assertEqual(popen.call_args.kwargs["cwd"], workspace)
+                self.assertEqual(popen.call_args.kwargs["stdout"].name, str(self.run / "logs/stdout.log"))
+            else:
+                popen.assert_not_called()
+                self.assertEqual(tmux.call_args.kwargs["working_directory"], workspace)
+            self.assertTrue((self.run / "logs/command.json").exists())
+            self.assertEqual(list(workspace.iterdir()), [])
+
+    def test_workspace_grant_keeps_materials_dated_and_protects_configuration(self):
+        paths = Paths(self.root / "config", self.root / "data")
+        settings = config.initialize(paths, sources=["bash"])
+        workspace = self.root / "workspace"
+        workspace.mkdir()
+        settings["codex"]["working_directory"] = str(workspace)
+        with patch.object(codex, "launch") as launch:
+            result = codex.automate(paths, settings, review_date="2020-01-15")
+        self.assertIn(str(workspace), launch.call_args.kwargs["write_paths"])
+        directory = Path(result["launch_dir"])
+        self.assertIn(paths.raw_logs / "2020-01-15", directory.parents)
+        self.assertEqual(launch.call_args.kwargs["environment"]["TMPDIR"], str(directory / "tmp"))
+        self.assertEqual(list(workspace.iterdir()), [])
+        for protected in (paths.config, runner.REPO):
+            settings["codex"]["working_directory"] = str(protected)
+            with self.subTest(path=protected), patch.object(codex, "launch") as launch:
+                with self.assertRaisesRegex(ValueError, "protected"):
+                    codex.automate(paths, settings)
+            launch.assert_not_called()
+
+    def test_tmux_pane_uses_selected_workspace_but_logs_to_launch(self):
+        workspace = self.root / "workspace"
+        workspace.mkdir()
+        result = subprocess.CompletedProcess([], 0, b"", b"")
+        with patch.object(codex.shutil, "which", return_value="/tools/tmux"), \
+             patch.object(codex.subprocess, "run", return_value=result) as run:
+            codex.launch_tmux(["/tools/codex"], self.run, {}, working_directory=workspace)
+        script = run.call_args.kwargs["input"].decode("utf-8")
+        self.assertIn('"-c" ' + codex._tmux_quote(str(workspace)), script)
+        self.assertIn(str(self.run / "logs/terminal.log"), script)
+
     def test_missing_tmux_does_not_launch_codex(self):
         with patch.object(codex.shutil, "which", return_value=None), \
              patch.object(codex.subprocess, "run") as run:

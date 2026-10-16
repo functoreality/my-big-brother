@@ -174,6 +174,13 @@ Read the generated JSON and keep it valid. Configure:
 - `codex`: startup options only if using the bundled Codex entry, including
   `mode: "exec"` or `mode: "tmux"`. `timeout_seconds` applies to exec, not the
   retained interactive tmux session.
+  Optional `working_directory` selects an existing absolute workspace directory.
+  It becomes the Agent's working directory and writable main workspace, and
+  can change which project instructions and settings Codex loads. Use this
+  when personal tasks expect an existing workspace. Otherwise omit it to keep
+  the dated launch directory as the default. Do not select the checkout or
+  configuration directory. Keep prompts, logs and scratch files in the dated
+  run even when the Agent starts elsewhere.
 
 Read [PROFILES.md](docs/PROFILES.md) before configuring personal extensions.
 Files under `local-tasks/` are used only when explicitly selected.

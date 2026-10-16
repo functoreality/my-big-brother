@@ -32,6 +32,9 @@ Run commands with the selected Python and installation on the module search
 path. Quote path arguments. Preserve the account and configuration-discovery
 environment used at installation. Do not initialize or change settings while
 executing a daily review.
+Your working directory may be an explicitly chosen personal workspace.
+Keep invocation files and scratch work in the dated launch or review run,
+using absolute paths rather than writing temporary files in the current directory.
 
 ## Prepare work
 
