@@ -9,9 +9,8 @@ tasks. Read this before changing dates, paths or recorder dependencies.
 
 Use `raw-logs/YYYY-MM-DD/` for captures and all disposable review material,
 including preprocessing, indexes, Agent drafts and run logs. Raw material is
-not restricted to bytes that no tool or AI has processed. Published reports,
-long-term knowledge and minimal persistent system facts stay in `memory` or
-explicit permanent output destinations. Cleanup follows this retention
+not restricted to bytes that no tool or AI has processed. Published reports and
+long-term knowledge stay in `memory` or explicit permanent output destinations. Cleanup follows this retention
 boundary, not whether AI has handled the content.
 
 ## Natural dates belong to collection
@@ -36,7 +35,7 @@ boundary, not whether AI has handled the content.
   date, including when it ends after midnight. Existing files are snapshotted
   when opened. Diffs and `record.json` are generated at exit. Do not add
   midnight segments or timer, read/write, or focus checkpoints.
-- Shared storage governs paths, date registration and deletion. It does not
+- Shared storage governs paths and the lifecycle of dated material. It does not
   change a collector's capture behavior to make records available sooner.
 
 ## Preserve Bash recording behavior
@@ -82,10 +81,10 @@ Formal reports remain in `memory` or explicitly selected permanent targets.
   locator. Without it, recorders use the platform data directory's `raw-logs`.
   Bash, Vim and the main application's raw-log storage use this same path.
   A present malformed locator is an error. Never silently choose another root.
-- Bash and Vim do not read `storage.json` or maintain day registries.
-  The main application uses `storage.json` for its permanent data root and
-  maintains minimal date-registration metadata for analysis and managed writes.
-  This does not impose that protocol on independent recorders.
+- No application requires `storage.json` or a day registry. Permanent outputs
+  use `results_root`, defaulting to D/memory. All dated runtime state belongs
+  inside `raw-logs/DATE`, including completion and recovery journals.
+  Only fixed-size `raw-logs/.publish.lock` coordinates global publication.
 - Vim selects its root once: `record_dir`, then the one-path UTF-8
   `C/raw-logs-path.txt`, then the platform data directory's `raw-logs`. It does
   not register dates or vendor the shared runtime protocol. All selections
@@ -98,8 +97,10 @@ Formal reports remain in `memory` or explicitly selected permanent targets.
 ## Manual cleanup
 
 Users remove inactive old natural-date directories directly. No status-file
-inspection is required. Registered dates that are removed are not
-automatically recreated. Permanent records and minimal system facts survive.
+inspection is required. Completion and recovery state are removed with them.
+Only selected formal reports and knowledge survive in permanent storage.
+Unattended review handles the latest closed logical day only. Older dates
+require an explicit `--date` rerun, which may create its dated workspace.
 
 A review can depend on earlier Bash or Vim start-date folders as well as
 capture folders within its window. A start-date folder remains active while

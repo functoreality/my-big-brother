@@ -2,7 +2,7 @@
 
 [简体中文](zh-CN/CLEANUP.md)
 
-For storage v2, open the `raw-logs` directory reported by:
+Open the `raw-logs` directory reported by:
 
 ```sh
 python -m my_big_brother paths
@@ -24,16 +24,23 @@ Do not delete dates that are actively being recorded or reviewed, including
 an earlier date with a Bash or Vim session that is still recording.
 A months-old folder can still be active when it owns a long-running shell.
 
-Deletion means abandoning automatic recovery. Review catch-up, collectors
-and compatible importers do not recreate that date. Deleting a failed date
-also stops its remaining operations. Already published reports and applied
-changes remain. Only an explicitly user-authorized `--recreate-deleted` may
-open a new generation. Ordinary `--date` does not grant that permission.
+Deletion removes completion markers, publication journals and action journals
+with the evidence and run material. It stops recovery of that run. Published
+reports, accumulated knowledge and applied changes remain. There is no
+permanent daily state to keep elsewhere.
 
-Keep `memory`, including its directly visible knowledge, `records` and
-`_system` directories. Minimal per-day completion and discard records are
-persistent system facts, not caches. Keep configuration and personal tasks.
-A profile may also publish permanent files outside `memory`.
+Unattended reviews consider only the latest closed logical day and do not
+queue older dates. Request an older rerun explicitly with `--date YYYY-MM-DD`.
+This may create its dated workspace but cannot recover deleted evidence or
+operation journals. Verify external effects before repeating any operations.
+New capture sessions use their own creation dates, and capture helpers can
+create natural-date directories without a retained date registry.
+
+Keep `memory`, including its directly visible knowledge and `records`,
+configuration and personal tasks. A profile may publish permanent files outside
+`memory`. Deleting disposable dates does not remove those formal outputs.
+Leave the fixed-size `raw-logs/.publish.lock` in place. It coordinates publication
+and contains no date history.
 
 Removing raw evidence limits later reruns. Keeping a low-resolution sheet is
 not a replacement for the original screenshot. Native Agent histories belong

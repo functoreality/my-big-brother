@@ -28,12 +28,11 @@ The executing Agent reads the shared [knowledge contract](../tasks/daily-review/
 and uses the same evidence analysis as the daily reports. No extra Agent is
 launched, and enabling these outputs does not request a machine inventory.
 
-For catch-up reviews, use `plan-due --max-days N` to list dates without
-preparing evidence. Process them oldest first with
-`analyze --date YYYY-MM-DD --skip-completed`, completing the review and
-`finish` before preparing the next date. Each later draft then starts from
-the latest cumulative knowledge. Preparing all dates up front with `due`
-can leave later drafts stale when an earlier review updates their shared target.
+Unattended review processes only the latest closed logical day. If the user
+explicitly requests several older dates, process those dates oldest first with
+`analyze --date YYYY-MM-DD`, completing publication and post-review before
+preparing the next date. Each draft then uses the latest cumulative knowledge.
+There is no automatic historical queue or missed-day recovery.
 
 User Model records relevant goals, constraints and stated preferences.
 Machine Context records known machine, file, directory and source locations.

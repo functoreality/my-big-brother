@@ -35,7 +35,7 @@ For example, Codex can review OpenCode records. A different current Agent can
 perform the same review through `prepare` and `finish` without a Codex launch.
 `analyzer` records the preferred executor name. The startup entry selects
 the actual executable. It starts exactly one Agent and carries execution
-settings and logs. Date planning, imports, queues and business checks belong
+settings and logs. Date planning, imports and business checks belong
 to that Agent. Common review and automation commands never start an Agent.
 
 ## Personal storage
@@ -47,31 +47,34 @@ listed in [INSTALLATION.md](../INSTALLATION.md).
 ```text
 C/
   config.json
-  storage.json       Optional shared data root, no analysis calendar
+  raw-logs-path.txt  Optional one-path raw-log locator
   local-tasks/
 D/
   raw-logs/YYYY-MM-DD/
     bash/
     vim/
     screenshots/
+    review.json
     _analysis/<run-id>/
+      publication.json
+      actions/
     _launches/<invocation-id>/
   memory/
     USER-MODEL.md
     MACHINE-CONTEXT.md
     records/YYYY-MM-DD/
-    _system/days/YYYY-MM-DD.json
-    _system/operations/
 ```
 
 Collectors use the system calendar date at creation, equivalent to `date +%F`.
 An existing recording keeps its creation-date location. Bash and Vim sessions
 never rotate at midnight. Their readers search all retained start-date folders.
-An optional `C/storage.json` selects their data root. Persistent registration
-remembers removed dates. Each inactive old date directory is disposable without
-inspecting status. Removal abandons automatic recovery and import.
-Formal outputs and minimal durable facts remain in memory. Profiles may
-select external permanent targets. See [Storage v2](STORAGE.md).
+`C/raw-logs-path.txt` selects raw-log storage, and `results_root` selects
+permanent outputs, defaulting to D/memory. Neither requires `storage.json`.
+All dated completion, publication and action state stays in `raw-logs/DATE`.
+Each inactive old date directory is disposable without inspecting status.
+Formal selected outputs and knowledge remain in memory or profile-selected
+permanent targets. One fixed-size `raw-logs/.publish.lock` coordinates shared
+publication without keeping date history. See [Storage](STORAGE.md).
 
 ## A review run
 
@@ -87,15 +90,17 @@ select external permanent targets. See [Storage v2](STORAGE.md).
    structured output, and conflicts with user edits made after preparation.
    Publication stops when these checks fail.
 5. Valid drafts are published to stable dated paths and recorded in the
-   completion history. File replacement is atomic per file, not across the
+   dated `review.json`. File replacement is atomic per file, not across the
    entire set of outputs. Run diagnostics remain available on failure.
 6. The same executing Agent performs a configured post-review task after publication,
    with its own context, permitted write directories, receipt, and validator.
    A failed operation phase remains pending and resumes without redoing the
    published daily reports. The task must make its operations idempotent.
 
-`analyze` prepares one work ticket, while `due` prepares a bounded set of
-closed-day tickets and skips completed reviews. Neither starts an Agent.
+`analyze` prepares one work ticket. `plan-due` and `due` consider only the latest
+closed logical day. `due` skips retained completed reviews. None starts an Agent.
+Older dates require explicit user-requested `--date` reruns. There is no
+automatic historical queue or missed-day catch-up.
 An external startup entry launches an Agent with `AUTOMATION.md`. That Agent
 uses the common commands and performs review and post-review itself.
 `finish` returns `actions-pending` when post-review work needs execution,

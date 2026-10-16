@@ -35,16 +35,21 @@ Do not treat this file as the daily analysis task itself.
   scripts never launch a harness. The executing Agent follows AUTOMATION.md
   and performs both review and configured post-review itself.
 - Keep startup to one Agent launch and execution settings/logs. Put date
-  planning, imports, queues and business completion checks in that Agent's
+  planning, imports and business completion checks in that Agent's
   workflow. Never loop or retry by launching another Agent from driver code.
 - Keep collectors limited to recording activity in their host environment.
 - Keep user configuration, logs, results, and state outside the repository.
 - Bash and Vim read `C/raw-logs-path.txt`, falling back to platform `raw-logs`.
   They do not read `storage.json` or maintain runtime registries. The main
-  application uses the same locator for raw-log and analysis storage.
-- Use the shared storage protocol for managed application writers.
-  Register dates before creating them. Never automatically recreate a discarded date.
-  Keep disposable material inside `raw-logs/DATE` and durable facts in `memory`.
+  application uses the same locator for raw-log and analysis storage, without
+  requiring `storage.json`.
+- Keep all dated runtime state inside `raw-logs/DATE`, including completion
+  markers and publication/action journals. Retain only selected formal outputs
+  and accumulated knowledge in `memory` or configured permanent destinations.
+  Do not add `storage.json`, storage identity, permanent daily ledgers or queues.
+  The sole global coordination file is fixed-size `raw-logs/.publish.lock`.
+  Unattended review considers only the latest closed logical day. Older dates
+  require an explicit user-requested `--date` and may create their workspace.
   See `docs/STORAGE.md` before changing paths or adding a collector.
   Bash and Vim readers search all retained date trees and filter by actual
   event time or session overlap. Window-date directories alone are insufficient.

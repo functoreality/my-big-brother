@@ -130,12 +130,14 @@ personal history inside Git.
 - `local_profile`, when selected, names personal rules, permitted references,
   output overrides, validators, and optional post-review operations.
 - Optional `raw-logs-path.txt` shares one capture-root path across applications.
-  Recorders work with platform defaults. Main application `storage.json` selects
-  permanent data storage. Capture dates use the natural calendar.
-- `raw-logs/DATE/` holds disposable captures, drafts, sheets and execution logs.
-- `memory/` holds published reports, directly visible user/machine knowledge,
-  and minimal durable system facts. Delete inactive old dates without reading
-  state files. Removed dates are not automatically recreated.
+  All applications work with platform defaults and do not require `storage.json`.
+  `results_root` selects permanent outputs. Capture dates use the natural calendar.
+- `raw-logs/DATE/` holds captures, drafts, sheets, execution logs and all dated
+  completion and recovery state. Delete inactive old dates without reading state
+  files. Only the fixed-size `raw-logs/.publish.lock` lives outside date folders.
+- `memory/` holds selected formal reports and directly visible user/machine knowledge.
+  Unattended review handles only the latest closed logical day. Request older
+  reruns explicitly with `--date`, which may create their dated workspace.
 - See [Storage](docs/STORAGE.md) for the collector contract and [Requirements](docs/REQUIREMENTS.md).
 
 Native Agent histories stay in their own locations. This MVP does not
@@ -172,7 +174,7 @@ input adapters, analysis tasks, and independent Agent startup entries.
 - [Scheduling](docs/SCHEDULING.md) and [optional Bash recording](docs/BASH.md).
 - [Architecture](docs/ARCHITECTURE.md) and [extension guide](docs/EXTENDING.md).
 - [Input sources](docs/INPUT-SOURCES.md) and [personal profiles](docs/PROFILES.md).
-- [Manual cleanup and retained state](docs/CLEANUP.md).
+- [Manual cleanup](docs/CLEANUP.md).
 - [English and Chinese examples](examples/synthetic/README.md).
 
 Human-facing documentation and examples are available in English and

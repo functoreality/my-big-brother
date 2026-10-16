@@ -10,8 +10,6 @@
     <string>/absolute/path/to/python3</string>
     <string>-m</string>
     <string>my_big_brother.analyzers.codex</string>
-    <string>--max-days</string>
-    <string>7</string>
   </array>
   <key>WorkingDirectory</key>
   <string>/absolute/path/to/my-big-brother</string>

@@ -1,27 +1,26 @@
-# Storage v2
+# Storage
 
 [简体中文](zh-CN/STORAGE.md)
 
-The personal data root has two areas. It is separate from the source checkout
-and from the platform-discovered configuration directory C.
-
-`raw-logs` contains disposable review material: captures, preprocessing results,
-indexes, screenshot sheets, Agent drafts and execution logs. It can include
-AI-generated material. The boundary is whether material belongs to a dated
-working area or is published for long-term retention, not whether AI has read
-or generated it. Keep published reports and accumulated knowledge in `memory`
-or explicitly configured permanent destinations.
+Personal storage is separate from the source checkout and the platform
+configuration directory C. `raw-logs` contains disposable dated working areas.
+`memory` or explicitly configured permanent destinations retain only selected
+formal reports and accumulated knowledge.
 
 The `paths` command reports the disposable root as `raw_logs`.
 
 ```text
 data-root/
   raw-logs/
+    .publish.lock
     YYYY-MM-DD/
       bash/
       vim/
       screenshots/
+      review.json
       _analysis/<run-id>/
+        publication.json
+        actions/
       _launches/<invocation-id>/
       scheduler.log
   memory/
@@ -33,60 +32,48 @@ data-root/
       time-use.json
       insights.md
       time-estimates.json
-    _system/
-      identity.json
-      days/YYYY-MM-DD.json
-      operations/
-      locks/
 ```
 
-Only selected outputs and used source directories are created. A personal
-profile may keep published files in existing external locations.
-Knowledge outputs remain optional. Profile instructions are configuration,
-not accumulated user knowledge, and stay under C.
+Only selected outputs and used directories are created. Knowledge outputs
+remain optional. A personal profile may publish to existing external locations.
+Profile instructions are configuration and stay under C.
+All completion markers, publication journals, action journals, receipts and
+execution logs belong to `raw-logs/DATE` and disappear with that directory.
+There is no permanent daily ledger or system-state directory in `memory`.
+The sole technical exception outside date directories is fixed-size
+`raw-logs/.publish.lock`, used to serialize publication of shared outputs.
+It contains no date history and does not grow with reviews.
 
-## Main application and independent recorders
+## Paths and initialization
 
 ```sh
 python -m my_big_brother init --sources bash --day-start-hour 4
 python -m my_big_brother paths
 ```
 
-`--data-root /absolute/path` selects the whole data root on first installation.
-`--results-root` may select a separate permanent output root. It cannot overlap
-disposable raw-log storage. Atomic publication keeps its temporary copy inside
-the dated run, so formal outputs and `raw-logs` must share a filesystem.
-Cross-filesystem publication stops before replacing any output.
-
-`C/raw-logs-path.txt` is the shared capture-root locator. It contains one
+`C/raw-logs-path.txt` is the shared raw-log root locator. It contains one
 UTF-8 absolute path, normally D/raw-logs, with an optional final LF or CRLF.
 Do not quote it, add comments or expand variables when reading it. Preserve
 spaces. A missing locator uses the platform default. A malformed existing
-locator reports an error. Bash, Vim and the main application's capture and
-analysis directories use this path. Explicit source-path overrides remain
-available for intentionally separate sources.
+locator reports an error. Bash, Vim and the main application use this locator.
+Explicit source-path overrides remain available for intentionally separate sources.
 
-Initialization writes the resolved path to the TXT unless one already exists.
-It also writes `C/storage.json` with `schema_version: 2` and `data_root` for the
-main application's permanent `memory` and system identity. Recorders do not
-need this JSON. Review settings, including `day_start_hour`, remain in
-`C/config.json`. Moving the capture root does not move permanent outputs or
-system facts. Keep capture storage outside permanent memory and results.
+Initialization creates ordinary configuration and needed directories. Default
+paths work without a TXT file. The `--data-root` shortcut writes the TXT when
+it is absent and preserves an existing locator. Neither the application nor
+the independent recorders require `storage.json` or a storage
+identity. Review settings, including `day_start_hour`, remain in `C/config.json`.
+`results_root` selects permanent outputs and defaults to D/memory.
 
-The Bash collector works without installing or initializing the application.
-It reads the TXT once and otherwise uses platform defaults. It does not read
-`storage.json`, register dates or create user configuration. It creates one
-session file and stops appending if that file or its parent is removed.
-
-The independent Vim plugin uses a smaller path contract: `record_dir`, then
-`C/raw-logs-path.txt` containing only an absolute capture-root path, then the
-platform data directory's `raw-logs`. It reads that choice once at startup.
-It does not load `storage.json`, vendor the storage protocol or maintain a day
-registry. Its final diff and JSON use the saved session folder at exit.
-
-Default C and D discovery is documented in [INSTALLATION.md](../INSTALLATION.md).
-Changing an existing data root in place is unsupported.
-See the product [Requirements](REQUIREMENTS.md) before changing this contract.
+On first installation, `--data-root /absolute/path` is a convenience that selects
+that path's `raw-logs` and `memory` through the locator and `results_root`.
+It does not create a separate persistent data-root setting. Existing settings
+are preserved. `--results-root` can select a separate permanent output root.
+It cannot overlap raw-log storage. Formal outputs and `raw-logs` must share a
+filesystem because publication atomically replaces files using dated temporary
+copies. Cross-filesystem publication stops before replacing any output.
+Changing the capture locator does not move existing outputs.
+Platform C and D defaults are in [INSTALLATION.md](../INSTALLATION.md).
 
 ## Natural capture dates and analysis windows
 
@@ -96,67 +83,67 @@ there for the shell's entire lifetime. A shell started on 14 October still
 writes into `raw-logs/2026-10-14/bash/` on 15 October or months later.
 No midnight or logical-day boundary changes an existing recording's path.
 Original event timestamps are never shifted. Screenshots are independent
-captures and use their capture date. Vim uses the session's local start date
-for its entire lifetime, including exit after midnight. One editor process
-produces one session, with original snapshots at file open and diff/JSON at
-exit. There is no midnight rotation or periodic or event-driven checkpoint.
-Shared storage governs paths and lifecycle without changing capture behavior.
+captures and use their own capture date.
+
+Vim selects its root once: `record_dir`, then `C/raw-logs-path.txt`, then the
+platform data directory's `raw-logs`. One editor process produces one session
+under its local start date, including exit after midnight. It snapshots existing
+files when opened and publishes diff/JSON at exit. There is no midnight rotation
+or periodic or event-driven checkpoint. Bash and Vim require no application
+initialization. Existing sessions do not recreate removed files or session
+folders. A new session uses its own current start date.
 
 Only analysis interprets a working day. A review from 14 October 04:00 to
 15 October 04:00 finds Bash and Vim sessions across all retained start-date
-folders. Bash selects events by actual time, and Vim selects sessions by time
-overlap, including sessions that started before either date. Whole-session
-diffs cannot establish which edits belong to each day. Before exit, original
-snapshots exist but there is no final `record.json` to index.
-A natural date can contribute to multiple reviews. Analysis
-material remains under the reviewed date's `_analysis/` directory. Native
-Agent histories stay with their applications.
+folders. Bash selects events by actual time, and Vim selects sessions by overlap,
+including sessions that started before either date. Whole-session diffs cannot
+establish which edits belong to each day. Before exit, original snapshots exist
+but there is no final `record.json` to index. One natural date may contribute
+to multiple reviews. Analysis material remains under the reviewed date's
+`_analysis/` directory. Native Agent histories stay with their applications.
 
-You can delete inactive old date directories directly, including failed runs.
-No status-file inspection is required. This abandons automatic recovery.
-See [Manual cleanup](CLEANUP.md).
+## Retention and reruns
 
-Writers using the shared runtime protocol register a day before creating it. Missing registered workspaces
-are marked discarded in small durable per-day records. Review, collection and
-import must not recreate them. The completion fact and workspace disposition
-are separate. Deleting a completed day's inputs does not erase its reports.
-Configuration changes do not override the discard decision.
+Delete inactive old date directories directly, including failed runs. No
+status-file inspection is required. Deletion removes their evidence, completion
+markers and recovery journals together. Published reports, knowledge and
+already applied changes remain. Do not delete a date still used by a running
+shell, editor or review. See [Manual cleanup](CLEANUP.md).
 
-For a deliberate user-requested restoration:
+Unattended review considers only the latest closed logical day. It does not
+queue older dates, scan historical gaps or automatically catch up after downtime.
+To rerun an older date, request it explicitly:
 
 ```sh
-python -m my_big_brother analyze --date 2026-10-14 --recreate-deleted
+python -m my_big_brother analyze --date 2026-10-14
 ```
 
-This prepares a new review generation. It does not launch an Agent, recover
-deleted evidence or authorize unrelated operations. Automatic tasks must never
-add this option themselves. Ordinary `--date` does not restore deleted dates.
+An explicit date may create its dated workspace. It cannot recover deleted
+evidence. With no retained completion marker, that date has no remembered
+runtime status. Selected formal outputs can still be copied into staging so
+manual additions can be preserved during review.
 
 ## Collector and extension contract
 
-The managed application protocol is `my_big_brother/storage.py`. Its writers
-coordinate using persistent locks. Independent Bash and Vim recorders use only
-the one-path locator and do not register or check date dispositions. Removed
-active Bash files or Vim session folders are not recreated by those sessions.
-A new recorder session uses its own current start date. No analysis calendar
-is shared. Bash carries only the small platform/locator helper, whose canonical
-copy is `my_big_brother/collector_paths.py`.
+Collectors and capture helpers write plain natural-date paths. No date
+registration is required. Bash carries only the small platform/locator helper,
+whose canonical copy is `my_big_brother/collector_paths.py`. Bash, Vim and
+screenshots use date/source trees beneath their source root, including with
+explicit paths. Do not add flat-layout discovery or migration fallbacks.
 
 For an already configured capture program, `capture-path --source screenshots`
-returns a registered destination. `record-screenshot --image /absolute/image.jpg`
-stores an existing image and records its capture timestamp. Both accept
-`--timestamp` with an explicit UTC offset and return `discarded` for a removed
-day. Neither command takes screenshots or starts periodic capture.
+returns a destination. `record-screenshot --image /absolute/image.jpg` stores an
+existing image and records its capture timestamp. Both accept `--timestamp`
+with an explicit UTC offset. Neither takes screenshots or starts periodic capture.
 
-Write reasoning, excerpts, scripts, validation scratch space, full receipts
-and backups of proposed changes inside the selected day's analysis directory.
-Post-review tasks receive `operation_state_dir` for minimal durable operation
-facts. Record stable identities before side effects, including effects whose
-outcome is uncertain after a crash. Do not put raw content or full logs there.
-Removing a day stops remaining work and does not undo already applied changes.
-Custom extensions need their own verifiable idempotence and must honor discard.
+Keep reasoning, excerpts, scripts, validation scratch space, full receipts,
+action journals and candidate backups inside the selected day's analysis run.
+Before side effects, record stable operation identities and uncertain outcomes
+in the action directory. Retrying a retained run must inspect those journals
+and verify idempotence. After deletion, no hidden operation history remains.
+Extensions must verify external effects before explicitly requested reruns.
 
-Startup still launches one Agent. It allocates dated logs without planning
-review work. A discarded target day uses the current natural date for startup
-logs. If no legal directory or valid registry is available, return stderr and
-a failure status without creating fallback cache roots.
+Startup launches one Agent. Logs use the explicitly requested date, or the
+previous calendar date by default, independently of logical-day analysis.
+All launch diagnostics are disposable. If log allocation fails, return stderr
+and failure without creating fallback cache roots.

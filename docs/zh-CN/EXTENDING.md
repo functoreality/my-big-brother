@@ -47,9 +47,8 @@ def collect(path: Path, start: datetime, end: datetime) -> SourceResult:
 Bash、Vim 和截图来源即使明确配置根路径，也必须采用日期/来源结构。
 不要添加旧目录探测或迁移。
 
-主项目管理的 `capture-path`、`record-screenshot` 等辅助命令，
-使用存储协议登记日期并尊重已放弃的工作区，
-但这不要求独立采集器依赖运行时协议。详见[存储说明](STORAGE.md)。
+主项目的 `capture-path`、`record-screenshot` 等辅助命令直接写入自然日期路径，
+不依赖登记表或永久运行状态。详见[存储说明](STORAGE.md)。
 每份记录开始时确定日期和路径，之后保持位置不变。
 不要因午夜或复盘分界而拆分 Bash、编辑器会话。
 读取器必须能从较早启动日期下找到当前事件。
@@ -74,7 +73,7 @@ Bash、Vim 和截图来源即使明确配置根路径，也必须采用日期/�
 
 只有启动边界需要知道具体 Agent 的可执行文件、登录、沙箱和超时。
 用共享的[自动化任务](../../tasks/daily-review/AUTOMATION.md)启动一次 Agent，
-提供安装目录、Python、日期或回看范围，以及允许访问的位置。
+提供安装目录、Python、可选的明确日期，以及允许访问的位置。
 由 Agent 自己调用通用准备、发布和回执校验，也完成已配置的后操作。
 不要把 Agent 调用放进 `runner.py`、输入适配器、校验器或共享 CLI。
 原生定时 Agent 可以直接使用相同任务，不需要额外启动器。
@@ -83,7 +82,7 @@ Bash、Vim 和截图来源即使明确配置根路径，也必须采用日期/�
 内置示例是 `python -m my_big_brother.analyzers.codex`。
 新入口可保存在安装仓库之外，也可作为 PR 加入 `analyzers/`。
 入口只启动一次 Agent，传递必要的执行设置并保留日志。
-日期规划、输入准备、队列处理、发布和业务完成校验都由执行 Agent 负责。
+日期规划、输入准备、发布和业务完成校验都由执行 Agent 负责。
 有启动上下文时，Agent 自己调用 `begin-automation` 和 `complete-automation`。
 内置入口返回的 `agent-exited` 只表示进程正常退出，
 Agent 写出的 `automation-result.json` 才记录经过校验的业务完成状态。

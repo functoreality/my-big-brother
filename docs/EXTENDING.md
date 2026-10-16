@@ -47,9 +47,8 @@ registration or `results_root`. Keep their path selection simple. Bash, Vim
 and screenshot source roots must contain the date/source structure, even
 when explicitly configured. Do not add old-layout discovery or migration.
 
-Managed application helpers, such as `capture-path` and `record-screenshot`,
-use the storage protocol to register dates and honor discarded workspaces.
-This does not impose the runtime protocol on independent recorders.
+Application helpers, such as `capture-path` and `record-screenshot`,
+write plain natural-date paths without a registry or permanent runtime state.
 See [Storage](STORAGE.md).
 
 Choose a recording's date and path when it begins, then keep that location.
@@ -77,7 +76,7 @@ reprocessing a week's raw conversations.
 The startup boundary alone knows the Agent's executable, authentication,
 sandbox and timeout. Start it once with the shared
 [automation task](../tasks/daily-review/AUTOMATION.md), the installation,
-Python, date/lookback and permitted paths. The Agent calls common preparation,
+Python, optional explicit date and permitted paths. The Agent calls common preparation,
 publication and receipt checks itself, including configured post-review.
 Do not introduce Agent calls into `runner.py`, input adapters, validators,
 or the shared CLI. A native scheduled Agent can use the same task without
@@ -88,7 +87,7 @@ interface. Read installed help or official documentation when needed.
 The bundled example is `python -m my_big_brother.analyzers.codex`.
 A new entry can live outside the checkout or be contributed under `analyzers/`.
 The entry only starts one Agent and carries necessary execution settings and
-logs. It must not plan review dates, prepare inputs, run queues, publish results,
+logs. It must not plan review dates, prepare inputs, publish results,
 or verify business completion. The executing Agent calls `begin-automation`
 and `complete-automation` when using a launch context, and checks actual
 completion against common run state. The bundled entry returns `agent-exited`,

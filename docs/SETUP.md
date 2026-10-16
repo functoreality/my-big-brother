@@ -38,9 +38,9 @@ another Agent from using `prepare` and `finish`.
 
 ## Configure your own installation
 
-`paths` reports the `raw_logs` directory and the locations of `config.json`,
-`storage.json`, results and runtime state. They live outside the repository. Edit the generated JSON
-configuration to select sources, output types, report language, or a custom
+`paths` reports `config`, `raw_logs`, `memory`, `results` and `checkout`.
+Personal configuration and data live outside the repository. Edit the generated
+JSON configuration to select sources, output types, report language, or a custom
 absolute `results_root`.
 
 For Chinese reports, change the existing language field to:
@@ -53,11 +53,11 @@ This is one field inside `config.json`, not a replacement for the entire file.
 English remains the default. This setting affects generated prose, not JSON
 field names, commands, or the language of the installed task instructions.
 
-`init` creates the main application's `storage.json` for its permanent data
-root. Independent Bash and Vim recorders read `C/raw-logs-path.txt` or use
-platform defaults, without requiring `storage.json`. Collectors use natural
-calendar dates. See [Storage](STORAGE.md) before changing paths. This
-pre-release provides no old-layout migration tool.
+`init` creates ordinary configuration and needed directories. All applications
+use `C/raw-logs-path.txt` or platform defaults, without requiring `storage.json`.
+Permanent outputs use `results_root`, defaulting to D/memory. All dated runtime
+state stays with disposable `raw-logs/DATE` material. Collectors use natural
+calendar dates. See [Storage](STORAGE.md) before changing paths.
 Reading native Agent histories does not require a new collector plugin.
 
 Optional Vim and screenshot adapters, record formats, and replay assets are
@@ -114,12 +114,12 @@ For a CLI-only setup, use cron, launchd, or Windows Task Scheduler.
 See [Scheduling](SCHEDULING.md) for both routes and examples.
 
 There is no automatic scheduler installer. `init` leaves scheduling disabled.
-The project supplies review commands and catch-up logic, while your selected
-scheduler starts them. Test an actual scheduled action in its user account
-and environment before relying on it.
+The project supplies review commands for the latest closed logical day, while
+your selected scheduler starts them. Older dates require explicit `--date` reruns.
+Test an actual scheduled action in its user account and environment before relying on it.
 
 Bash recording is separately optional. See [BASH.md](BASH.md) before changing
 shell startup files. Published results and configuration should be backed up.
 Captures and private excerpts are not automatically cleaned in this release.
 See [Manual cleanup](CLEANUP.md) for removable run directories, startup logs,
-and completion state that should be retained.
+and the formal outputs to retain.

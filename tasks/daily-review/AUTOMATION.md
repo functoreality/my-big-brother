@@ -9,9 +9,10 @@ Do not invoke an Agent launcher from inside this workflow.
 ## Resolve this invocation
 
 Your startup message supplies the installation directory, Python executable,
-and either a review date or a bounded missed-day lookback.
+and an optional explicit review date. Without a date, consider only the latest
+closed logical day. Do not queue older dates or automatically catch up gaps.
 If it names a launcher context, read that JSON first. Use its `checkout`,
-`python_executable`, `date`, `max_days`, `snapshot_end`, and `allow_empty`.
+`python_executable`, `date`, `snapshot_end`, and `allow_empty`.
 The launcher context is invocation configuration, not historical evidence.
 The startup entry does no date planning, evidence preparation, review,
 publication or business completion checking. You own all of those operations.
@@ -24,7 +25,7 @@ python -m my_big_brother begin-automation --launch-dir /absolute/launch/director
 Read its returned `automation-context.json`. It supplies planned `dates`,
 `tickets_path`, `receipt_path`, and `receipt_example`. The command never starts
 an Agent. An explicitly selected local automation task may perform authorized
-preflight work and override dates with `--dates DATE ...` or an empty `--dates`.
+preflight work. The planned date must remain the single requested/latest date.
 Do not invent local preflight operations or expand permissions yourself.
 
 Run commands with the selected Python and installation on the module search
@@ -41,45 +42,43 @@ python -m my_big_brother analyze --date YYYY-MM-DD
 ```
 
 Add `--snapshot-end` or `--allow-empty` only when explicitly requested.
-For bounded catch-up, first plan dates without preparing evidence:
+Without an explicit date, plan only the latest closed logical day:
 
 ```sh
-python -m my_big_brother plan-due --max-days 7
+python -m my_big_brother plan-due
 ```
 
-Use its oldest-first date list, or the automation context's bounded dates.
-For each date, prepare only when you are ready to review it:
+Use its date, or the automation context's planned date. Prepare when ready:
 
 ```sh
 python -m my_big_brother analyze --date YYYY-MM-DD --skip-completed
 ```
 
-Use the actual requested lookback. `plan-due` returns dates without preparing
-runs. `analyze` returns one work ticket. Neither command launches an Agent or
-interprets evidence. Without `--skip-completed`, an explicit date permits a
-rerun. Use that default only for an explicitly requested rerun.
+`plan-due` returns a date without preparing evidence. `analyze` returns one work
+ticket. Neither command launches an Agent or interprets evidence. Without
+`--skip-completed`, an explicit date permits a rerun and may create its dated
+workspace. Use that default only for an explicitly requested rerun. It cannot
+recover deleted evidence or journals.
 
-Process each date through review, publication and any post-review before
-preparing the next date. Cumulative knowledge must use the latest published
-baseline. Preparing all dates up front can make later knowledge drafts stale.
-The batch `due` command remains available for preparing tickets, but do not
-use its preprepared batch for unattended cumulative-knowledge review.
+For separately requested manual reruns of several older dates, complete each
+through publication and post-review before preparing the next. Cumulative
+knowledge must use the latest published baseline. A launcher invocation selects
+only its requested/latest date. Do not add historical dates, correction queues
+or missed-day scans yourself.
+The common `due` command also considers only the latest closed logical day.
 
-If a launcher context was supplied, initialize `tickets_path` as an empty
-array. Append each exact returned ticket and save the array before processing
-that ticket. Retain the earlier tickets as subsequent dates are prepared.
-The final array must cover every planned date in order.
+If a launcher context was supplied, save the exact returned ticket as a
+single-element array at `tickets_path` before processing it. The final array
+must match the one selected date.
 Do not replace ticket dates, source status, or run identities with guesses.
 
 Handle each ticket:
 
 - `already-completed`: retain that result without redoing the review.
-- `discarded`: retain this result and do not prepare or restore that date.
-  The user abandoned its workspace. Do not invoke `--recreate-deleted`
-  without a separate explicit user request. Published records remain usable.
 - `empty`: report the absence of usable evidence and retain the result.
   Do not claim the date was analyzed or write invented reports.
-  It is not marked completed, so later invocations can check for late records.
+  It is not marked completed. Future default invocations still consider only
+  their latest closed logical day. Older late records require explicit reruns.
 - `blocked`: preserve diagnostics, report the unavailable required source,
   and stop without declaring this invocation successful.
 - `prepared`: perform the review below.
@@ -98,9 +97,11 @@ Follow the configured personal instructions when present, within their
 read and write scope. During review, write only the run's staged outputs,
 temporary reasoning, and exact `completion.json` from `completion_example`.
 Keep final destinations and post-review targets untouched in this phase.
-The prepared context has a permanent publication journal. Do not move it into
-this disposable run. Post-review tasks must use `operation_state_dir` for
-minimal stable operation facts, without copying source content or full logs.
+The publication journal is `publication.json` inside the prepared run. Keep
+operation identities, uncertain outcomes, receipts, payloads and backups in its
+action directory. All dated runtime state is disposable with `raw-logs/DATE`.
+Deleting that directory leaves no permanent completion or operation history.
+Before explicitly requested reruns, verify external effects to avoid duplicates.
 
 Publish and validate with:
 
@@ -139,15 +140,14 @@ Record each result's `date`, `status`, and `run_dir` when supplied by the
 common commands. With a launcher context, write the automation context's
 `receipt_path` using `receipt_example` and the actual ordered result list. Match `invocation_id`.
 Only do this once all tickets have valid final results: `completed`,
-`already-completed`, `empty`, or `discarded`. Preserve an explicitly returned
-`discarded` result without recreating that date. Do not turn failures or blocked work into
+`already-completed`, or `empty`. Do not turn failures or blocked work into
 successful empty results. Then perform the common completion check yourself:
 
 ```sh
 python -m my_big_brother complete-automation --launch-dir /absolute/launch/directory
 ```
 
-This checks receipts against prepared evidence and the completion ledger,
+This checks receipts against prepared evidence and the retained dated status,
 then writes `automation-result.json`. Require its returned `completed` status.
 The startup entry only returns `agent-exited` after your process exits.
 That status is not a review completion claim. Never restart an Agent or invoke

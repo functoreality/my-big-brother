@@ -37,8 +37,8 @@ python -m my_big_brother doctor
 
 ## 配置个人安装
 
-`paths` 显示 `config.json`、`storage.json`、`raw_logs`、memory 和持久化状态的位置。
-它们都位于仓库之外。
+`paths` 显示 `config`、`raw_logs`、`memory`、`results` 和 `checkout`。
+个人配置和数据位于仓库之外。
 编辑生成的 JSON 配置，可以选择输入源、输出类型、报告语言，
 或自定义绝对路径 `results_root`。
 
@@ -52,10 +52,11 @@ python -m my_big_brother doctor
 默认语言仍是英文。
 此设置影响生成的文字，不改变 JSON 字段名、命令或安装的任务指令语言。
 
-`init` 为主程序创建 `storage.json`，指定长期数据根。
-独立 Bash、Vim 记录器读取 `C/raw-logs-path.txt` 或使用平台默认值，
-不要求 `storage.json`。采集器按系统自然日期归档。
-修改路径前先读[存储说明](STORAGE.md)，当前预发布版本不提供旧目录迁移工具。
+`init` 创建普通配置和必要目录。
+所有应用都使用 `C/raw-logs-path.txt` 或平台默认值，不要求 `storage.json`。
+长期输出使用 `results_root`，默认为 D/memory。
+逐日运行状态全部保存在可清理的 `raw-logs/日期`，采集器按系统自然日期归档。
+修改路径前先读[存储说明](STORAGE.md)。
 读取 Agent 原生历史不需要新的采集插件。
 
 可选 Vim、截图适配器的记录格式与回看资产见[输入来源](INPUT-SOURCES.md)。
@@ -111,11 +112,12 @@ Codex 使用上面的外部入口，其他 Agent 可以使用原生任务或本�
 两种方式及示例见[定时运行](SCHEDULING.md)。
 
 本项目没有自动调度器安装程序，`init` 默认不启用定时运行。
-项目提供复盘命令和补做逻辑，由你选择的调度器启动。
+项目提供最近一个已闭合逻辑日的复盘命令，由你选择的调度器启动。
+更早日期须明确指定 `--date` 重跑。
 在依赖定时运行之前，请在对应的用户账号和环境中测试一次实际调度动作。
 
 Bash 记录是另一项独立的可选功能。
 修改 shell 启动文件前，先阅读 [BASH.md](BASH.md)。
 应备份已发布结果和配置。
 本版本不会自动清理原始日志和私有摘录。
-可清理的运行目录、启动日志及应保留的完成状态，见[手动清理](CLEANUP.md)。
+可清理的运行目录、启动日志及应保留的正式成果，见[手动清理](CLEANUP.md)。

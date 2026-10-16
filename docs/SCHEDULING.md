@@ -31,7 +31,7 @@ handles returned post-review work itself before calling `finish` again.
 The common commands never start an Agent. The outer startup entry alone
 contains product-specific command, login, sandbox and timeout handling.
 Keep startup limited to one Agent invocation and necessary execution settings
-and logs. Date planning, input import, correction queues, publication and final
+and logs. Date planning, input import, publication and final
 business checks belong to that Agent. Never loop over dates or retry by
 starting additional Agents. The Agent can choose its own delegation tools.
 `analyze` and `due` now return work tickets rather than launch Codex, so older
@@ -39,9 +39,10 @@ schedule commands must be updated to an external startup entry.
 
 Use the shared [native task prompt](../examples/scheduling/native-agent-task.md),
 replacing the installation and Python placeholders. This works without a
-Codex installation when another Agent executes it. Choose a bounded lookback
-for catch-up or an explicit date for a requested rerun. Keep the analysis
-marker so supported readers can identify this project's own review records.
+Codex installation when another Agent executes it. By default, review only the
+latest closed logical day. Older dates require an explicit user-requested date.
+No historical queue is processed automatically. Keep the analysis marker so
+supported readers can identify this project's own review records.
 Source readers are independent: using an Agent does not add its history format.
 
 If using OpenClaw or Hermes, verify that the installed version provides a
@@ -56,36 +57,38 @@ verified integrations. Another Agent can be set up the same way.
 Use this route when your setup has no suitable native scheduler:
 
 ```sh
-python -m my_big_brother.analyzers.codex --max-days 7
+python -m my_big_brother.analyzers.codex
 ```
 
-This starts one Codex session. It follows the shared task, obtaining the last
-seven closed dates from common `plan-due`, then prepares and completes each
-review and pending actions oldest first. Prepare the next date only after the
-previous date finishes, so cumulative knowledge uses the latest baseline. Completed dates are skipped. Empty dates produce no invented reports and
-remain eligible for later preparation when records arrive.
+This starts one Codex session. It follows the shared task, using `plan-due` to
+select only the latest closed logical day, then prepares and completes its
+review and pending actions. A retained completed date is skipped. Empty dates
+produce no invented reports and are not marked completed. The next invocation
+still considers only its latest closed logical day. Older empty, failed or
+missed dates are not queued for automatic catch-up.
+
 The Agent calls `begin-automation` and `complete-automation` itself.
 The entry reports `agent-exited`, which only records process exit. Inspect the
 Agent-written `automation-result.json` in its returned `launch_dir` to confirm
-checked review completion. Failed or blocked results cannot pass that check. The lookback
-can be 1 to 31 days. After changing inputs, use the external entry's `--date`
-for a complete rerun, or ask the executing Agent to process a common explicit
-`analyze --date` ticket.
+checked review completion. Failed or blocked results cannot pass that check.
+For a user-requested older rerun, use the external entry's `--date`, or ask the
+executing Agent to process an explicit `analyze --date` ticket. An explicit date
+may create its dated workspace, but cannot recover deleted evidence or journals.
 
 Before installing a timer:
 
 - Use absolute Python and repository paths. Set `codex.executable` to its
   known absolute path if the scheduler has a restricted `PATH`.
 - Run under the same user account that owns the configuration and Agent login.
-  Confirm `paths` returns the same configuration, data, and state locations.
+  Confirm `paths` returns the same configuration, raw-log, and output locations.
   Carry any required absolute XDG settings on Linux.
 - Test account access, network access, and the command from the scheduler's
   environment. Do not assume interactive aliases or shell startup files load.
-- The launcher writes logs inside registered date directories under `raw-logs`. Do not add
+- The launcher writes logs inside date directories under `raw-logs`. Do not add
   a permanent aggregate log outside `raw-logs`. Pre-log setup errors may only be
   available as stderr or the host scheduler's own diagnostics.
-- Allow enough time for several reviews. `codex.timeout_seconds` applies to
-  the entire Agent session, including all selected dates and post-review work.
+- Allow enough time for the review and post-review work.
+  `codex.timeout_seconds` applies to the entire Agent session.
 
 ### Linux: cron
 
@@ -99,16 +102,17 @@ escape literal `%` characters, including those in quoted paths.
 
 Test the resolved command once, then verify one real trigger.
 Cron generally does not replay a trigger missed while the machine was off.
-The next startup invocation handles gaps within its lookback. A user login
-trigger may invoke the same command for catch-up. `@reboot` means cron startup,
+The next invocation reviews only the latest closed logical day. A user login
+trigger may invoke the same command, without recovering older missed dates.
+`@reboot` means cron startup,
 which is not the same as user login or guaranteed network readiness.
 
 ### macOS: launchd
 
 The shared [LaunchAgent template](../examples/scheduling/launchagent.plist)
-uses a daily 09:00 trigger and `RunAtLoad` for catch-up when the user agent
-loads. Replace its interpreter and installation paths, keeping array
-arguments separate. XML-escape special characters such as `&` in paths.
+uses a daily 09:00 trigger and `RunAtLoad` to review the latest closed logical
+day when the user agent loads. Replace its interpreter and installation paths,
+keeping array arguments separate. XML-escape special characters such as `&` in paths.
 Save the resolved file in the user's LaunchAgents directory and validate it
 with `plutil -lint` before loading it with the user's launchd tools.
 
@@ -123,13 +127,13 @@ Create a task under the account with the checked configuration and Codex login:
 | Action field | Value |
 | --- | --- |
 | Program/script | Absolute path to `python.exe` |
-| Add arguments | `-m my_big_brother.analyzers.codex --max-days 7` |
+| Add arguments | `-m my_big_brother.analyzers.codex` |
 | Start in | Absolute repository directory |
 
 Keep the program, arguments, and working directory in separate fields.
 Use a daily trigger and optionally an "At log on" trigger. Configure the
 missed-start and execution-time settings to suit the machine. Ensure the
-task's time limit can accommodate multiple reviews and avoid parallel
+task's time limit can accommodate review and post-review work and avoid parallel
 instances of the same task.
 See Microsoft's [ExecAction reference](https://learn.microsoft.com/windows/win32/taskschd/execaction).
 

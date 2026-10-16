@@ -35,7 +35,7 @@ examples/synthetic/
 其他当前 Agent 可以通过 `prepare` 和 `finish` 完成相同复盘，不必启动 Codex。
 `analyzer` 记录首选执行 Agent 的名称，实际可执行程序由启动入口选择。
 启动入口只调用一次 Agent，传递执行设置并保留日志。
-日期规划、导入、队列和业务校验都由该 Agent 负责。
+日期规划、导入和业务校验都由该 Agent 负责。
 通用复盘和自动化命令不会启动 Agent。
 
 ## 个人存储
@@ -47,31 +47,34 @@ examples/synthetic/
 ```text
 C/
   config.json
-  storage.json       可选的共享数据根，不含分析日界线
+  raw-logs-path.txt  可选的单路径原始日志位置文件
   local-tasks/
 D/
   raw-logs/YYYY-MM-DD/
     bash/
     vim/
     screenshots/
+    review.json
     _analysis/<run-id>/
+      publication.json
+      actions/
     _launches/<invocation-id>/
   memory/
     USER-MODEL.md
     MACHINE-CONTEXT.md
     records/YYYY-MM-DD/
-    _system/days/YYYY-MM-DD.json
-    _system/operations/
 ```
 
 采集器在创建记录时按本机自然日期归档，等价于 `date +%F`。
 Bash 和 Vim 会话固定使用启动日期下的位置，不因跨午夜而轮转。
-读取器查找全部保留的启动日期。可选的 `C/storage.json`
-只指定共享位置。工作日分界仅由分析配置决定，读取器跨自然日期提取记录。
-持久化日期登记记住删除决定。删除已无活动写入的旧日期表示放弃，
-无需读状态，补跑和导入都不会重建它。
-正式报告和最小持久化事实独立保留在 memory，个人 profile 可覆盖正式位置。
-完整约定和迁移步骤见[存储 v2](STORAGE.md)。
+读取器查找全部保留的启动日期。
+`C/raw-logs-path.txt` 选择原始日志位置，`results_root` 选择长期输出，默认为 D/memory。
+所有应用都不要求 `storage.json`。
+逐日完成状态、发布和后操作日志均在 `raw-logs/日期`，
+旧日期无活动写入时可以直接删除，无需查看状态。
+只有选中的正式输出和知识长期保留在 memory 或 profile 指定的位置。
+固定大小的 `raw-logs/.publish.lock` 协调共享输出发布，不保留日期历史。
+完整约定见[存储说明](STORAGE.md)。
 
 ## 一次复盘
 
@@ -86,7 +89,7 @@ Bash 和 Vim 会话固定使用启动日期下的位置，不因跨午夜而轮�
 4. `finish` 检查回执、准备记录的覆盖情况、必需文件、结构化输出，
    以及与准备之后的用户编辑是否冲突。
    检查失败时停止发布。
-5. 合格草稿发布到稳定的日期路径，并记入完成历史。
+5. 合格草稿发布到稳定的日期路径，并写入日期目录的 `review.json`。
    每个文件的替换是原子的，但整组输出不是一起原子替换。
    失败后仍保留运行诊断信息。
 6. 发布完成后，由同一个执行 Agent 完成明确配置的个人复盘后任务，
@@ -94,8 +97,9 @@ Bash 和 Vim 会话固定使用启动日期下的位置，不因跨午夜而轮�
    操作阶段失败会保持待完成，重试时不重新生成已发布日报。
    任务需要确保操作可以安全重复执行。
 
-`analyze` 准备一个工作票据，`due` 准备有限范围内已闭合日期的票据，
-并跳过已完成的复盘。两个命令都不会启动 Agent。
+`analyze` 准备一个工作票据。`plan-due` 和 `due` 只考虑最近一个已闭合逻辑日，
+`due` 跳过仍保留完成标记的复盘。这些命令都不会启动 Agent。
+更早日期须由用户明确指定 `--date` 重跑，不自动排队处理或补做历史日期。
 外部入口启动 Agent 并交给它 `AUTOMATION.md`，
 由它调用通用命令完成分析与后操作。
 有后操作时，`finish` 返回 `actions-pending`，执行 Agent 完成任务后再次调用，

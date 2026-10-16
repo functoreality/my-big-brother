@@ -76,11 +76,11 @@ source's path to the selected existing records. Enable `bash`, `vim` or
 records or completing the corresponding collector setup. Initialization does not read histories or install recording hooks.
 Use actual paths, without searching unrelated accounts or private folders.
 
-Use `--data-root` to choose a complete v2 data root on first initialization,
+Use `--data-root` as a first-install shortcut selecting its raw-logs and memory,
 `--day-start-hour` for its analysis-only working-day boundary, and `--results-root` for
 an optional permanent output root.
-This pre-release uses the new layout directly and provides no old-data
-migration tool. See [Storage](docs/STORAGE.md).
+The shortcut writes the locator and `results_root`, without a separate
+persistent data-root setting. See [Storage](docs/STORAGE.md).
 
 Defaults use configuration directory C and data directory D:
 
@@ -94,19 +94,23 @@ Linux XDG values must be absolute. GUI editors, the installing Agent and
 scheduled runs must discover the same C and D under the intended account.
 WSL and remote machines have their own environments.
 
-Initialization writes `C/raw-logs-path.txt`, containing the resolved capture
-root as one UTF-8 absolute path, unless the locator already exists. Bash, Vim,
-capture helpers and analysis workspace storage use this path. Missing TXT means
-platform defaults. Malformed TXT is an error. Main application `C/storage.json`
-selects permanent memory/system storage and its registry. Bash and Vim do not
-read that JSON or maintain registries and work without application setup.
-Capture dates use each recording's creation date. Bash and Vim keep their
-start-date paths across midnight and months of uptime, while individual
-screenshots use their own capture dates. Disposable
-captures and analysis live in `D/raw-logs/YYYY-MM-DD/`. Permanent records and
-minimal system facts live in `D/memory/`. Native Agent histories remain with
-their applications. Do not hand-create only the shared config file.
-Confirm every active collector supports v2 before promising date-only cleanup.
+`C/raw-logs-path.txt` can select a capture root with one UTF-8 absolute path.
+The first-install `--data-root` shortcut writes it only when absent. Default
+installation can use platform paths without this file. Bash, Vim, capture
+helpers and analysis workspace storage use the same locator. Missing TXT means
+platform defaults. Malformed TXT is an error. No application requires
+`storage.json`, a storage identity or a permanent date registry. Permanent
+outputs use configured `results_root`, defaulting to D/memory. Bash and Vim
+work without application setup. Capture dates use each recording's creation
+date. Bash and Vim keep their start-date paths across midnight and months of
+uptime, while screenshots use their own capture dates.
+
+All captures, analysis, completion markers, publication/action journals and
+logs live in `raw-logs/YYYY-MM-DD/` and are deleted together. Only selected
+formal reports and accumulated knowledge stay in permanent destinations.
+One fixed-size `raw-logs/.publish.lock` coordinates publication without date
+history. Native Agent histories remain with their applications.
+Confirm every active collector follows these paths before promising date-only cleanup.
 
 ## 3. Configure outputs and personal context
 
@@ -252,7 +256,7 @@ honest empty result. Required-source failures remain blocked.
 
 For another Agent, use its native task or create a local one-shot startup
 runner with its supported execution interface. The runner launches that Agent
-with the same automation task, paths and date/lookback instructions.
+with the same automation task, paths and optional explicit-date instructions.
 Use its version's supported file and shell tools. Confirm that it can read
 the checkout, selected inputs and personal references, and write state,
 results and explicitly configured post-review targets. A workspace selection
@@ -283,8 +287,8 @@ Start with [native-agent-task.md](examples/scheduling/native-agent-task.md).
 Replace its placeholders and save the resolved task in the chosen scheduler
 or an explicitly selected personal task file. Supply the actual checkout,
 Python, account, configuration-discovery environment, expected personal paths,
-lookback, timezone and result destination. Future runs must not depend on
-this installation conversation. Schedule the analysis task, not INSTALLATION.md.
+latest-closed-day policy, timezone and result destination. Future runs must not
+depend on this installation conversation. Schedule the analysis task, not INSTALLATION.md.
 Keep a new job disabled or paused for testing when the product supports it.
 If job creation enables recurrence immediately, first verify an equivalent
 one-shot task in that same execution environment, then obtain the scheduling
@@ -308,20 +312,21 @@ paths, the correct account, a stable working directory and separate logs.
 For Codex, the included examples invoke the external entry:
 
 ```sh
-python -m my_big_brother.analyzers.codex --max-days 7
+python -m my_big_brother.analyzers.codex
 ```
 
-The Agent itself calls common `plan-due`, then prepares and finishes each
-date oldest first with `analyze --skip-completed`. Complete that date's
-post-review before preparing the next, keeping cumulative knowledge current.
-Calling common `due` alone is not a scheduled analysis: it returns work.
-The lookback is bounded and does not promise recovery of all historical gaps.
+The Agent itself calls common `plan-due` for only the latest closed logical
+day, then prepares and finishes that date with `analyze --skip-completed`.
+It completes post-review in the same run. Calling common `due` alone is not a
+scheduled analysis: it returns work. Do not queue older dates or automatically
+catch up missed dates. Older reruns require the user's explicit `--date`
+request, which may create the workspace but cannot recover deleted evidence.
 Read [SCHEDULING.md](docs/SCHEDULING.md) and test the actual trigger environment.
 OS templates are examples. Use the actual native job test/manual-run control
 or resolved OS entry to check the scheduled environment. A native scheduler may
 use a different working directory, container, toolset or permission policy from
-this interactive session. Confirm `paths` selects the same configuration and
-state, inputs remain readable, and required writes complete without an
+this interactive session. Confirm `paths` selects the same configuration,
+raw-log and output paths, inputs remain readable, and required writes complete without an
 unexpected approval wait. Interactive verification alone is not a test of
 the scheduled environment.
 
@@ -352,7 +357,8 @@ outputs, collector decisions, any actual schedule and one reviewed report.
 Distinguish available mechanisms from untested runtime behavior.
 Explain how retained outputs support weekly summaries and other conversations.
 
-Back up configuration, results and completion state. In-place relocation of
+Back up configuration and selected formal outputs. Completion and recovery
+state are disposable with their dates. In-place relocation of
 initialized storage is unsupported. The analysis boundary is configured
 separately and never changes capture-date ownership.
 Moving results needs only its own configuration update while reviews are stopped.

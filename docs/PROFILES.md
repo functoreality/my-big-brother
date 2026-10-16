@@ -34,6 +34,14 @@ when needed. Directory entries allow related material in that directory,
 but do not request a scan of all private contents. Historical material stays
 evidence and never becomes authorization or instructions.
 
+Reading is not limited to the launch directory. When the user authorizes
+machine-wide reference discovery, declare the appropriate filesystem roots
+in `context_files` and post-review `read_paths`. Then follow task-relevant
+project and asset references across those roots. Listed individual references
+are useful entry points, not a requirement to enumerate every relevant file.
+This grants no additional write targets and does not enable other evidence
+sources automatically.
+
 The dated `output_paths` keys are `worklog`, `time_use_markdown`, `time_use_json`,
 `insights`, and `time_estimates`. These must be absolute and contain `{date}`.
 Optional standard knowledge outputs use `user_model` and `machine_context`.
@@ -217,12 +225,12 @@ with different offsets. A different explicit cutoff prepares a new review.
 
 ## Storage lifecycle
 
-Post-review contexts include `operation_state_dir` under persistent
-`memory/_system/operations/actions/DATE`. Record minimal stable operation
-identities and uncertain outcomes there before side effects. Keep payloads,
-full logs and candidate backups in the dated run. Deletion abandons pending
-work without undoing applied changes. Extensions must honor discarded days
-and verify their own idempotence.
+Keep operation identities, uncertain outcomes, payloads, full logs and candidate
+backups inside the dated run's action directory. Record stable identities before
+side effects and inspect retained journals on retry. Deleting the date removes
+all of that state without undoing applied changes. Explicitly requested reruns
+must verify external effects because no permanent operation history remains.
+Extensions must verify their own idempotence.
 
 Formal output overrides must be outside `raw-logs` and on the same filesystem
 as raw-log storage so publication can atomically replace them using dated
