@@ -139,7 +139,8 @@ Record each result's `date`, `status`, and `run_dir` when supplied by the
 common commands. With a launcher context, write the automation context's
 `receipt_path` using `receipt_example` and the actual ordered result list. Match `invocation_id`.
 Only do this once all tickets have valid final results: `completed`,
-`already-completed`, or `empty`. Do not turn failures or blocked work into
+`already-completed`, `empty`, or `discarded`. Preserve an explicitly returned
+`discarded` result without recreating that date. Do not turn failures or blocked work into
 successful empty results. Then perform the common completion check yourself:
 
 ```sh
