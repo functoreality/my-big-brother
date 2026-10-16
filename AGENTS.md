@@ -6,21 +6,6 @@ Do not treat this file as the daily analysis task itself.
 
 ## Repository work
 
-Before implementation, read `docs/README.md`, the product contract in
-`docs/REQUIREMENTS.md`, the technical overview in `docs/ARCHITECTURE.md`,
-and the document-first process in `CONTRIBUTING.md`.
-Identify the agreed sections and authorized scope for the task.
-For new behavior, a changed technical strategy or an unresolved contract,
-propose the document change and obtain explicit agreement before implementing.
-Update the owner documents first. Subagent recommendations, passing tests,
-existing code and roadmap items do not approve new requirements.
-Executable task Markdown, defaults and installer actions are implementation too.
-An already agreed bug fix or behavior-preserving refactor follows its existing
-contract. Never use either label to add undocumented behavior.
-
-The safeguards below summarize selected contracts. They do not replace the
-PRD, architecture and detailed documents, or authorize expanding their scope.
-
 - Read `docs/REQUIREMENTS.md` before changing collection or storage.
   Collectors use real local calendar dates, equivalent to `date +%F`.
   Bash keeps one JSONL per shell under its start date, even across months.

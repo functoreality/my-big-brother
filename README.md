@@ -170,9 +170,6 @@ input adapters, analysis tasks, and independent Agent startup entries.
 
 ## Documentation and tests
 
-- [Documentation map](docs/README.md): product, technical and operation guides.
-- [Product requirements (PRD)](docs/REQUIREMENTS.md) and
-  [document-first development](CONTRIBUTING.md): agreed behavior and change review.
 - [Setup](docs/SETUP.md) and [installation instructions for an Agent](INSTALLATION.md).
 - [Scheduling](docs/SCHEDULING.md) and [optional Bash recording](docs/BASH.md).
 - [Architecture](docs/ARCHITECTURE.md) and [extension guide](docs/EXTENDING.md).

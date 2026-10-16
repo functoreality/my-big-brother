@@ -6,11 +6,6 @@ The core prepares evidence and manages a review. An Agent reads the Markdown
 task and leads analysis. Keep new features on the relevant side of this
 boundary rather than turning each semantic step into a program workflow.
 
-Before implementing an extension, follow [Document-first development](../CONTRIBUTING.md).
-Agree its product behavior and technical strategy, then update the PRD,
-architecture and affected detail contracts. This guide explains available
-interfaces. It does not authorize every example or future capability.
-
 ## Four independent extension points
 
 | Component | Responsibility | Example |

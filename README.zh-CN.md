@@ -154,9 +154,6 @@ Bash 支持适用于 Bash 环境，包括作为独立环境的 WSL，不记录 P
 
 ## 文档与测试
 
-- [文档地图](docs/zh-CN/README.md)：产品、技术及操作文档入口。
-- [产品需求（PRD）](docs/zh-CN/REQUIREMENTS.md)和
-  [文档先行流程](docs/zh-CN/CONTRIBUTING.md)：当前约定及变更评审。
 - [安装与设置](docs/zh-CN/SETUP.md)和[提供给 Agent 的安装说明](INSTALLATION.md)。
 - [定时运行](docs/zh-CN/SCHEDULING.md)和[可选 Bash 记录](docs/zh-CN/BASH.md)。
 - [架构](docs/zh-CN/ARCHITECTURE.md)和[扩展指南](docs/zh-CN/EXTENDING.md)。
