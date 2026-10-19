@@ -17,7 +17,7 @@ def parser():
     result.add_argument("--version", action="version", version=__version__)
     commands = result.add_subparsers(dest="command", required=True)
     init = commands.add_parser("init", help="Create missing configuration, preserving existing settings")
-    init.add_argument("--sources", help="Comma-separated inputs: codex,opencode,bash,vim,screenshots")
+    init.add_argument("--sources", help="Comma-separated inputs: " + ",".join(config.SOURCES))
     init.add_argument("--results-root")
     init.add_argument("--data-root")
     init.add_argument("--day-start-hour", type=int, default=0)

@@ -11,7 +11,7 @@ from .paths import Paths, absolute, is_within
 
 DEFAULT_OUTPUTS = ("worklog", "time-use", "insights", "time-estimates")
 OUTPUTS = DEFAULT_OUTPUTS + ("user-model", "machine-context")
-SOURCES = ("codex", "opencode", "bash", "vim", "screenshots")
+SOURCES = ("codex", "opencode", "workbuddy", "bash", "vim", "screenshots")
 KNOWLEDGE_KEYS = ("user_model", "machine_context")
 OUTPUT_KEYS = ("worklog", "time_use_markdown", "time_use_json", "insights", "time_estimates") + KNOWLEDGE_KEYS
 
@@ -44,6 +44,7 @@ def defaults(paths: Paths):
         "sources": {
             "codex": {"enabled": True, "path": str(codex_home / "sessions")},
             "opencode": {"enabled": True, "path": str(opencode_data / "opencode" / "opencode.db")},
+            "workbuddy": {"enabled": False, "path": str(Path.home() / ".workbuddy" / "projects")},
             "bash": {"enabled": True},
             "vim": {"enabled": False},
             "screenshots": {"enabled": False},
@@ -90,7 +91,7 @@ def load(paths: Paths):
             raise ValueError(f"sources.{name}.enabled must be a boolean")
         if type(spec.get("required", False)) is not bool:
             raise ValueError(f"sources.{name}.required must be a boolean")
-        if name in {"codex", "opencode"} and spec.get("enabled", True):
+        if name in {"codex", "opencode", "workbuddy"} and spec.get("enabled", True):
             absolute(spec.get("path"), f"sources.{name}.path")
         if "path" in spec:
             absolute(spec["path"], f"sources.{name}.path")

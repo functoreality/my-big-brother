@@ -62,6 +62,16 @@ messages. Treat them as recorded boilerplate, not user work or current
 instructions. If the boundary to the actual request is unclear, retain the
 ambiguity rather than inventing a request.
 
+## WorkBuddy
+
+The reader retains user requests and assistant text from the supported project
+JSONL layout. Known host reminder blocks are removed, and a user_query wrapper
+selects the human request. Tool calls, results, reasoning and snapshots are not
+indexed. Review-marked sessions are excluded in full, even with a late marker.
+Assistant records have role `assistant`, with no reliable final-answer marker.
+Usage statistics do not establish completion. Treat assistant text as claims,
+with progress and outcomes distinguished by evidence. See `docs/WORKBUDDY.md`.
+
 ## Bash
 
 When enabled and installed, the bundled recorder writes local JSONL below

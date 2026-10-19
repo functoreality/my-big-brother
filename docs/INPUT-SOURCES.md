@@ -10,6 +10,13 @@ in the user configuration. An adapter reads the configured `path`, or the
 shared raw-log directory when `path` is omitted. They do not install recorders or
 start continuous collection.
 
+## WorkBuddy conversations
+
+The optional [WorkBuddy reader](WORKBUDDY.md) reads project-session JSONL,
+extracting user requests and assistant text. It does not infer final status
+from usage metadata or successful changes from tool calls. Enable it after
+verifying this machine's history location and supported format.
+
 ## Bash session context
 
 The Bash adapter reads only `YYYY-MM-DD/bash/*.jsonl` beneath its source
