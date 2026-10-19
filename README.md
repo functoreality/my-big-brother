@@ -198,3 +198,7 @@ configuration paths. Native Windows and macOS execution still needs validation.
 Add `--run-analyzer` to run a real Codex analysis and publish its outputs in
 the isolated fixture directory. That optional step uses your installed account
 and consumes quota. It does not use personal histories or install a scheduler.
+
+## License
+
+Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE).

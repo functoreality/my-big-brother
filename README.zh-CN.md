@@ -180,3 +180,7 @@ python -m unittest discover -s tests -v
 添加 `--run-analyzer` 会执行真实 Codex 分析，并把输出发布到隔离的测试目录。
 这一步是可选的，使用已安装的账号并消耗额度。
 它不使用个人历史，也不安装调度器。
+
+## 许可证
+
+采用 Apache License 2.0，完整条款见 [LICENSE](LICENSE)。
