@@ -2,7 +2,8 @@
 
 Run from the checkout: python tests/smoke.py [--run-analyzer].
 The explicit analyzer option can consume the installed Codex account quota.
-All configuration, evidence, and results stay in a separate temporary directory.
+Project configuration, evidence, and results stay in a separate temporary directory.
+The optional real analyzer uses the installed Codex account configuration.
 """
 
 import argparse
@@ -25,7 +26,7 @@ def timestamp(clock):
 
 def run(command, environment):
     result = subprocess.run([sys.executable, "-m", "my_big_brother", *command],
-                            cwd=REPO, env=environment, check=True, capture_output=True, text=True)
+                            cwd=REPO, env=environment, check=True, capture_output=True, encoding="utf-8")
     return json.loads(result.stdout)
 
 
@@ -37,12 +38,18 @@ def main():
     args = parser.parse_args()
     if args.with_post_review and not args.run_analyzer:
         parser.error("--with-post-review requires --run-analyzer")
-    if not sys.platform.startswith("linux"):
-        raise SystemExit("This CLI isolation smoke harness currently requires Linux/XDG. Unit fixtures are portable.")
     root = Path(tempfile.mkdtemp(prefix="mbb-smoke-"))
     environment = dict(os.environ)
+    # Isolate platform discovery, including macOS paths derived from HOME.
+    environment["CODEX_HOME"] = str(
+        os.environ.get("CODEX_HOME") or Path.home() / ".codex"
+    ) if args.run_analyzer else str(root / "codexhome")
+    environment["HOME"] = str(root / "home")
+    environment["USERPROFILE"] = str(root / "home")
+    environment["LOCALAPPDATA"] = str(root / "appdata")
     environment["XDG_CONFIG_HOME"] = str(root / "config")
     environment["XDG_DATA_HOME"] = str(root / "data")
+    environment["PYTHONIOENCODING"] = "utf-8"
     paths = run(["init", "--sources", "codex,opencode,bash"], environment)
     sessions = root / "codex sessions"
     sessions.mkdir()

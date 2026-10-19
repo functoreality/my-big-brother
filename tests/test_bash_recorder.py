@@ -66,7 +66,7 @@ class BashSessionNamingTests(unittest.TestCase):
         self.assertTrue(label.endswith('尾'))
         event = json.loads((self.data / 'raw-logs/2026-10-15/bash' / Path(session).name).read_text())
         self.assertEqual(event['cwd'], str(self.root / name))
-        self.assertEqual(recorder.directory_label(self.root / 'a:b?c*'), 'a_b_c_')
+        self.assertEqual(recorder.directory_label(self.root / 'dir:a?b*'), 'dir_a_b_')
         self.assertEqual(recorder.directory_label(Path('/')), '')
 
     def test_one_file_survives_midnight_months_and_config_changes(self):

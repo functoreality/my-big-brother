@@ -1,6 +1,8 @@
 """Optional interactive startup remains inside the single-Agent boundary."""
 
 import json
+import os
+import shlex
 import subprocess
 import tempfile
 import unittest
@@ -30,6 +32,7 @@ class CodexTmuxTests(unittest.TestCase):
         self.assertEqual(command[-1], "-")
         self.assertNotIn("--model", command)
 
+    @unittest.skipIf(os.name == "nt", "Interactive tmux mode targets POSIX hosts")
     def test_tui_uses_same_scope_and_model_without_exec_options(self):
         writes = self.root / "output"
         writes.mkdir()
@@ -60,7 +63,7 @@ class CodexTmuxTests(unittest.TestCase):
     def test_selected_workspace_keeps_dated_prompts_and_logs(self):
         workspace = self.root / "personal workspace"
         workspace.mkdir()
-        for mode in ("exec", "tmux"):
+        for mode in (("exec",) if os.name == "nt" else ("exec", "tmux")):
             with self.subTest(mode=mode), \
                  patch.object(codex.shutil, "which", return_value="/tools/codex"):
                 command = codex.command({"mode": mode, "working_directory": str(workspace)}, self.run,
@@ -84,7 +87,7 @@ class CodexTmuxTests(unittest.TestCase):
     def test_process_working_directory_is_independent_of_logs_in_both_modes(self):
         workspace = self.root / "workspace"
         workspace.mkdir()
-        for mode in ("exec", "tmux"):
+        for mode in (("exec",) if os.name == "nt" else ("exec", "tmux")):
             with self.subTest(mode=mode), \
                  patch.object(codex.shutil, "which", return_value="/tools/codex"), \
                  patch.object(codex, "launch_tmux") as tmux, \
@@ -131,7 +134,7 @@ class CodexTmuxTests(unittest.TestCase):
             codex.launch_tmux(["/tools/codex"], self.run, {}, working_directory=workspace)
         script = run.call_args.kwargs["input"].decode("utf-8")
         self.assertIn('"-c" ' + codex._tmux_quote(str(workspace)), script)
-        self.assertIn(str(self.run / "logs/terminal.log"), script)
+        self.assertIn(codex._tmux_quote("cat >> " + shlex.quote(str(self.run / "logs/terminal.log"))), script)
 
     def test_missing_tmux_does_not_launch_codex(self):
         with patch.object(codex.shutil, "which", return_value=None), \
@@ -176,6 +179,7 @@ class CodexTmuxTests(unittest.TestCase):
                          ["/tools/tmux", "kill-session", "-t", "mbb-unique-launch"])
         self.assertEqual(run.call_count, 3)
 
+    @unittest.skipIf(os.name == "nt", "Interactive tmux mode targets POSIX hosts")
     def test_tmux_launch_never_uses_popen_or_exec_timeout(self):
         expected = {"status": "session-started", "session_name": "mbb-test", "attach_command": "tmux attach"}
         with patch.object(codex.shutil, "which", return_value="/tools/codex"), \
