@@ -47,6 +47,7 @@ listed in [INSTALLATION.md](../INSTALLATION.md).
 ```text
 C/
   config.json
+  readers/<source>/reader.py
   raw-logs-path.txt  Optional one-path raw-log locator
   local-tasks/
 D/
@@ -131,3 +132,7 @@ discovered implicitly. Selected profile files can be executed according
 to their declared phase and scope. See [EXTENDING.md](EXTENDING.md).
 Human documentation may be translated, while Agent instructions and
 structured field names remain shared across languages.
+
+Personal source implementations can be explicitly bound outside the checkout.
+They override same-name builtins without fallback, and their file digests are
+part of dated run identity. See [Extending](EXTENDING.md#add-an-input).

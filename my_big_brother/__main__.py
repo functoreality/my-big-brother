@@ -97,7 +97,14 @@ def main(argv=None):
                                  "Run analyze and inspect its manifest. Exit 0 only validates configuration."}
                 if not native:
                     value["warnings"].append("No input sources are enabled. Configure a readable source before scheduling.")
-                if "bash" in native:
+                for name in native:
+                    spec = settings["sources"][name]
+                    if "reader" in spec:
+                        exists = Path(spec["reader"]).is_file()
+                        value["sources"][name]["reader"] = {"path": spec["reader"], "exists": exists}
+                        if not exists:
+                            value["warnings"].append(f"{name}: reader file does not exist: {spec['reader']}")
+                if "bash" in native and "reader" not in settings["sources"]["bash"]:
                     present = any(path.is_file() for path in Path(native["bash"]).glob("????-??-??/bash/*.jsonl"))
                     value["sources"]["bash"]["records_present"] = present
                     if not present:

@@ -73,6 +73,11 @@ Reading native Agent histories does not require a new collector plugin.
 Optional Vim and screenshot adapters, record formats, and replay assets are
 described in [Input sources](INPUT-SOURCES.md).
 
+For an unsupported history format, the installer can ask to develop and test a
+[personal reader](EXTENDING.md#add-an-input). Its code stays in `C/readers/`,
+selected by an explicit `reader` binding. Upgrades preserve the binding even
+when official support is added later. Switching requires your choice.
+
 ## Verify a first review
 
 Pick a date with known activity in your selected histories:

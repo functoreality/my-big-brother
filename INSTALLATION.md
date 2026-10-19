@@ -104,8 +104,13 @@ New Bash, Vim or screenshot recording remains a separate user choice.
 Also check whether your own harness's history is supported. If not, explain
 the gap and ask whether the user wants you to add a local reader for it.
 With consent, inspect the authorized store read-only, follow
-[Extending](docs/EXTENDING.md#add-a-source-adapter), register the reader and its
-configuration, and keep it disabled unless selected for this installation.
+[Extending](docs/EXTENDING.md#add-an-input), and save the reader, synthetic tests
+and necessary notes under `C/readers/<source>/`, outside this checkout.
+Bind its absolute Python file path with the source's `reader` field in
+`C/config.json`. The separate `path` field points to the history store.
+Unknown source names are supported with this explicit binding. Keep the source
+disabled unless selected for this installation. Personal readers do not edit
+the builtin source registry. Do not install dependencies without consent.
 Do not require a new Agent executable or change the chosen executor to add a source.
 Test synthetic fixtures, then verify a known real session locally, including
 its timestamps, roles, user text, context filtering and review-session exclusion.
@@ -117,6 +122,17 @@ that the reader interprets the format correctly.
 If the format or permissions prevent a reliable reader, say so and let the
 user choose other sources. Offer an upstream patch only with permission,
 using synthetic fixtures and excluding private histories and machine bindings.
+
+Preserve personal readers, tests and explicit bindings during upgrades.
+An explicit `reader` wins even if an upgrade adds official support with the
+same name. Loading failure reports an unavailable source, never silent fallback.
+If official support is now available, explain it and ask whether to compare
+both implementations read-only over the same window. Check timestamps, roles,
+content, gaps, personal filtering and review-session exclusion. Different row
+counts alone do not establish a bug. Switch only with the user's agreement by
+removing the `reader` binding, preserving source paths, enabled flags and other
+settings. Retain the personal code for rollback, and never enable both readers
+for the same store. Do not silently rewrite personal code for a new interface.
 
 Ask which additional collectors the user wants. Check for Vim/Neovim
 executables, existing editor configuration or a recorder installation.
@@ -134,6 +150,9 @@ python -m my_big_brother paths
 
 Use `--sources codex,opencode` when both native sources are detected and included.
 These are examples, not a reason to enable an undetected Codex source.
+`init --sources` accepts builtin names only. For a personal-only reader, run
+`init` and replace the generated source selection with its explicit binding
+before analyzing. Preserve other settings and existing explicit choices.
 This choice does not select the executing Agent. For existing Bash records,
 `init --sources bash` is also a valid standalone starting point. Resolve that
 source's actual path. Enable `bash`, `vim` or `screenshots` only for wanted

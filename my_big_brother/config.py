@@ -3,6 +3,7 @@
 import json
 import hashlib
 import os
+import re
 import tempfile
 from pathlib import Path
 from string import Formatter
@@ -84,18 +85,24 @@ def load(paths: Paths):
     if len(outputs) != len(set(outputs)):
         raise ValueError("outputs must not contain duplicates")
     source_config = config["sources"]
-    if not isinstance(source_config, dict) or set(source_config) - set(SOURCES):
-        raise ValueError(f"sources must be an object with entries from {', '.join(SOURCES)}")
+    if not isinstance(source_config, dict):
+        raise ValueError("sources must be an object")
     for name, spec in source_config.items():
+        if re.fullmatch(r"[a-z][a-z0-9_-]*", name) is None:
+            raise ValueError("Source names must match [a-z][a-z0-9_-]*")
         if not isinstance(spec, dict) or type(spec.get("enabled", True)) is not bool:
             raise ValueError(f"sources.{name}.enabled must be a boolean")
         if type(spec.get("required", False)) is not bool:
             raise ValueError(f"sources.{name}.required must be a boolean")
-        if name in {"codex", "opencode", "workbuddy"} and spec.get("enabled", True):
+        if name not in SOURCES and "reader" not in spec:
+            raise ValueError(f"sources.{name} requires an explicit reader")
+        if "reader" in spec:
+            absolute(spec["reader"], f"sources.{name}.reader")
+        if (name in {"codex", "opencode", "workbuddy"} or "reader" in spec) and spec.get("enabled", True):
             absolute(spec.get("path"), f"sources.{name}.path")
         if "path" in spec:
             absolute(spec["path"], f"sources.{name}.path")
-        if set(spec) - {"enabled", "path", "required"}:
+        if set(spec) - {"enabled", "path", "required", "reader"}:
             raise ValueError(f"Invalid fields for sources.{name}")
     profile = load_profile(config)
     if profile and any(is_within(Path(name.format(date="2020-01-15")), layout.raw_logs)

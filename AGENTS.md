@@ -87,6 +87,13 @@ unless already authorized in the installation conversation.
 
 ## User extensions
 
+Personal source readers and synthetic tests belong under `C/readers/`, outside
+the checkout. Bind an absolute `reader` file path in the source configuration,
+separately from the history `path`. Explicit bindings win over same-name builtins
+and must survive upgrades. Never scan for extensions, fall back silently after
+a local failure, or switch to new official support without the user's choice.
+See `docs/EXTENDING.md` for comparison, switching and upstream contribution.
+
 Users can keep additional task instructions in the configuration directory's
 `local-tasks/` directory. These are separate from shipped task documents so
 upgrades do not overwrite them. The program does not automatically discover

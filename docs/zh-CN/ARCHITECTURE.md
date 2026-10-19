@@ -47,6 +47,7 @@ examples/synthetic/
 ```text
 C/
   config.json
+  readers/<source>/reader.py
   raw-logs-path.txt  可选的单路径原始日志位置文件
   local-tasks/
 D/
@@ -125,3 +126,6 @@ Vim 和截图的可选读取器见[输入来源](INPUT-SOURCES.md)。
 但选定的配置文件可以按其声明的阶段和范围执行。
 详见[扩展指南](EXTENDING.md)。
 用户文档可以翻译，Agent 指令和结构化字段名仍在不同语言间共享。
+
+个人来源实现可在源码目录外显式绑定，优先于同名官方实现且不静默回退。
+所选文件摘要纳入日期内运行身份，详见[扩展说明](EXTENDING.md#添加输入)。

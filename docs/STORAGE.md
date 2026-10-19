@@ -44,6 +44,11 @@ The sole technical exception outside date directories is fixed-size
 `raw-logs/.publish.lock`, used to serialize publication of shared outputs.
 It contains no date history and does not grow with reviews.
 
+Personal source code and synthetic tests can live in `C/readers/<source>/`,
+selected explicitly in `config.json`. These are configuration, not disposable
+dated material. Source upgrades preserve them. Reader identity digests stay
+inside dated run context, without a permanent registry.
+
 ## Paths and initialization
 
 ```sh

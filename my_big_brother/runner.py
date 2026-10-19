@@ -1,7 +1,6 @@
 """Prepare replayable evidence and publish checked Agent outputs."""
 
 import hashlib
-import importlib
 import json
 import os
 import shutil
@@ -14,6 +13,7 @@ from datetime import date, datetime, time as wall_time, timedelta
 from pathlib import Path
 
 from .config import KNOWLEDGE_KEYS, load_profile, write_json
+from . import readers
 from .sources import SourceResult
 from .storage import file_lock
 
@@ -98,8 +98,12 @@ def digest(path):
 
 
 def review_configuration(paths, config):
-    return {"language": config["language"], "day_start_hour": config["day_start_hour"],
-            "sources": config["sources"], "raw_logs": str(paths.raw_logs)}
+    value = {"language": config["language"], "day_start_hour": config["day_start_hour"],
+             "sources": config["sources"], "raw_logs": str(paths.raw_logs)}
+    selected = readers.identities(config["sources"])
+    if selected:
+        value["readers"] = selected
+    return value
 
 
 def state(run_dir, status, **details):
@@ -116,6 +120,7 @@ def source_error(run_dir, name, phase, error):
 
 def prepare_run(paths, config, review_date, snapshot_end=None):
     profile = load_profile(config)
+    prepared_configuration = review_configuration(paths, config)
     start, end, full_end = snapshot_window(review_date, config["day_start_hour"], snapshot_end)
     run_id = now().strftime("%Y%m%dT%H%M%S") + "-" + uuid.uuid4().hex[:8]
     day_dir = paths.layout.ensure_day(review_date)
@@ -132,8 +137,10 @@ def prepare_run(paths, config, review_date, snapshot_end=None):
         adapter = None
         source_path = Path(spec["path"]) if spec.get("path") else paths.raw_logs
         try:
-            adapter = importlib.import_module(f"my_big_brother.sources.{name}")
+            adapter = readers.load(name, spec, prepared_configuration.get("readers", {}).get(name))
             result = adapter.collect(source_path, start, end)
+            if "reader" in spec:
+                readers.validate(result)
         except Exception as error:
             gap, diagnostic = source_error(run_dir, name, "collection", error)
             source_diagnostics[name] = diagnostic
@@ -168,6 +175,8 @@ def prepare_run(paths, config, review_date, snapshot_end=None):
                 handle.write(json.dumps(row, ensure_ascii=False) + "\n")
         sources[name] = {"status": result.status, "entries": len(rows), "required": spec.get("required", False),
                          "index": str(index), "gaps": result.gaps}
+        if "reader" in spec:
+            sources[name]["reader"] = prepared_configuration["readers"][name]
         if name in source_diagnostics:
             sources[name]["diagnostic"] = source_diagnostics[name]
         if assets is not None:
@@ -202,7 +211,7 @@ def prepare_run(paths, config, review_date, snapshot_end=None):
                "output_paths": stage_paths, "final_output_paths": final_paths,
                "output_mapping": layout, "output_kinds": {item["staged"]: item["kind"] for item in layout},
                "profile": profile, "profile_digest": profile["digest"] if profile else None,
-               "review_configuration": review_configuration(paths, config),
+               "review_configuration": prepared_configuration,
                "original_digests": originals, "completion_example": example,
                "task": str(REPO / "tasks" / "daily-review" / "TASK.md")}
     write_json(run_dir / "context.json", context)
@@ -427,7 +436,7 @@ def finish_run(paths, config, run_dir):
     if config["outputs"] != context["outputs"]:
         raise ValueError("Selected outputs changed after prepare. Prepare a new run.")
     if review_configuration(paths, config) != context.get("review_configuration"):
-        raise ValueError("Review source, language or window configuration changed after prepare.")
+        raise ValueError("Review source, reader, language or window configuration changed after prepare.")
     layout = output_layout(config, review_date, run_dir, profile)
     stages = [item["staged"] for item in layout]
     finals = [item["final"] for item in layout]
