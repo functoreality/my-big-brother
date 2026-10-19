@@ -37,7 +37,8 @@ Planned items have no promised delivery date. Readers and collectors are
 separate capabilities, as noted below.
 
 - **Agent conversations:** **Available** native Codex session files and
-  supported OpenCode SQLite history. **Planned** readers for more Agents.
+  supported OpenCode SQLite history and [WorkBuddy project sessions](docs/WORKBUDDY.md).
+  **Planned** readers for more Agents.
 - **Software activity:** **Available** Bash records with an optional bundled
   recorder, and Vim/Neovim sessions collected by the separate
   [session-recorder.vim](https://github.com/functoreality/session-recorder.vim)
@@ -103,8 +104,8 @@ Please help me install https://github.com/functoreality/my-big-brother/blob/main
 ```
 
 The shared [INSTALLATION.md](INSTALLATION.md) guides your installing Agent.
-It can also be your daily analyzer. A Codex unattended launcher and Linux,
-macOS, and Windows scheduling templates are included. Other Agents can use a
+It can also be your daily analyzer. A Codex unattended launcher, cron/launchd
+examples and Windows Task Scheduler instructions are included. Other Agents can use a
 native scheduled review or an automation runner prepared by the installing
 Agent. They are not restricted to the bundled launcher, but an unbundled
 backend needs setup and verification. Input histories and the analyzer are
@@ -192,7 +193,8 @@ Run the isolated test suite from the repository:
 python -m unittest discover -s tests -v
 ```
 
-On Linux, `python3 tests/smoke.py` prepares an isolated fictional workday.
+`python tests/smoke.py` prepares an isolated fictional workday using platform
+configuration paths. Native Windows and macOS execution still needs validation.
 Add `--run-analyzer` to run a real Codex analysis and publish its outputs in
 the isolated fixture directory. That optional step uses your installed account
 and consumes quota. It does not use personal histories or install a scheduler.

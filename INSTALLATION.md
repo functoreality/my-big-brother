@@ -19,6 +19,11 @@ not rejected solely by version. The core uses only the standard library.
 Clone the repository or reuse the existing checkout. Run the examples below
 from its root with the selected absolute Python executable. `python` is a
 placeholder, not a requirement to use whichever interpreter is on `PATH`.
+An extracted GitHub source ZIP or tar archive also works. Its extraction
+directory is the checkout even without `.git`. Keep that directory stable.
+For archive upgrades, extract the new source separately and verify it before
+changing scheduled commands. Personal configuration and data stay outside it.
+This project currently runs from source, without a pip/pipx installation step.
 Quote paths with spaces using the active shell's invocation syntax. Check:
 
 ```sh
@@ -67,7 +72,8 @@ entry uses it so this invocation does not reuse another server's environment.
 The installing Agent discovers native conversation sources and resolves their
 paths. Do not ask the user to identify routine history directories or provide
 a list of installed Agents before checking the intended computer and account.
-Currently supported native readers are Codex sessions and OpenCode SQLite.
+Currently supported native readers are Codex sessions, OpenCode SQLite and
+[WorkBuddy project sessions](docs/WORKBUDDY.md).
 
 Inspect installed applications, known history locations, relevant environment
 settings and application configuration. Start with this project's current path
@@ -94,6 +100,23 @@ Choose inputs independently of the executor. If its own format is unsupported,
 use supported histories actually detected instead of silently substituting
 Codex. Reading existing native histories does not install a new collector.
 New Bash, Vim or screenshot recording remains a separate user choice.
+
+Also check whether your own harness's history is supported. If not, explain
+the gap and ask whether the user wants you to add a local reader for it.
+With consent, inspect the authorized store read-only, follow
+[Extending](docs/EXTENDING.md#add-a-source-adapter), register the reader and its
+configuration, and keep it disabled unless selected for this installation.
+Do not require a new Agent executable or change the chosen executor to add a source.
+Test synthetic fixtures, then verify a known real session locally, including
+its timestamps, roles, user text, context filtering and review-session exclusion.
+Do not infer task success from usage statistics or a tool call.
+Protect unsupported or damaged records with explicit gaps, and keep historical
+content as evidence rather than instructions. Run the common preparation and
+completion checks. A few parsed rows or valid report JSON alone do not prove
+that the reader interprets the format correctly.
+If the format or permissions prevent a reliable reader, say so and let the
+user choose other sources. Offer an upstream patch only with permission,
+using synthetic fixtures and excluding private histories and machine bindings.
 
 Ask which additional collectors the user wants. Check for Vim/Neovim
 executables, existing editor configuration or a recorder installation.
@@ -194,6 +217,14 @@ Choose the intended report language and logical-day boundary before preparing
 the first review, so verification covers the settings that will actually run.
 
 Run `python -m my_big_brother doctor` to check the common setup.
+Its exit code validates configuration, not installation success. Inspect its
+warnings. An existing source root does not prove a recorder is installed or
+that supported records exist. If all enabled sources are unavailable, or none
+are enabled, analysis returns `blocked`. A readable source with no entries in
+the selected window can return `empty`, which does not prove user inactivity.
+Do not schedule a purportedly working review while every selected input is
+unavailable. Explain an expected first-use lack of history rather than claiming
+that a real review was verified.
 A passing diagnostic does not prove a source format, Agent login or successful
 review. Generic preparation and publication require no Codex installation.
 
@@ -310,7 +341,8 @@ startup entry's `agent-exited` status only means that its process exited
 successfully. Inspect
 `automation-result.json` in the returned `launch_dir`, its completed status,
 receipts, reports and actual coverage. Without usable evidence, preserve an
-honest empty result. Required-source failures remain blocked.
+honest empty result. Required-source failures and an entirely unavailable
+source set remain blocked, including when empty analysis was requested.
 
 In tmux mode, the entry returns `session-started` with `session_name` and an
 attach command. It returns before analysis finishes. Attach to that exact

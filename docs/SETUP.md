@@ -38,6 +38,13 @@ options to create missing files without replacing existing settings.
 `doctor` checks the common configuration and paths, but does not prove Agent
 authentication or source-format compatibility. A missing Codex executable does not prevent
 another Agent from using `prepare` and `finish`.
+Inspect the warnings even when `doctor` exits zero. Capture-root existence
+does not prove recording is active. All enabled sources unavailable, or none
+enabled, blocks analysis. A readable source with no window entries can return
+`empty`, without claiming the user did no work.
+Use `--sources workbuddy` for the supported [WorkBuddy layout](WORKBUDDY.md).
+Without `--sources`, a fresh `init` uses generic defaults instead of discovering
+installed applications. Explicit source selection is recommended for installation.
 
 ## Configure your own installation
 

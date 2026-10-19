@@ -35,6 +35,12 @@ python -m my_big_brother doctor
 不带选项运行 `init` 可以补齐缺少的文件，不替换已有设置。
 `doctor` 检查通用配置和路径，但不能证明 Agent 身份认证或输入格式一定兼容。
 没有 Codex 可执行文件，也不妨碍其他 Agent 使用 `prepare` 和 `finish`。
+即使 `doctor` 退出码为零也要检查警告，采集根目录存在不证明正在记录。
+全部来源不可用或没有启用来源时阻断分析，可读来源在窗口内零条记录时可返回 `empty`，
+不能据此声称用户没有工作。
+支持的 [WorkBuddy 格式](WORKBUDDY.md) 可通过 `--sources workbuddy` 选择。
+首次不带 `--sources` 的初始化采用通用默认值，不自动发现已安装应用。
+安装时应显式选择来源。
 
 ## 配置个人安装
 

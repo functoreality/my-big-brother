@@ -26,7 +26,7 @@ def parser():
     capture.add_argument("--timestamp")
     screenshot = commands.add_parser("record-screenshot", help="Store an existing capture, without taking screenshots")
     screenshot.add_argument("--image", required=True)
-    screenshot.add_argument("--timestamp")
+    screenshot.add_argument("--timestamp", help="Capture time as ISO timestamp with offset, default current time, not file mtime")
     failure = commands.add_parser("log-startup-error", help="Append a diagnostic inside the previous closed day")
     failure.add_argument("--message", required=True)
     commands.add_parser("paths", help="Show resolved paths without changing them")
@@ -91,7 +91,17 @@ def main(argv=None):
                          "analyzer": settings["analyzer"],
                          "sources": {name: {"path": path, "exists": Path(path).exists()}
                                      for name, path in native.items() if path is not None},
-                         "note": "Source presence does not verify supported contents. Run analyze and inspect its task ticket."}
+                         "warnings": [f"{name}: source path does not exist: {path}"
+                                      for name, path in native.items() if not Path(path).exists()],
+                         "note": "Path existence does not verify readable history, recorder installation, or an Analyzer. "
+                                 "Run analyze and inspect its manifest. Exit 0 only validates configuration."}
+                if not native:
+                    value["warnings"].append("No input sources are enabled. Configure a readable source before scheduling.")
+                if "bash" in native:
+                    present = any(path.is_file() for path in Path(native["bash"]).glob("????-??-??/bash/*.jsonl"))
+                    value["sources"]["bash"]["records_present"] = present
+                    if not present:
+                        value["warnings"].append("bash: no session JSONL files found. Root existence does not verify recording.")
                 print(json.dumps(value, indent=2, ensure_ascii=False))
                 return 0
             elif args.command == 'log-startup-error':
@@ -127,7 +137,7 @@ def main(argv=None):
             else:
                 value = runner.due(paths, settings)
         print(json.dumps(value, indent=2, ensure_ascii=False))
-        if args.command == "analyze" and value.get("status") == "blocked":
+        if args.command in ("prepare", "analyze") and value.get("status") == "blocked":
             return 1
         if args.command == "due" and any(item.get("status") == "blocked" for item in value):
             return 1

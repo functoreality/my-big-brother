@@ -33,7 +33,8 @@ Agent 负责理解记录，也可以通过显式个人配置维护长期背景�
 状态标记：**已支持**表示当前已提供，**计划中**表示拟继续推进的方向，
 不承诺交付日期。读取器和采集器是不同的功能，下面分别说明。
 
-- **Agent 对话记录：已支持** Codex 原生会话文件和受支持的 OpenCode SQLite 历史。
+- **Agent 对话记录：已支持** Codex 原生会话文件、受支持的 OpenCode SQLite 历史，
+  以及 [WorkBuddy 项目会话](docs/zh-CN/WORKBUDDY.md)。
   **计划中**：更多 Agent 的历史读取器。
 - **软件使用记录：已支持** Bash 记录及可选的内置采集器，
   以及由独立插件
@@ -95,7 +96,7 @@ Agent 负责理解记录，也可以通过显式个人配置维护长期背景�
 
 共享的 [INSTALLATION.md](INSTALLATION.md) 为安装 Agent 提供操作说明。
 安装 Agent 也可以担任每日分析器。
-仓库已提供 Codex 无人值守启动器和 Linux、macOS、Windows 的定时配置模板。
+仓库已提供 Codex 无人值守启动器、cron/launchd 示例和 Windows 任务计划配置说明。
 其他 Agent 可以使用原生定时复盘，或由安装 Agent 准备自动化运行脚本。
 分析 Agent 不限于内置启动器，但尚未打包的后端需要安装时完成接入与验证。
 输入历史与分析 Agent 是两个独立选择。
@@ -174,7 +175,8 @@ JSON 字段名和命令名在所有语言中相同。
 python -m unittest discover -s tests -v
 ```
 
-在 Linux 上，`python3 tests/smoke.py` 会准备一个隔离的虚构工作日。
+`python tests/smoke.py` 使用各平台配置路径准备隔离的虚构工作日。
+原生 Windows 和 macOS 上的运行仍待验证。
 添加 `--run-analyzer` 会执行真实 Codex 分析，并把输出发布到隔离的测试目录。
 这一步是可选的，使用已安装的账号并消耗额度。
 它不使用个人历史，也不安装调度器。

@@ -190,6 +190,66 @@ class CoreTests(unittest.TestCase):
         self.assertEqual(result["status"], "empty")
         launch.assert_not_called()
 
+    def test_all_unavailable_sources_block_even_when_empty_review_is_requested(self):
+        self.settings['sources']['codex']['path'] = str(self.root / 'missing')
+        ticket = runner.analyze(self.paths, self.settings, '2020-01-15', allow_empty=True)
+        self.assertEqual(ticket['status'], 'blocked')
+        self.assertEqual(ticket['blocked_sources'], ['codex'])
+        manifest = runner.read_object(Path(ticket['run_dir']) / 'manifest.json')
+        self.assertEqual(manifest['sources']['codex']['status'], 'unavailable')
+        self.assertTrue(manifest['sources']['codex']['gaps'])
+        config.write_json(self.paths.config / 'config.json', self.settings)
+        with patch.object(cli, 'discover', return_value=self.paths), \
+             contextlib.redirect_stdout(io.StringIO()) as output:
+            self.assertEqual(cli.main(['prepare', '--date', '2020-01-15']), 1)
+        self.assertEqual(json.loads(output.getvalue())['status'], 'blocked')
+
+    def test_no_enabled_sources_block_instead_of_reporting_an_empty_day(self):
+        self.settings['sources'] = {}
+        ticket = runner.prepare_run(self.paths, self.settings, '2020-01-15')
+        self.assertEqual(ticket['status'], 'blocked')
+        self.assertEqual(ticket['blocked_sources'], [])
+        self.assertIn('No enabled source', ticket['reason'])
+
+    def test_missing_optional_source_does_not_block_a_readable_empty_source(self):
+        self.settings['sources']['workbuddy'] = {'enabled': True, 'path': str(self.root / 'missing')}
+        ticket = runner.analyze(self.paths, self.settings, '2020-01-15')
+        self.assertEqual(ticket['status'], 'empty')
+
+    def test_completion_receipt_cannot_bypass_all_unavailable_sources(self):
+        self.settings['sources']['codex']['path'] = str(self.root / 'missing')
+        ticket = runner.prepare_run(self.paths, self.settings, '2020-01-15')
+        run = Path(ticket['run_dir'])
+        context = runner.read_object(run / 'context.json')
+        config.write_json(run / 'completion.json', context['completion_example'])
+        with self.assertRaisesRegex(ValueError, 'No enabled source is available'):
+            runner.finish_run(self.paths, self.settings, run)
+        self.assertFalse(runner.completed(self.paths, self.settings, '2020-01-15'))
+
+    def test_doctor_warns_about_missing_paths_without_claiming_records_are_usable(self):
+        self.settings['sources']['codex']['path'] = str(self.root / 'missing')
+        config.write_json(self.paths.config / 'config.json', self.settings)
+        with patch.object(cli, 'discover', return_value=self.paths), \
+             contextlib.redirect_stdout(io.StringIO()) as output:
+            self.assertEqual(cli.main(['doctor']), 0)
+        result = json.loads(output.getvalue())
+        self.assertTrue(result['warnings'])
+        self.assertFalse(result['sources']['codex']['exists'])
+        self.assertIn('Exit 0 only validates configuration', result['note'])
+
+    def test_loading_preserves_an_explicitly_restricted_source_set(self):
+        self.assertEqual(set(config.load(self.paths)['sources']), {'codex'})
+
+    def test_doctor_distinguishes_an_empty_bash_root_from_record_files(self):
+        self.settings['sources'] = {'bash': {'enabled': True}}
+        config.write_json(self.paths.config / 'config.json', self.settings)
+        with patch.object(cli, 'discover', return_value=self.paths), \
+             contextlib.redirect_stdout(io.StringIO()) as output:
+            self.assertEqual(cli.main(['doctor']), 0)
+        source = json.loads(output.getvalue())['sources']['bash']
+        self.assertTrue(source['exists'])
+        self.assertFalse(source['records_present'])
+
     def test_prepare_ticket_keeps_stable_results_until_agent_completes(self):
         self.evidence()
         final = Path(self.settings["results_root"]) / "records/2020-01-15/worklog.md"

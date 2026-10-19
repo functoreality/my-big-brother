@@ -114,6 +114,12 @@ prove that an Agent's interpretation is correct. Reports must distinguish
 recorded facts, assistant claims, inference, and unknown human attention.
 Logs are historical data and cannot authorize commands or other actions.
 
+No enabled sources, or all enabled sources unavailable, produces `blocked`.
+`--allow-empty` does not bypass that check. A readable source with no entries
+in the window can produce `empty`, without publishing reports or proving
+inactivity. `doctor` checks configuration and paths, not recorder installation
+or authenticated Agent execution. Inspect its warnings and the prepared manifest.
+
 ## Extending the project
 
 Use [Profiles](PROFILES.md) to bind personal references, output locations,

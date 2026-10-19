@@ -34,6 +34,10 @@ export MBB_PYTHON="/absolute/path/to/python3"
 source "/absolute/path/to/my-big-brother/collectors/bash/session-recorder.sh"
 ```
 
+Git Bash 中解释器名为 `python` 时，可在加载前运行
+`export MBB_PYTHON="$(command -v python)"` 并先验证该解释器。
+这只是选择解释器，不代表已验证原生 Windows 录制兼容性。
+
 支持 Python 虚拟环境。辅助程序只使用标准库，不需要安装本项目的 Python 包。
 克隆的项目应保持在 shell 配置所引用的位置。
 

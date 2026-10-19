@@ -84,6 +84,7 @@ Handle each ticket:
   their latest closed logical day. Older late records require explicit reruns.
 - `blocked`: preserve diagnostics, report the unavailable required source,
   and stop without declaring this invocation successful.
+  This also covers having no enabled sources or all enabled sources unavailable.
 - `prepared`: perform the review below.
 - `actions-pending`: resume only the post-review phase below using the
   supplied existing run. Do not regenerate its already published reports.

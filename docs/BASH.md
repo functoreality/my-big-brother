@@ -35,6 +35,10 @@ export MBB_PYTHON="/absolute/path/to/python3"
 source "/absolute/path/to/my-big-brother/collectors/bash/session-recorder.sh"
 ```
 
+Git Bash users whose interpreter is named `python` can resolve it before
+loading: `export MBB_PYTHON="$(command -v python)"`. Verify that interpreter
+first. This selection does not establish native Windows recording compatibility.
+
 Python virtual environments are supported. The helper uses only the standard
 library and does not need this package installed. Keep the cloned project at
 the path used by your shell configuration.
