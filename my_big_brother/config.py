@@ -9,6 +9,7 @@ from pathlib import Path
 from string import Formatter
 
 from .paths import Paths, absolute, is_within
+from . import notifications
 
 DEFAULT_OUTPUTS = ("worklog", "time-use", "insights", "time-estimates")
 OUTPUTS = DEFAULT_OUTPUTS + ("user-model", "machine-context")
@@ -42,6 +43,7 @@ def defaults(paths: Paths):
         "day_start_hour": 0,
         "results_root": str(paths.data / "memory"),
         "local_profile": None,
+        "notifications": {"enabled": True, "inbox": None},
         "sources": {
             "codex": {"enabled": True, "path": str(codex_home / "sessions")},
             "opencode": {"enabled": True, "path": str(opencode_data / "opencode" / "opencode.db")},
@@ -67,6 +69,9 @@ def load(paths: Paths):
         raise ValueError(f"Unknown configuration fields: {', '.join(sorted(unknown))}")
     config = defaults(paths)
     config.update(value)
+    # An upgrade must not silently add reminders to an existing installation.
+    if "notifications" not in value:
+        config["notifications"] = {"enabled": False, "inbox": None}
     layout = paths.layout
     if not isinstance(config["analyzer"], str) or not config["analyzer"].strip():
         raise ValueError("analyzer must be a nonempty Agent name")
@@ -79,6 +84,17 @@ def load(paths: Paths):
     result_root = Path(config["results_root"])
     if is_within(result_root, layout.raw_logs) or is_within(layout.raw_logs, result_root):
         raise ValueError("Formal results must be outside disposable raw-log storage")
+    notice = config["notifications"]
+    if (not isinstance(notice, dict) or set(notice) - {"enabled", "inbox"}
+        or type(notice.get("enabled")) is not bool):
+        raise ValueError("notifications requires enabled boolean and optional inbox directory")
+    if notice.get("inbox") is not None:
+        absolute(notice["inbox"], "notifications.inbox")
+    inbox = Path(notifications.settings(config)["inbox"])
+    if notice["enabled"] and (is_within(inbox, layout.raw_logs) or is_within(layout.raw_logs, inbox)):
+        raise ValueError("Notification inbox must be outside disposable raw-log storage")
+    if notice["enabled"] and inbox.exists() and not inbox.is_dir():
+        raise ValueError("Notification inbox must be a directory")
     outputs = config["outputs"]
     if not isinstance(outputs, list) or not outputs or any(x not in OUTPUTS for x in outputs):
         raise ValueError(f"outputs must be a nonempty list of {', '.join(OUTPUTS)}")

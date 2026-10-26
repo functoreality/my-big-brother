@@ -138,7 +138,11 @@ Run the task's own helpers as instructed. Write `action_receipt.json` only
 after required work and checks are complete, using its exact example.
 
 Run `finish` again for the same review run. It validates the action receipt
-and configured action validator, then completes the day. If it fails, report
+and the applicable validator. Enabled public notifications run first, followed
+by any private post-review task. Complete each returned `actions-pending`
+prompt in this same session and call `finish` again until `completed`.
+The public notification context supplies its delivery command, with no private
+helper needed. If a phase fails, report
 the pending work and keep the same run available for a later retry.
 Do not call the work completed while its status is `actions-pending`.
 

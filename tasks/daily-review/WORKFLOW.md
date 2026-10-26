@@ -66,4 +66,6 @@ Write `completion.json` only after all required outputs are ready.
 The receipt requests validation. It does not itself establish publication.
 The executing Agent calls `finish` to validate the receipt and outputs before
 publishing stable results. It then completes any returned post-review task
-and calls `finish` again to validate that phase.
+and calls `finish` again to validate that phase. Public local notifications
+run before private post-review work. Follow every returned action prompt in
+the same session until the final result is `completed`.

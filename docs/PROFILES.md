@@ -118,6 +118,12 @@ remain mandatory. A custom validator cannot bypass them.
 
 ## Operations after the review
 
+Public [local reminders](NOTIFICATIONS.md) use the top-level `notifications`
+setting, without a private profile. New installations enable them by default.
+They run before a configured private `post_review`. Existing configurations
+without the new field retain prior behavior. Check for duplicate reminder
+responsibilities before enabling both public and private delivery.
+
 The two standard cumulative knowledge outputs use normal staging and
 publication. Redirecting them needs only `output_paths`, without a private
 maintenance task or `post_review` operation.
@@ -127,7 +133,8 @@ candidate ledgers, cross-day duration libraries or local Inbox operations.
 The review phase writes only staging and temporary material.
 The runner first validates and
 publishes daily reports, then returns `actions-pending` with an action prompt.
-The same executing Agent performs that task and calls `finish` again.
+The same executing Agent performs each returned task and calls `finish` again
+until the review is `completed`.
 The common runner never starts a harness or a second Agent.
 
 `post_review` requires an existing absolute `task` file and a nonempty

@@ -79,6 +79,10 @@ profile 使用 `schema_version: 1`，可包含以下字段：
 
 ## 日报后的操作
 
+公开[本地主动提醒](NOTIFICATIONS.md)通过顶层 `notifications` 设置控制，
+无需私人 profile，新安装默认开启，在私人 `post_review` 之前执行。
+没有该新字段的已有配置保持原状。启用公开与私人投递前，先检查提醒职责是否重复。
+
 两类标准累积知识输出沿用普通暂存和发布。
 将其重定向到已有知识文件只需 `output_paths`，无需私人维护任务或 `post_review`。
 

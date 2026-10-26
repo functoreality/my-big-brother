@@ -212,6 +212,14 @@ Read the generated JSON and keep it valid. Configure:
   See [KNOWLEDGE.md](docs/KNOWLEDGE.md) for default paths, evidence rules and
   simple profile redirection to existing knowledge files.
 - `language`, `day_start_hour` and an absolute `results_root` outside Git.
+- `notifications`: new installations enable local Markdown reminders by default,
+  with `enabled: true` and `inbox: null` selecting `results_root/inbox/`.
+  Tell the user the resolved inbox location and how to read it, disable reminders
+  or choose an absolute destination. This does not send email, chat push or
+  desktop alerts. The public task and helper require no private profile.
+  Existing configurations without this field keep reminders off. Preserve
+  existing choices and explain possible overlap with private notification tasks
+  before opting in during upgrades. See [NOTIFICATIONS.md](docs/NOTIFICATIONS.md).
 - `analyzer`: the chosen Agent's name, describing the installation's executor.
   The startup command or native task selects the actual executable. This
   field does not cause the core to launch that Agent.
@@ -343,7 +351,9 @@ The Agent reads evidence, follows TASK/INPUTS/OUTPUTS/WORKFLOW, writes staged
 reports and the exact completion receipt, then calls `finish`.
 If `finish` returns `actions-pending`, that same Agent reads the returned
 action prompt, completes authorized operations, writes the action receipt
-and calls `finish` again. Never declare success from exit code alone or while
+and calls `finish` again. Public notifications run first, followed by any
+private post-review task. Complete each returned action in the same session
+until `completed`. Never declare success from exit code alone or while
 post-review work is pending. Do not bypass publication conflict checks.
 
 For the bundled external Codex entry, a one-off test is:

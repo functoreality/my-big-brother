@@ -24,6 +24,8 @@ class AutomationTests(unittest.TestCase):
         self.root = Path(temporary.name)
         self.paths = Paths(self.root / "config", self.root / "data")
         self.settings = config.initialize(self.paths, sources=["bash"])
+        self.settings["notifications"]["enabled"] = False
+        config.write_json(self.paths.config / "config.json", self.settings)
         self.settings["analyzer"] = "any-agent"
         self.settings["sources"]["bash"]["path"] = str(self.root / "inputs")
         self.inputs = Path(self.settings["sources"]["bash"]["path"])

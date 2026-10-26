@@ -6,6 +6,7 @@ import os
 import shutil
 import stat
 import subprocess
+import sys
 import traceback
 import uuid
 from contextlib import contextmanager
@@ -13,7 +14,7 @@ from datetime import date, datetime, time as wall_time, timedelta
 from pathlib import Path
 
 from .config import KNOWLEDGE_KEYS, load_profile, write_json
-from . import readers
+from . import readers, notifications
 from .sources import SourceResult
 from .storage import file_lock
 
@@ -103,6 +104,9 @@ def review_configuration(paths, config):
     selected = readers.identities(config["sources"])
     if selected:
         value["readers"] = selected
+    notice = notifications.policy(config)
+    if notice:
+        value["notifications"] = notice
     return value
 
 
@@ -211,6 +215,7 @@ def prepare_run(paths, config, review_date, snapshot_end=None):
                "output_paths": stage_paths, "final_output_paths": final_paths,
                "output_mapping": layout, "output_kinds": {item["staged"]: item["kind"] for item in layout},
                "profile": profile, "profile_digest": profile["digest"] if profile else None,
+               "notifications": notifications.settings(config),
                "review_configuration": prepared_configuration,
                "original_digests": originals, "completion_example": example,
                "task": str(REPO / "tasks" / "daily-review" / "TASK.md")}
@@ -376,21 +381,25 @@ def post_review_prompt(action_dir):
     )
 
 
-def finish_actions(config, run_dir, context, profile):
+def finish_actions(config, run_dir, context, profile, *, post=None, directory="actions"):
     """Prepare the current Agent's next task, or validate its completed receipt."""
-    post = profile["post_review"]
-    action_dir = run_dir / "actions"
+    post = post if post is not None else profile["post_review"]
+    action_dir = run_dir / directory
     action_dir.mkdir(exist_ok=True, mode=0o700)
     (action_dir / "logs").mkdir(exist_ok=True, mode=0o700)
     receipt_path = action_dir / "action_receipt.json"
     example = {"run_id": context["run_id"], "date": context["date"], "status": "completed"}
     action_context = {"run_id": context["run_id"], "date": context["date"],
-                      "profile_digest": profile["digest"], "task": post["task"],
+                      "profile_digest": context["profile_digest"], "task": post["task"],
                       "read_paths": post["read_paths"], "write_paths": post["write_paths"],
                       "review_context": str(run_dir / "context.json"),
                       "review_run_dir": str(run_dir),
                       "outputs": context["final_output_paths"], "receipt_path": str(receipt_path),
                       "action_receipt_example": example}
+    if directory == "notifications":
+        action_context.update(inbox=post["write_paths"][0], language=config["language"],
+                              delivery_command=[sys.executable, str(Path(notifications.__file__).resolve()),
+                                                "apply", str(action_dir)])
     write_json(action_dir / "context.json", action_context)
     prompt_path = action_dir / "prompt.md"
     prompt_path.write_text(post_review_prompt(action_dir), encoding="utf-8")
@@ -479,14 +488,25 @@ def finish_run(paths, config, run_dir):
              "window": context["window"],
              "review_configuration": context["review_configuration"],
              "results_root": config["results_root"], "outputs": finals}
+    operations = []
+    notice = notifications.settings(config)
+    if notice["enabled"]:
+        helper = str(Path(notifications.__file__).resolve())
+        operations.append(("notifications", {
+            "task": str(notifications.TASK), "read_paths": [notice["inbox"]],
+            "write_paths": [notice["inbox"]],
+            "validation_command": [sys.executable, helper, "validate", "{run_dir}"]}))
     if profile and profile["post_review"]:
+        operations.append(("actions", profile["post_review"]))
+    if operations:
         entry["status"] = "actions-pending"
         update_completion(paths, review_date, entry)
         state(run_dir, "actions-pending", run_id=context["run_id"], date=review_date, outputs=finals)
         try:
-            pending = finish_actions(config, run_dir, context, profile)
-            if pending is not None:
-                return pending
+            for directory, post in operations:
+                pending = finish_actions(config, run_dir, context, profile, post=post, directory=directory)
+                if pending is not None:
+                    return pending
         except BaseException as error:
             state(run_dir, "actions-failed", run_id=context["run_id"], date=review_date,
                   outputs=finals, error=str(error))
@@ -556,9 +576,10 @@ def analyze(paths, config, review_date, *, allow_empty=False, skip_completed=Fal
             return {"date": review_date, "status": "already-completed", "run_dir": entry.get("run_dir")}
         profile = load_profile(config)
         expected = [item["final"] for item in output_layout(config, review_date, paths.raw_logs / review_date, profile)]
-        if (entry.get("status") == "actions-pending" and profile and profile["post_review"]
+        has_actions = notifications.settings(config)["enabled"] or bool(profile and profile["post_review"])
+        if (entry.get("status") == "actions-pending" and has_actions
             and snapshot_matches
-            and entry.get("profile_digest") == profile["digest"]
+            and entry.get("profile_digest") == (profile["digest"] if profile else None)
             and entry.get("review_configuration") == review_configuration(paths, config)
             and entry.get("results_root") == config["results_root"] and entry.get("outputs") == expected):
             return finish_run(paths, config, entry["run_dir"])

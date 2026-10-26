@@ -20,10 +20,12 @@ data-root/
       review.json
       _analysis/<run-id>/
         publication.json
+        notifications/
         actions/
       _launches/<invocation-id>/
       scheduler.log
   memory/
+    inbox/DATE--STABLE-ID.md
     USER-MODEL.md
     MACHINE-CONTEXT.md
     records/YYYY-MM-DD/
@@ -37,6 +39,9 @@ data-root/
 Only selected outputs and used directories are created. Knowledge outputs
 remain optional. A personal profile may publish to existing external locations.
 Profile instructions are configuration and stay under C.
+The local reminder inbox defaults to `results_root/inbox/` and can be redirected
+with `notifications.inbox`. It is permanent output, outside raw logs.
+See [Local reminders](NOTIFICATIONS.md).
 All completion markers, publication journals, action journals, receipts and
 execution logs belong to `raw-logs/DATE` and disappear with that directory.
 There is no permanent daily ledger or system-state directory in `memory`.

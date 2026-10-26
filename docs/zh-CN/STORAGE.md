@@ -18,10 +18,12 @@ data-root/
       review.json
       _analysis/<run-id>/
         publication.json
+        notifications/
         actions/
       _launches/<invocation-id>/
       scheduler.log
   memory/
+    inbox/DATE--STABLE-ID.md
     USER-MODEL.md
     MACHINE-CONTEXT.md
     records/YYYY-MM-DD/
@@ -34,6 +36,8 @@ data-root/
 
 只创建选中的输出和用过的目录，知识输出仍可选。
 个人 profile 可以把正式成果放在已有外部位置，其指令属于配置，仍保存在 C。
+本地收件箱默认是 `results_root/inbox/`，可通过 `notifications.inbox` 更改。
+消息属于长期产物，不放在原始日志内，详见[本地主动提醒](NOTIFICATIONS.md)。
 完成标记、发布日志、后操作日志、回执和执行日志都属于 `raw-logs/日期`，
 随日期目录一起删除。`memory` 中不保留永久逐日台账或系统状态目录。
 日期目录之外唯一的技术例外是固定大小的 `raw-logs/.publish.lock`，

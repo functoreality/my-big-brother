@@ -94,8 +94,10 @@ publication without keeping date history. See [Storage](STORAGE.md).
    dated `review.json`. Publication uses ordinary file writes across any
    writable filesystem or mount. A failed write may leave a partial formal
    file, with intact drafts retained for manual recovery. See [Storage](STORAGE.md).
-6. The same executing Agent performs a configured post-review task after publication,
-   with its own context, permitted write directories, receipt, and validator.
+6. The same executing Agent handles enabled public local reminders, followed
+   by any private post-review task, each with its own context, permitted write
+   directories, receipt, and validator. New installations enable local reminders.
+   See [Local reminders](NOTIFICATIONS.md).
    A failed operation phase remains pending and resumes without redoing the
    published daily reports. The task must make its operations idempotent.
 

@@ -108,6 +108,7 @@ class WorkBuddyTests(unittest.TestCase):
         paths = Paths(self.root / 'config', self.root / 'data')
         self.assertFalse(config.defaults(paths)['sources']['workbuddy']['enabled'])
         settings = config.initialize(paths, sources=['workbuddy'])
+        settings['notifications']['enabled'] = False
         self.assertTrue(settings['sources']['workbuddy']['enabled'])
         settings['sources']['workbuddy']['path'] = str(self.projects)
         config.write_json(paths.config / 'config.json', settings)

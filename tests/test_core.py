@@ -23,6 +23,8 @@ class CoreTests(unittest.TestCase):
         self.root = Path(self.temporary.name)
         self.paths = Paths(self.root / "config", self.root / "data")
         self.settings = config.initialize(self.paths, sources=["codex"])
+        self.settings["notifications"]["enabled"] = False
+        config.write_json(self.paths.config / "config.json", self.settings)
         self.sessions = self.root / "sessions"
         self.sessions.mkdir()
         self.settings["sources"]["codex"]["path"] = str(self.sessions)

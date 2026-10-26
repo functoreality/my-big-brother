@@ -29,6 +29,8 @@ class StorageTests(unittest.TestCase):
         self.root = Path(self.temporary.name)
         self.paths = Paths(self.root / 'config', self.root / 'data')
         self.settings = config.initialize(self.paths, sources=['bash'], day_start_hour=4)
+        self.settings["notifications"]["enabled"] = False
+        config.write_json(self.paths.config / "config.json", self.settings)
         self.layout = self.paths.layout
 
     def remove_day(self, day):

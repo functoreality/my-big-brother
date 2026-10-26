@@ -154,13 +154,16 @@ def launch(settings, run_dir, prompt, *, write_paths=(), environment=None):
 
 def writable_roots(paths, settings):
     """Expose only runtime destinations selected by this installation."""
-    from .. import config, runner
+    from .. import config, runner, notifications
     profile = config.load_profile(settings)
     result_root = Path(settings["results_root"]).resolve()
     raw_logs = paths.raw_logs.resolve()
     if result_root == raw_logs or raw_logs in result_root.parents:
         raise ValueError("Formal results overlap disposable raw-log storage: " + str(result_root))
     roots = [paths.raw_logs, Path(settings["results_root"])]
+    notice = notifications.settings(settings)
+    if notice["enabled"]:
+        roots.append(Path(notice["inbox"]))
     if profile:
         for template in profile["output_paths"].values():
             prefix = template.split("{date}", 1)[0]

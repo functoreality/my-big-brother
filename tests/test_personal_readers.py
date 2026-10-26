@@ -28,6 +28,8 @@ class PersonalReaderTests(unittest.TestCase):
         self.root = Path(temporary.name)
         self.paths = Paths(self.root / "config", self.root / "data")
         self.settings = config.initialize(self.paths, sources=[])
+        self.settings["notifications"]["enabled"] = False
+        config.write_json(self.paths.config / "config.json", self.settings)
         self.history = self.root / "history.txt"
         self.history.write_text("Synthetic user request", encoding="utf-8")
         self.reader = self.paths.config / "readers" / "some-agent" / "reader.py"

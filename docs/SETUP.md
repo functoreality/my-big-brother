@@ -117,9 +117,15 @@ Omit `--date` to review the last closed analysis day. Setting a custom
 Worklog, Time Use Markdown and JSON, Daily Insights, and duration samples.
 Each output can be selected independently.
 
+New installations also enable [local reminders](NOTIFICATIONS.md), delivered
+as Markdown files in `results_root/inbox/` only when a finding merits attention.
+Change `notifications.enabled` or `notifications.inbox` to disable or redirect
+them. Existing configurations without that field keep them off.
+
 The shared [automation task](../tasks/daily-review/AUTOMATION.md) also covers
 pending post-review work: read the action prompt, perform it in the same Agent,
-write the exact action receipt, then call `finish` again. Generic `analyze`
+write the exact action receipt, then call `finish` again. Handle public reminders
+and any following private task until the result is `completed`. Generic `analyze`
 and `due` return work tickets; they do not start an Agent. Use the external
 startup command above for Codex, or a native task/local runner for your Agent.
 See [Vim/Neovim recording](VIM.md) for the separately installed editor plugin.

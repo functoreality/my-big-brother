@@ -8,7 +8,7 @@ from datetime import datetime
 from pathlib import Path
 
 from . import __version__
-from . import config, runner
+from . import config, runner, notifications
 from .paths import discover
 
 
@@ -58,6 +58,7 @@ def resolved(paths, settings=None):
             "output_overrides": profile["output_paths"] if profile else {},
             "raw_logs": str(paths.raw_logs), "memory": str(paths.memory),
             "results": settings["results_root"],
+            "notifications": notifications.settings(settings),
             "checkout": str(runner.REPO)}
 
 

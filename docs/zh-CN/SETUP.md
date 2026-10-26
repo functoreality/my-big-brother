@@ -107,8 +107,14 @@ python -m my_big_brother finish --run-dir /absolute/path/to/the/run
 输出可包括工作日志、Markdown 和 JSON 时间使用记录、每日洞察和耗时样本。
 每种输出可以单独选择。
 
+新安装还默认启用[本地主动提醒](NOTIFICATIONS.md)，
+仅在发现值得关注的问题时向 `results_root/inbox/` 投递 Markdown 文件。
+通过 `notifications.enabled` 或 `notifications.inbox` 关闭或改位置。
+已有配置没有该字段时保持关闭。
+
 共享的[自动化任务](../../tasks/daily-review/AUTOMATION.md)也说明了待办后操作：
 由同一个 Agent 读取操作提示词、完成任务、写好准确回执，再调用 `finish`。
+依次处理公开提醒和可能接着返回的私人任务，直到结果为 `completed`。
 通用 `analyze` 和 `due` 返回工作票据，不会启动 Agent。
 Codex 使用上面的外部入口，其他 Agent 可以使用原生任务或本地启动脚本。
 独立编辑器插件的接入见[Vim/Neovim 记录](VIM.md)。
