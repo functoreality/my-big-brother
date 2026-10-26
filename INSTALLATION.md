@@ -207,8 +207,9 @@ Read the generated JSON and keep it valid. Configure:
   paths resolved by the installing Agent. Optional sources can
   remain visibly unavailable. A source marked `required` blocks publication
   if it is unavailable.
-- `outputs`: selected `worklog`, `time-use`, `insights`, `time-estimates`,
-  and optional cumulative `user-model` and `machine-context`.
+- `outputs`: new installations select all six types: `worklog`, `time-use`,
+  `insights`, `time-estimates`, and cumulative `user-model` and `machine-context`.
+  Users may disable any type. Preserve existing explicit output selections.
   See [KNOWLEDGE.md](docs/KNOWLEDGE.md) for default paths, evidence rules and
   simple profile redirection to existing knowledge files.
 - `language`, `day_start_hour` and an absolute `results_root` outside Git.

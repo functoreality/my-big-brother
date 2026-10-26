@@ -11,8 +11,8 @@ from string import Formatter
 from .paths import Paths, absolute, is_within
 from . import notifications
 
-DEFAULT_OUTPUTS = ("worklog", "time-use", "insights", "time-estimates")
-OUTPUTS = DEFAULT_OUTPUTS + ("user-model", "machine-context")
+DEFAULT_OUTPUTS = ("worklog", "time-use", "insights", "time-estimates", "user-model", "machine-context")
+OUTPUTS = DEFAULT_OUTPUTS
 SOURCES = ("codex", "opencode", "workbuddy", "bash", "vim", "screenshots")
 KNOWLEDGE_KEYS = ("user_model", "machine_context")
 OUTPUT_KEYS = ("worklog", "time_use_markdown", "time_use_json", "insights", "time_estimates") + KNOWLEDGE_KEYS

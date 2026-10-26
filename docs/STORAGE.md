@@ -36,8 +36,9 @@ data-root/
       time-estimates.json
 ```
 
-Only selected outputs and used directories are created. Knowledge outputs
-remain optional. A personal profile may publish to existing external locations.
+Only selected outputs and used directories are created. New installations
+select all six output types, including knowledge, and users can disable each.
+A personal profile may publish to existing external locations.
 Profile instructions are configuration and stay under C.
 The local reminder inbox defaults to `results_root/inbox/` and can be redirected
 with `notifications.inbox`. It is permanent output, outside raw logs.

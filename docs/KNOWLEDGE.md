@@ -1,18 +1,18 @@
-# Optional long-term knowledge outputs
+# Long-term knowledge outputs
 
 English | [简体中文](zh-CN/KNOWLEDGE.md)
 
 Two standard outputs retain useful context across reviews. They are available
 to any executing Agent, with no personal task or memory service required.
-They are optional, and the default four output selections are unchanged.
+New installations enable both by default, alongside the four daily output
+types. Users can disable either. Existing explicit output selections are preserved.
 
 | `config.json` output | Output kind | Default path below `results_root` |
 | --- | --- | --- |
 | `user-model` | `user_model` | `USER-MODEL.md` |
 | `machine-context` | `machine_context` | `MACHINE-CONTEXT.md` |
 
-Add either or both names to the existing `outputs` array. For all standard
-outputs, use:
+The default `outputs` array selects all six standard output types:
 
 ```json
 {

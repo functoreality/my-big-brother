@@ -1,16 +1,17 @@
-# 可选的长期知识输出
+# 长期知识输出
 
 [English](../KNOWLEDGE.md) | 简体中文
 
 两类标准输出可在多次复盘间保留有用背景，任何执行 Agent 都可以使用，
-无需私人任务或记忆服务。默认关闭，原有四类默认输出保持不变。
+无需私人任务或记忆服务。新安装与四类日报输出一起默认开启，用户可独立关闭。
+已有配置中明确选择的输出保留，不因升级自动补回。
 
 | `config.json` 输出名 | 输出类型 | `results_root` 下的默认位置 |
 | --- | --- | --- |
 | `user-model` | `user_model` | `USER-MODEL.md` |
 | `machine-context` | `machine_context` | `MACHINE-CONTEXT.md` |
 
-在已有 `outputs` 数组中增加一个或两个名称即可。
+默认 `outputs` 数组包含全部六类标准输出，移除名称即可关闭对应输出。
 完整标准输出列表与重定向 JSON 示例见[英文版](../KNOWLEDGE.md)。
 保留配置中的其他字段。
 

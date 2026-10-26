@@ -335,6 +335,9 @@ class CoreTests(unittest.TestCase):
 
     @unittest.skipIf(os.name == "nt", "POSIX lock concurrency is executed on Linux")
     def test_two_dates_finish_with_separate_daily_status(self):
+        # This test covers independent daily targets. Shared knowledge has its
+        # own concurrency and stale-draft protection tests.
+        self.settings["outputs"] = ["worklog", "time-use", "insights", "time-estimates"]
         self.evidence("2020-01-15")
         self.evidence("2020-01-16")
         first, _ = self.staged_review("2020-01-15")

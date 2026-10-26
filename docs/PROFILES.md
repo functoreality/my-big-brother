@@ -44,9 +44,10 @@ sources automatically.
 
 The dated `output_paths` keys are `worklog`, `time_use_markdown`, `time_use_json`,
 `insights`, and `time_estimates`. These must be absolute and contain `{date}`.
-Optional standard knowledge outputs use `user_model` and `machine_context`.
+Standard knowledge outputs use `user_model` and `machine_context`.
 Their absolute Markdown destinations can be stable paths without `{date}`.
-Enable them through `config.json`'s `outputs`, as described in [KNOWLEDGE.md](KNOWLEDGE.md).
+New installations enable them by default. Select or disable them through
+`config.json`'s `outputs`, as described in [KNOWLEDGE.md](KNOWLEDGE.md).
 Unspecified keys use the standard results layout. Only enabled outputs are
 prepared and published. Distinct outputs must have distinct destinations.
 Staging always stays inside the run directory, even with custom destinations.

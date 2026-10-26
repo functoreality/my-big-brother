@@ -124,13 +124,15 @@ to fabricate a parent task duration.
 Replace each day's staged sample file on rerun, preserving relevant manual
 corrections. Never append duplicate samples merely because a run repeated.
 
-## Optional cumulative knowledge
+## Cumulative knowledge
 
 `user-model` publishes `USER-MODEL.md`, with output kind
 `user_model`. `machine-context` publishes `MACHINE-CONTEXT.md`,
 with output kind `machine_context`. Both are ordinary standard Markdown
 outputs, available to any executing Agent without a personal profile.
-They are disabled by default. Their targets are cumulative across dates.
+New installations select both by default. Users may disable either output.
+Existing explicit output selections remain unchanged. Their targets are
+cumulative across dates.
 
 Follow `KNOWLEDGE.md` for their evidence, preservation and scope rules.
 Existing targets are copied into staged drafts before analysis, including

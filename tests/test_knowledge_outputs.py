@@ -33,7 +33,6 @@ class KnowledgeOutputTests(unittest.TestCase):
         self.settings["notifications"]["enabled"] = False
         config.write_json(self.paths.config / "config.json", self.settings)
         self.settings["analyzer"] = "any-agent"
-        self.settings["outputs"] += ["user-model", "machine-context"]
 
     def invoke_cli(self, arguments):
         stdout = io.StringIO()
@@ -74,11 +73,12 @@ class KnowledgeOutputTests(unittest.TestCase):
         config.write_json(self.paths.config / "config.json", self.settings)
         return config.load(self.paths)
 
-    def test_opt_in_preserves_default_outputs_and_resolves_stable_paths(self):
+    def test_all_outputs_default_to_enabled_and_resolve_stable_paths(self):
         defaults = config.defaults(self.paths)
         run_dir = self.paths.raw_logs / DAY / "_analysis" / "layout-fixture"
-        self.assertEqual(defaults["outputs"], ["worklog", "time-use", "insights", "time-estimates"])
-        self.assertEqual(len(runner.output_layout(defaults, DAY, run_dir, None)), 5)
+        self.assertEqual(defaults["outputs"], ["worklog", "time-use", "insights", "time-estimates",
+                                               "user-model", "machine-context"])
+        self.assertEqual(len(runner.output_layout(defaults, DAY, run_dir, None)), 7)
         config.write_json(self.paths.config / "config.json", self.settings)
         self.assertEqual(config.load(self.paths)["outputs"], list(config.OUTPUTS))
         first = runner.output_layout(self.settings, DAY, run_dir, None)
@@ -102,6 +102,25 @@ class KnowledgeOutputTests(unittest.TestCase):
         self.drafts(directory, context)
         runner.finish_run(self.paths, self.settings, directory)
         self.assertTrue(all(Path(name).is_file() for name in overrides.values()))
+
+    def test_existing_explicit_selections_survive_init_and_publish_only_selected_knowledge(self):
+        daily = ["worklog", "time-use", "insights", "time-estimates"]
+        for selected in (daily, ["worklog", "user-model"], ["worklog", "machine-context"]):
+            with self.subTest(selected=selected):
+                self.settings["outputs"] = selected
+                target = self.paths.config / "config.json"
+                config.write_json(target, self.settings)
+                before = target.read_bytes()
+                self.settings = config.initialize(self.paths)
+                self.assertEqual(self.settings["outputs"], selected)
+                self.assertEqual(target.read_bytes(), before)
+                directory, context = self.prepare()
+                kinds = {item["kind"] for item in self.knowledge_items(context)}
+                expected = {key.replace("-", "_") for key in selected
+                            if key in ("user-model", "machine-context")}
+                self.assertEqual(kinds, expected)
+                self.drafts(directory, context)
+                self.assertEqual(runner.finish_run(self.paths, self.settings, directory)["status"], "completed")
 
     def test_dated_overrides_still_require_date_and_reject_unknown_placeholders(self):
         for key, template in (("worklog", "stable.md"), ("user_model", "{machine}.md")):

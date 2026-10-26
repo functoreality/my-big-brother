@@ -116,6 +116,9 @@ Omit `--date` to review the last closed analysis day. Setting a custom
 `day_start_hour` changes that day's boundary. Generated outputs may include a
 Worklog, Time Use Markdown and JSON, Daily Insights, and duration samples.
 Each output can be selected independently.
+New installations select all six types, including cumulative User Model and
+Machine Context. Existing explicit selections are preserved. Remove a type
+from `outputs` to disable it. See [Knowledge](KNOWLEDGE.md).
 
 New installations also enable [local reminders](NOTIFICATIONS.md), delivered
 as Markdown files in `results_root/inbox/` only when a finding merits attention.

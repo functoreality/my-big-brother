@@ -106,6 +106,8 @@ python -m my_big_brother finish --run-dir /absolute/path/to/the/run
 自定义 `day_start_hour` 会改变分析日的边界。
 输出可包括工作日志、Markdown 和 JSON 时间使用记录、每日洞察和耗时样本。
 每种输出可以单独选择。
+新安装默认选择包含累计用户模型、机器背景在内的六类输出，已有明确选择保持不变。
+从 `outputs` 中移除某类即可关闭，详见[长期知识输出](KNOWLEDGE.md)。
 
 新安装还默认启用[本地主动提醒](NOTIFICATIONS.md)，
 仅在发现值得关注的问题时向 `results_root/inbox/` 投递 Markdown 文件。

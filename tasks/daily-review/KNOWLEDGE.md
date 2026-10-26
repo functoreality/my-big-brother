@@ -1,4 +1,4 @@
-# Optional cumulative knowledge contract
+# Cumulative knowledge contract
 
 This contract applies only to selected `user-model` and `machine-context`
 outputs. It is shared across executing Agents and needs no private task or

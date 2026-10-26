@@ -89,8 +89,8 @@ and destinations, rather than enabled as a standard output for everyone.
   They preserve outcomes, evidence gaps, and unknown human attention.
 - **Reflection and planning:** **Available** Daily Insights and conservative
   duration samples. Each standard output can be enabled independently.
-- **Long-term understanding:** **Available** optional User Model and Machine
-  Context outputs, retained directly under `memory/`. The same daily Agent
+- **Long-term understanding:** **Available**, enabled for new installations:
+  User Model and Machine Context, retained directly under `memory/`. The same daily Agent
   maintains supported user preferences and known file/directory/source locations.
   A profile can redirect them to existing files. See [Knowledge](docs/KNOWLEDGE.md).
   **Via profile** additional project-specific knowledge and operations.
@@ -194,7 +194,7 @@ actions still require validation on those systems.
 Bash support applies to Bash environments, including WSL as a separate
 environment, and does not record PowerShell.
 
-There is no built-in weekly-report command. Optional standard knowledge
+There is no built-in weekly-report command. Standard knowledge
 outputs share the daily review, with no extra Agent or machine-wide scan.
 Existing daily files can be summarized by your Agent. Explicit personal
 post-review tasks can maintain selected local knowledge or cumulative records.

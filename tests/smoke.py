@@ -34,7 +34,6 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--run-analyzer", action="store_true")
     parser.add_argument("--with-post-review", action="store_true")
-    parser.add_argument("--with-knowledge", action="store_true")
     args = parser.parse_args()
     if args.with_post_review and not args.run_analyzer:
         parser.error("--with-post-review requires --run-analyzer")
@@ -84,8 +83,6 @@ def main():
             connection.execute("INSERT INTO part VALUES (?, ?, ?, ?)",
                                ("part" + str(number), str(number), milliseconds, json.dumps({"type": "text", "text": text})))
     settings = json.loads(Path(paths["config"]).read_text(encoding="utf-8"))
-    if args.with_knowledge:
-        settings["outputs"].extend(["user-model", "machine-context"])
     settings["sources"]["codex"]["path"] = str(sessions)
     settings["sources"]["opencode"]["path"] = str(database)
     Path(paths["config"]).write_text(json.dumps(settings, indent=2) + "\n", encoding="utf-8")
@@ -141,7 +138,7 @@ def main():
         assert (Path(paths["raw_logs"]) / DAY / "review.json").is_file()
         assert Path(context["publication_journal"]) == run_dir / "publication.json"
         assert not (Path(paths["memory"]) / "_system").exists()
-        assert len(context["final_output_paths"]) == (7 if args.with_knowledge else 5)
+        assert len(context["final_output_paths"]) == 7
         for output in context["final_output_paths"]:
             assert Path(output).is_file(), output
         worklog = Path(paths["results"]) / "records" / DAY / "worklog.md"

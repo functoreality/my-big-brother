@@ -34,7 +34,7 @@ data-root/
       time-estimates.json
 ```
 
-只创建选中的输出和用过的目录，知识输出仍可选。
+只创建选中的输出和用过的目录，新安装默认选择包含知识在内的六类输出，各项可关闭。
 个人 profile 可以把正式成果放在已有外部位置，其指令属于配置，仍保存在 C。
 本地收件箱默认是 `results_root/inbox/`，可通过 `notifications.inbox` 更改。
 消息属于长期产物，不放在原始日志内，详见[本地主动提醒](NOTIFICATIONS.md)。

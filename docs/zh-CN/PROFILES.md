@@ -38,9 +38,9 @@ profile 使用 `schema_version: 1`，可包含以下字段：
 
 按日 `output_paths` 有五个键：`worklog`、`time_use_markdown`、`time_use_json`、
 `insights`、`time_estimates`。这些路径必须为绝对路径并包含 `{date}`。
-可选的标准知识输出使用 `user_model` 和 `machine_context`，
+标准知识输出使用 `user_model` 和 `machine_context`，
 允许指定不含 `{date}` 的稳定 Markdown 绝对路径。
-通过 `config.json` 的 `outputs` 启用，见[长期知识输出](KNOWLEDGE.md)。
+新安装默认开启，通过 `config.json` 的 `outputs` 选择或关闭，见[长期知识输出](KNOWLEDGE.md)。
 未指定的键使用标准结果目录。程序只准备和发布已启用的输出，
 不同输出不能指向同一位置。暂存文件始终留在本次运行目录内。
 
