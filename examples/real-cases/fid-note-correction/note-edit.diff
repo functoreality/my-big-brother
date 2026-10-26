@@ -1,0 +1,10 @@
+--- a/ml.md
++++ b/ml.md
+@@ -269,6 +269,7 @@
+ * {q54a4a}FID = ‖μ' - μ‖² + [?]
+ 	设定：图像生成 FID 指标计算公式，两个正态分布距离定义
+ 	* FID = ‖μ' - μ‖² + tr(Σ' + Σ - 2√{Σ'Σ})
++	*     = ‖μ' - μ‖² + ‖√Σ - √Σ'‖²_F
+ 	* 注意 1. 算距离的是 √Σ 不是单纯的 Σ；2. 范数用 tr 而非矩阵范数（因矩阵正定）
+ * {q5rl5q}softmax 计算的 tiling 方式，2-pass online-softmax 如何改进 3-pass safe-softmax
+ 	背景：FlashAttention-1 前传算 softmax(S)V，SRAM 容量不足以保存完整的 S，需分块计算
