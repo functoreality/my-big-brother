@@ -52,6 +52,9 @@ or duplicate a duration sample because the run ID changed.
 For cumulative knowledge, merge into the existing cross-day document rather
 than replacing it with a daily report. Preserve human content and corrections,
 deduplicate existing facts, and retain the basis of revisions.
+When the prepared knowledge mapping is shared, merge both enabled kinds into
+the same complete staged file. Preserve host structure, unrelated sections and
+content of any disabled kind. Respect the host's memory size and update rules.
 
 Write only the resolved staged paths. JSON must be valid UTF-8 JSON with no
 comments, fences, or trailing commas. Ensure time-use Markdown agrees with

@@ -85,13 +85,24 @@ def output_layout(config, review_date, run_dir, profile):
     layout = [{"kind": kind, "staged": str(run_dir / "drafts" / relative),
                "final": overrides[kind].format(date=review_date) if kind in overrides
                else str(Path(config["results_root"]) / relative)} for kind, relative in items]
-    destinations = [str(Path(item["final"]).resolve()) for item in layout]
-    if len(destinations) != len(set(destinations)):
-        raise ValueError("Output destinations must be distinct")
+    grouped = {}
     for item in layout:
-        if Path(item["final"]).is_symlink():
+        target = Path(item["final"])
+        if target.is_symlink():
             raise ValueError(f"Output destination is a symbolic link: {item['final']}")
-    return layout
+        if item["kind"] in KNOWLEDGE_KEYS and target.suffix != ".md":
+            raise ValueError(f"Knowledge output must be Markdown: {target}")
+        destination = str(target.resolve())
+        if destination not in grouped:
+            grouped[destination] = item
+            continue
+        previous = grouped[destination]
+        if {previous["kind"], item["kind"]} != set(KNOWLEDGE_KEYS):
+            raise ValueError("Output destinations must be distinct except for shared knowledge")
+        grouped[destination] = {"kind": "shared_knowledge", "kinds": list(KNOWLEDGE_KEYS),
+                                "staged": str(run_dir / "drafts" / "KNOWLEDGE.md"),
+                                "final": previous["final"]}
+    return list(grouped.values())
 
 
 def digest(path):
@@ -247,7 +258,7 @@ def read_object(path):
 def validate_output(path, review_date, kind=None, *, custom=False):
     if path.is_symlink() or not path.is_file():
         raise ValueError(f"Missing regular output: {path}")
-    if kind in KNOWLEDGE_KEYS and path.suffix != ".md":
+    if kind in KNOWLEDGE_KEYS + ("shared_knowledge",) and path.suffix != ".md":
         raise ValueError(f"Knowledge output must be Markdown: {path}")
     if path.suffix == ".md":
         if not path.read_text(encoding="utf-8").strip():
@@ -549,6 +560,7 @@ def prompt_for(run_dir):
         + extension
         + "Do not install anything, write configuration or source histories, or send messages in this phase.\n"
         "Selected knowledge outputs belong in their staged paths. Never edit final knowledge files directly.\n"
+        "A shared_knowledge mapping combines its kinds in one full draft, listed once in completion.\n"
         "Create completion.json as specified by completion_example when finished.\n"
         "Keep the final response short: report created paths and any meaningful limitation.\n"
     )

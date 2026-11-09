@@ -53,7 +53,7 @@ class KnowledgeOutputTests(unittest.TestCase):
     def drafts(self, directory, context, *, addition=""):
         for name, kind in context["output_kinds"].items():
             target = Path(name)
-            if kind in config.KNOWLEDGE_KEYS:
+            if kind in config.KNOWLEDGE_KEYS or kind == "shared_knowledge":
                 previous = target.read_text(encoding="utf-8") if target.exists() else "# Knowledge\n"
                 target.write_text(previous + addition, encoding="utf-8")
             elif target.suffix == ".md":
@@ -64,7 +64,8 @@ class KnowledgeOutputTests(unittest.TestCase):
         config.write_json(directory / "completion.json", context["completion_example"])
 
     def knowledge_items(self, context):
-        return [item for item in context["output_mapping"] if item["kind"] in config.KNOWLEDGE_KEYS]
+        return [item for item in context["output_mapping"]
+                if item["kind"] in config.KNOWLEDGE_KEYS or item["kind"] == "shared_knowledge"]
 
     def profile(self, value):
         path = self.root / "profile.json"
@@ -282,15 +283,168 @@ class KnowledgeOutputTests(unittest.TestCase):
         runner.finish_run(self.paths, self.settings, directory)
         self.assertEqual((directory / "validator-ran.txt").read_text(), "checked")
 
-    def test_duplicate_targets_and_non_markdown_knowledge_are_rejected(self):
-        target = str(self.root / "shared.md")
-        self.profile({"output_paths": {"user_model": target, "machine_context": target}})
-        with self.assertRaisesRegex(ValueError, "destinations must be distinct"):
-            self.prepare()
+    def test_daily_collisions_and_non_markdown_knowledge_are_rejected(self):
+        target = str(self.root / "{date}.md")
+        for overrides in ({"worklog": target, "insights": target},
+                          {"worklog": target, "user_model": target, "machine_context": target}):
+            with self.subTest(overrides=overrides):
+                self.profile({"output_paths": overrides})
+                with self.assertRaisesRegex(ValueError, "destinations must be distinct"):
+                    self.prepare()
         path = self.root / "knowledge.json"
         config.write_json(path, {"date": DAY})
+        for kind in ("user_model", "machine_context", "shared_knowledge"):
+            with self.subTest(kind=kind), self.assertRaisesRegex(ValueError, "Knowledge output must be Markdown"):
+                runner.validate_output(path, DAY, kind, custom=True)
+        self.profile({"output_paths": {"user_model": str(path), "machine_context": str(path)}})
         with self.assertRaisesRegex(ValueError, "Knowledge output must be Markdown"):
-            runner.validate_output(path, DAY, "user_model", custom=True)
+            self.prepare()
+
+    def shared_profile(self, *, content="# Host memory\n\nManual correction.\nUnrelated host notes.\n"):
+        target = self.root / "MEMORY.md"
+        target.write_text(content, encoding="utf-8")
+        self.profile({"output_paths": dict.fromkeys(config.KNOWLEDGE_KEYS, str(target))})
+        return target
+
+    def test_shared_memory_has_one_merged_draft_and_one_publication(self):
+        target = self.shared_profile()
+        original = target.read_text()
+        directory, context = self.prepare()
+        items = self.knowledge_items(context)
+        self.assertEqual(len(items), 1)
+        item = items[0]
+        self.assertEqual(item["kind"], "shared_knowledge")
+        self.assertEqual(item["kinds"], ["user_model", "machine_context"])
+        self.assertEqual(context["completion_example"]["outputs"].count(item["staged"]), 1)
+        self.assertEqual(context["final_output_paths"].count(str(target)), 1)
+        self.assertEqual(Path(item["staged"]).read_text(), original)
+        addition = "User statement: concise reviews.\nMachine context: project at /example/project.\n"
+        self.drafts(directory, context, addition=addition)
+        with patch.object(runner.os, "open", wraps=os.open) as opening:
+            result = runner.finish_run(self.paths, self.settings, directory)
+        target_writes = [call for call in opening.call_args_list if Path(call.args[0]) == target]
+        self.assertEqual(len(target_writes), 1)
+        self.assertEqual(result["status"], "completed")
+        self.assertEqual(target.read_text(), original + addition)
+        self.assertEqual(runner.read_object(Path(context["publication_journal"]))["published"].count(str(target)), 1)
+        rerun, newer = self.prepare(empty=True)
+        self.drafts(rerun, newer)
+        runner.finish_run(self.paths, self.settings, rerun)
+        self.assertEqual(target.read_text(), original + addition)
+        self.assertTrue(runner.completed(self.paths, self.settings, DAY))
+
+    def test_disabling_either_kind_keeps_the_other_and_existing_shared_content(self):
+        original = "# Memory\nUser: prefers short reports.\nMachine: /example/project.\nHost instructions.\n"
+        for selected in ("user-model", "machine-context"):
+            with self.subTest(selected=selected):
+                target = self.shared_profile(content=original)
+                self.settings["outputs"] = [selected]
+                directory, context = self.prepare()
+                item, = context["output_mapping"]
+                self.assertEqual(item["kind"], selected.replace("-", "_"))
+                self.assertEqual(Path(item["staged"]).read_text(), original)
+                self.drafts(directory, context, addition="A supported update for the enabled kind.\n")
+                runner.finish_run(self.paths, self.settings, directory)
+                self.assertEqual(target.read_text(), original + "A supported update for the enabled kind.\n")
+                self.assertFalse((Path(self.settings["results_root"]) / "USER-MODEL.md").exists())
+                self.assertFalse((Path(self.settings["results_root"]) / "MACHINE-CONTEXT.md").exists())
+
+    def test_shared_manual_edit_blocks_reports_before_any_publication(self):
+        target = self.shared_profile()
+        directory, context = self.prepare()
+        self.drafts(directory, context, addition="Stale observation.\n")
+        target.write_text("# Human edit after prepare\n", encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "Result changed after prepare"):
+            runner.finish_run(self.paths, self.settings, directory)
+        self.assertEqual(target.read_text(), "# Human edit after prepare\n")
+        self.assertFalse(Path(context["publication_journal"]).exists())
+        self.assertFalse(Path(context["final_output_paths"][0]).exists())
+
+    def test_shared_cross_date_conflict_requires_fresh_merge(self):
+        target = self.shared_profile()
+        first, older = self.prepare()
+        second, stale = self.prepare(NEXT_DAY)
+        self.drafts(first, older, addition="First date knowledge.\n")
+        self.drafts(second, stale, addition="Second date knowledge.\n")
+        runner.finish_run(self.paths, self.settings, first)
+        with self.assertRaisesRegex(ValueError, "Result changed after prepare"):
+            runner.finish_run(self.paths, self.settings, second)
+        self.assertNotIn("Second date knowledge.", target.read_text())
+        fresh, merged = self.prepare(NEXT_DAY)
+        self.drafts(fresh, merged, addition="Second date knowledge.\n")
+        runner.finish_run(self.paths, self.settings, fresh)
+        self.assertIn("First date knowledge.\nSecond date knowledge.\n", target.read_text())
+        self.assertTrue(runner.completed(self.paths, self.settings, DAY))
+        self.assertTrue(runner.completed(self.paths, self.settings, NEXT_DAY))
+
+    def test_shared_custom_validator_receives_group_but_cannot_bypass_nonempty_markdown(self):
+        target = self.shared_profile()
+        checker = self.root / "shared-validator.py"
+        checker.write_text(
+            "import json, pathlib\n"
+            "context = json.loads(pathlib.Path('context.json').read_text())\n"
+            "shared, = [item for item in context['output_mapping'] if item['kind'] == 'shared_knowledge']\n"
+            "assert shared['kinds'] == ['user_model', 'machine_context']\n"
+            "assert context['output_kinds'][shared['staged']] == 'shared_knowledge'\n"
+            "assert 'Manual correction.' in pathlib.Path(shared['staged']).read_text()\n"
+            "pathlib.Path('validator-ran.txt').write_text('checked')\n",
+            encoding="utf-8",
+        )
+        self.profile({"output_paths": dict.fromkeys(config.KNOWLEDGE_KEYS, str(target)),
+                      "output_schema": "shared-host-memory",
+                      "validation_command": [sys.executable, str(checker)]})
+        directory, context = self.prepare()
+        self.drafts(directory, context)
+        item, = self.knowledge_items(context)
+        Path(item["staged"]).write_text("  \n", encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "Empty report"):
+            runner.finish_run(self.paths, self.settings, directory)
+        self.assertFalse((directory / "validator-ran.txt").exists())
+        Path(item["staged"]).write_text(target.read_text(), encoding="utf-8")
+        runner.finish_run(self.paths, self.settings, directory)
+        self.assertEqual((directory / "validator-ran.txt").read_text(), "checked")
+
+    def test_shared_duplicate_receipt_or_changed_kind_membership_is_rejected(self):
+        self.shared_profile()
+        for tamper in ("receipt", "mapping"):
+            with self.subTest(tamper=tamper):
+                directory, context = self.prepare()
+                self.drafts(directory, context)
+                item, = self.knowledge_items(context)
+                if tamper == "receipt":
+                    receipt = runner.read_object(directory / "completion.json")
+                    receipt["outputs"].append(item["staged"])
+                    config.write_json(directory / "completion.json", receipt)
+                    message = "exactly once"
+                else:
+                    item["kinds"] = ["user_model"]
+                    config.write_json(directory / "context.json", context)
+                    message = "expected layout"
+                with self.assertRaisesRegex(ValueError, message):
+                    runner.finish_run(self.paths, self.settings, directory)
+                self.assertFalse(Path(context["publication_journal"]).exists())
+
+    def test_shared_targets_are_grouped_by_resolved_path(self):
+        target = self.shared_profile()
+        (self.root / "alias").mkdir()
+        self.settings["outputs"] = ["machine-context", "user-model"]
+        self.profile({"output_paths": {"user_model": str(target),
+                                      "machine_context": str(self.root / "alias" / ".." / "MEMORY.md")}})
+        directory, context = self.prepare()
+        item, = self.knowledge_items(context)
+        self.assertEqual(item["kinds"], ["user_model", "machine_context"])
+        self.drafts(directory, context, addition="One resolved destination.\n")
+        runner.finish_run(self.paths, self.settings, directory)
+        self.assertEqual(target.read_text().count("One resolved destination."), 1)
+
+    @unittest.skipIf(os.name == "nt", "Creating a symlink may require Windows privileges")
+    def test_shared_target_symlink_is_rejected_before_grouping(self):
+        target = self.shared_profile()
+        alias = self.root / "MEMORY-LINK.md"
+        alias.symlink_to(target)
+        self.profile({"output_paths": {"user_model": str(target), "machine_context": str(alias)}})
+        with self.assertRaisesRegex(ValueError, "symbolic link"):
+            self.prepare()
 
     def test_preparation_and_finish_never_launch_an_agent(self):
         with patch("my_big_brother.analyzers.codex.launch") as launch:

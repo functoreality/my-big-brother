@@ -53,6 +53,22 @@ retain the submitted version for that review. Publication
 preserves existing file permissions unless the profile explicitly overrides
 them. Later cumulative updates do not invalidate earlier completed dates.
 
+## Choosing where knowledge lives
+
+The installation Agent follows this priority: your explicit request or existing
+binding, suitable documents already maintained by the daily analysis Agent,
+then the two project default files. It checks actual purpose, workspace, host
+maintenance rules and write method. Names such as `USER.md`, `TOOLS.md` and
+`MEMORY.md` are only hints. An installer using another Agent should choose for
+the daily analyzer's workspace rather than its own private memory.
+
+The installer can decide clear cases and tells you the final paths and whether
+they are shared. It asks about unresolved ambiguity, preserves explicit choices
+and binds the paths once. Daily reviews do not rediscover or switch documents.
+A memory store requiring a special API is not automatically integrated as a
+Markdown file. The installer explains the limitation and selects another
+suitable document or the project defaults.
+
 To use existing knowledge files, select a [local profile](PROFILES.md) with:
 
 ```json
@@ -69,3 +85,18 @@ These absolute Markdown paths need no `{date}` placeholder. The selections
 in `config.json` still control whether they are prepared and published.
 No Codex-specific binding or custom post-review task is required. Additional
 private reference files remain explicitly scoped through the profile.
+
+The two types are independent selections, not a requirement for two files.
+Both keys can point to the same suitable Markdown file, for example
+`/example/workspace/MEMORY.md`. When both are enabled, preparation makes one
+complete merged draft and `finish` publishes that file once. The completion
+receipt lists its staged path once. A shared file retains its original
+organization and unrelated content, including host instructions and manual
+corrections. Updates respect the host's length and maintenance rules and avoid
+turning long-term memory into a daily activity log.
+
+Removing one type from `outputs` stops updates for that type. Its existing
+content remains in a shared document while the other type is updated.
+Custom validators must handle the shared mapping described in
+[Profiles](PROFILES.md#output-validation). Sharing is supported only between
+these two cumulative Markdown types, not between daily reports or JSON outputs.

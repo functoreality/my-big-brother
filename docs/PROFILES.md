@@ -49,7 +49,10 @@ Their absolute Markdown destinations can be stable paths without `{date}`.
 New installations enable them by default. Select or disable them through
 `config.json`'s `outputs`, as described in [KNOWLEDGE.md](KNOWLEDGE.md).
 Unspecified keys use the standard results layout. Only enabled outputs are
-prepared and published. Distinct outputs must have distinct destinations.
+prepared and published. `user_model` and `machine_context` may share one
+Markdown destination. Other output destinations must remain distinct.
+See [Knowledge](KNOWLEDGE.md#choosing-where-knowledge-lives) for installation
+priority and preservation rules.
 Staging always stays inside the run directory, even with custom destinations.
 
 On POSIX systems, publication preserves an existing destination's permission
@@ -94,8 +97,16 @@ in the run's `logs/`, including failures. A validator is trusted local code
 selected by the user and should check outputs without changing formal files.
 
 The validator can read `context.json` and use `output_mapping` or `output_kinds`
-to identify each staged file. It should check all requirements of the custom
-schema, including relationships and cross-output consistency where relevant.
+to identify each staged file. Separate outputs keep their existing mappings.
+When both knowledge types share a final destination, there is one mapping with
+`kind: "shared_knowledge"` and `kinds: ["user_model", "machine_context"]`.
+`output_kinds` maps that single staged path to `"shared_knowledge"`.
+The completion example lists it once. Adapt a custom validator before choosing
+shared destinations if it assumes one file per logical knowledge type.
+Disabling either type restores the remaining type's ordinary single-kind
+mapping, while the Agent preserves all existing document content.
+The validator should check all requirements of the custom schema, including
+relationships and cross-output consistency where relevant.
 Naming a schema does not implement a validator or prove semantic correctness.
 
 For example, an existing structured timeline can declare its own schema:

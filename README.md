@@ -90,9 +90,11 @@ and destinations, rather than enabled as a standard output for everyone.
 - **Reflection and planning:** **Available** Daily Insights and conservative
   duration samples. Each standard output can be enabled independently.
 - **Long-term understanding:** **Available**, enabled for new installations:
-  User Model and Machine Context, retained directly under `memory/`. The same daily Agent
+  User Model and Machine Context, retained under `memory/` by default.
+  The same daily Agent
   maintains supported user preferences and known file/directory/source locations.
-  A profile can redirect them to existing files. See [Knowledge](docs/KNOWLEDGE.md).
+  Installation can bind them to suitable existing files, including one shared
+  document. See [Knowledge](docs/KNOWLEDGE.md).
   **Via profile** additional project-specific knowledge and operations.
 - **Proactive reminders:** **Available**, enabled for new installations.
   Worthwhile findings become Markdown messages in your local inbox.

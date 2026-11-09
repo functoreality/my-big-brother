@@ -126,13 +126,16 @@ corrections. Never append duplicate samples merely because a run repeated.
 
 ## Cumulative knowledge
 
-`user-model` publishes `USER-MODEL.md`, with output kind
+By default, `user-model` publishes `USER-MODEL.md`, with output kind
 `user_model`. `machine-context` publishes `MACHINE-CONTEXT.md`,
 with output kind `machine_context`. Both are ordinary standard Markdown
 outputs, available to any executing Agent without a personal profile.
 New installations select both by default. Users may disable either output.
 Existing explicit output selections remain unchanged. Their targets are
-cumulative across dates.
+cumulative across dates. A profile may bind both kinds to one Markdown file.
+In that case the prepared mapping uses `shared_knowledge` with both logical
+`kinds`, and there is one merged draft and one completion path. Follow the
+prepared mapping rather than assuming one file per knowledge type.
 
 Follow `KNOWLEDGE.md` for their evidence, preservation and scope rules.
 Existing targets are copied into staged drafts before analysis, including

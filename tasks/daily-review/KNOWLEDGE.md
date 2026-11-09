@@ -5,6 +5,23 @@ outputs. It is shared across executing Agents and needs no private task or
 memory service. Use the output kinds and staged paths from `context.json`.
 The runner publishes the drafts through the same checked `finish` as reports.
 
+## Bound destinations and shared documents
+
+Use the prepared bindings, not a daily search for better memory files.
+`context.output_mapping` identifies each physical draft and its final target.
+Separate knowledge drafts have kind `user_model` or `machine_context`.
+When both kinds share a destination, one mapping has kind `shared_knowledge`
+and `kinds: ["user_model", "machine_context"]`. Read that complete staged
+file once and merge both kinds into the same draft. Do not create a second
+version or overwrite one kind with the other. List the shared staged path
+only once in the completion receipt, as in `context.completion_example`.
+
+Respect the destination's existing purpose, organization, host instructions,
+length limits and maintenance rules. Preserve unrelated sections and manual
+corrections. Do not force project-specific headings or markers into an existing
+host document. If only one knowledge type is enabled, update only that type's
+facts while preserving existing content of the disabled type as well.
+
 ## Evidence and confidence
 
 Retain context that could help a future Agent interpret work or locate a

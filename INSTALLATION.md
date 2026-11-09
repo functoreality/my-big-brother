@@ -241,6 +241,35 @@ Read [PROFILES.md](docs/PROFILES.md) before configuring personal extensions.
 Files under `local-tasks/` are used only when explicitly selected.
 Do not turn a discovered personal file into authorization.
 
+### Bind cumulative knowledge destinations
+
+Choose destinations in this order: the user's explicit request or existing
+binding, suitable documents already maintained by the chosen daily analysis
+Agent, then `results_root/USER-MODEL.md` and `results_root/MACHINE-CONTEXT.md`.
+The default `results_root` is D/memory. Preserve existing explicit bindings.
+
+Inspect known candidates in the chosen analyzer's workspace, using their actual
+purpose, contents, host rules and supported write method. `USER.md`, `TOOLS.md`
+and `MEMORY.md` are hints, not proof of suitability. If the installing Agent is
+not the daily analyzer, do not default to the installer's own private memory.
+Do not search unrelated Agent workspaces for candidates.
+
+The two knowledge types can use separate documents or share one suitable
+Markdown file. Decide clear cases yourself, then tell the user the resolved
+paths and whether they are shared. Ask when purpose, ownership or a material
+tradeoff is unclear. If no suitable document exists, use the project defaults.
+Bind the chosen absolute paths once through the selected profile's
+`output_paths.user_model` and `output_paths.machine_context`. Keep the user's
+other profile fields. Daily reviews use those bindings without rediscovery.
+
+Preserve the host document's structure, unrelated sections, corrections and
+length limits. Put relevant maintenance rules in an explicitly selected review
+instruction when they would otherwise be unavailable to the daily analyzer.
+A memory store requiring a special API is not an ordinary Markdown destination.
+Explain that limitation and choose another suitable document or the defaults.
+For a shared file, ensure any custom validator accepts the shared mapping
+explained in [PROFILES.md](docs/PROFILES.md#output-validation).
+
 Choose the intended report language and logical-day boundary before preparing
 the first review, so verification covers the settings that will actually run.
 
@@ -487,7 +516,8 @@ macOS and Windows execution remain unverified by this repository.
 ## 8. Handoff and maintenance
 
 Report installation and personal paths, chosen executor, enabled records and
-outputs, collector decisions, any actual schedule and one reviewed report.
+outputs and resolved knowledge destinations, including any shared file,
+collector decisions, any actual schedule and one reviewed report.
 Distinguish available mechanisms from untested runtime behavior.
 Explain how retained outputs support weekly summaries and other conversations.
 
