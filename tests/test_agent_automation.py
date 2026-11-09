@@ -15,6 +15,11 @@ from my_big_brother.paths import Paths
 
 
 DAY = "2020-01-15"
+SELECTION_CHANGES = (
+    (("user-model",), ("user-model", "machine-context")),
+    (("user-model", "machine-context"), ("user-model",)),
+    (("user-model",), ("machine-context",)),
+)
 
 
 class AutomationTests(unittest.TestCase):
@@ -240,6 +245,40 @@ class AutomationTests(unittest.TestCase):
         with patch.object(codex, "launch", side_effect=incomplete_record):
             with self.assertRaisesRegex(ValueError, "configuration"):
                 codex.automate(self.paths, self.settings, review_date=DAY)
+
+    def bind_shared_knowledge(self):
+        profile = self.root / "shared-profile.json"
+        target = str(self.root / "knowledge" / "MEMORY.md")
+        config.write_json(profile, {"output_paths": dict.fromkeys(config.KNOWLEDGE_KEYS, target)})
+        self.settings["local_profile"] = str(profile)
+
+    def test_completed_receipts_reject_changed_shared_output_selection(self):
+        self.bind_shared_knowledge()
+        for before, after in SELECTION_CHANGES:
+            for partial in (False, True):
+                with self.subTest(before=before, after=after, partial=partial):
+                    self.settings["outputs"] = list(before)
+                    cutoff = runner.window(DAY, 0)[0] + timedelta(hours=12) if partial else None
+                    result = self.automate(review_date=DAY, snapshot_end=cutoff)
+                    self.assertEqual(result["results"][0]["status"], "completed")
+                    launch_dir = self.task_calls[-1][1]
+                    self.settings["outputs"] = list(after)
+                    with self.assertRaisesRegex(ValueError, "configuration"):
+                        automation.complete(self.paths, self.settings, launch_dir)
+
+    def test_skip_receipts_reject_changed_shared_output_selection(self):
+        self.bind_shared_knowledge()
+        for before, after in SELECTION_CHANGES:
+            with self.subTest(before=before, after=after):
+                self.settings["outputs"] = list(before)
+                self.automate(review_date=DAY)
+                with patch.object(runner, "latest_closed_date", return_value=DAY):
+                    result = self.automate()
+                self.assertEqual(result["results"][0]["status"], "already-completed")
+                launch_dir = self.task_calls[-1][1]
+                self.settings["outputs"] = list(after)
+                with self.assertRaisesRegex(ValueError, "already-completed"):
+                    automation.complete(self.paths, self.settings, launch_dir)
 
     def test_outer_cli_selects_date_and_reports_startup_errors(self):
         cutoff = runner.window(DAY, 0)[0] + timedelta(hours=12)

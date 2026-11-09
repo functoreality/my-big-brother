@@ -10,6 +10,7 @@ import threading
 import time
 import unittest
 from concurrent.futures import ThreadPoolExecutor
+from datetime import timedelta
 from pathlib import Path
 from unittest.mock import patch
 
@@ -73,6 +74,134 @@ class KnowledgeOutputTests(unittest.TestCase):
         self.settings["local_profile"] = str(path)
         config.write_json(self.paths.config / "config.json", self.settings)
         return config.load(self.paths)
+
+    def selection_fixture(self, *, shared=True, actions=True):
+        start = runner.window(DAY, 0)[0] + timedelta(hours=10)
+        events = [
+            {"event": "session_start", "started_at": start.isoformat(), "cwd": "/example/project"},
+            {"event": "command", "started_at": (start + timedelta(minutes=1)).isoformat(),
+             "completed_at": (start + timedelta(minutes=2)).isoformat(),
+             "command": "printf synthetic", "cwd": "/example/project", "exit_status": 0},
+            {"event": "session_end", "ended_at": (start + timedelta(minutes=3)).isoformat(),
+             "cwd": "/example/project"},
+        ]
+        source = self.paths.raw_logs / DAY / "bash" / "selection.jsonl"
+        source.parent.mkdir(parents=True, exist_ok=True)
+        source.write_text("".join(json.dumps(event) + "\n" for event in events), encoding="utf-8")
+        profile = {}
+        if shared:
+            target = str(self.root / "MEMORY.md")
+            profile["output_paths"] = dict.fromkeys(config.KNOWLEDGE_KEYS, target)
+        if actions:
+            task = self.root / "post-review.md"
+            task.write_text("Complete this isolated no-op and submit its receipt.\n", encoding="utf-8")
+            validator = self.root / "post-review-validator.py"
+            validator.write_text("pass\n", encoding="utf-8")
+            profile["post_review"] = {"task": str(task), "write_paths": [],
+                                      "validation_command": [sys.executable, str(validator)]}
+        if profile:
+            self.profile(profile)
+
+    def prepare_recorded_selection(self):
+        config.write_json(self.paths.config / "config.json", self.settings)
+        ticket = runner.prepare_run(self.paths, self.settings, DAY)
+        self.assertEqual((ticket["status"], ticket["entries"]), ("prepared", 3))
+        directory = Path(ticket["run_dir"])
+        context = runner.read_object(directory / "context.json")
+        self.assertEqual(runner.read_object(directory / "manifest.json")["sources"]["bash"]["entries"], 3)
+        self.drafts(directory, context)
+        return directory, context
+
+    def complete_selection_actions(self, directory):
+        action = directory / "actions"
+        context = runner.read_object(action / "context.json")
+        config.write_json(action / "action_receipt.json", context["action_receipt_example"])
+        self.assertEqual(runner.finish_run(self.paths, self.settings, directory)["status"], "completed")
+
+    def test_shared_selection_changes_prepare_fresh_reviews_instead_of_reusing_state(self):
+        self.selection_fixture()
+        profile_digest = config.load_profile(self.settings)["digest"]
+        switches = [(["user-model"], ["user-model", "machine-context"]),
+                    (["user-model", "machine-context"], ["user-model"]),
+                    (["user-model"], ["machine-context"])]
+        for pending in (False, True):
+            for before, after in switches:
+                with self.subTest(pending=pending, before=before, after=after):
+                    self.settings["outputs"] = before
+                    directory, context = self.prepare_recorded_selection()
+                    self.assertEqual(runner.finish_run(self.paths, self.settings, directory)["status"],
+                                     "actions-pending")
+                    if not pending:
+                        self.complete_selection_actions(directory)
+                    self.settings["outputs"] = after
+                    config.write_json(self.paths.config / "config.json", self.settings)
+                    self.assertEqual(config.load_profile(self.settings)["digest"], profile_digest)
+                    with self.assertRaisesRegex(ValueError, "Selected outputs changed after prepare"):
+                        runner.finish_run(self.paths, self.settings, directory)
+                    self.assertFalse(runner.completed(self.paths, self.settings, DAY))
+                    fresh = runner.analyze(self.paths, self.settings, DAY, skip_completed=True)
+                    self.assertEqual(fresh["status"], "prepared")
+                    self.assertNotEqual(fresh["run_dir"], str(directory))
+                    new_directory = Path(fresh["run_dir"])
+                    new_context = runner.read_object(new_directory / "context.json")
+                    self.assertEqual(new_context["outputs"], after)
+                    self.assertEqual(new_context["final_output_paths"], context["final_output_paths"])
+                    self.drafts(new_directory, new_context)
+                    self.assertEqual(runner.finish_run(self.paths, self.settings, new_directory)["status"],
+                                     "actions-pending")
+                    self.complete_selection_actions(new_directory)
+                    self.assertTrue(runner.completed(self.paths, self.settings, DAY))
+
+    def test_unchanged_shared_selection_keeps_skip_and_pending_recovery(self):
+        self.settings["outputs"] = ["user-model", "machine-context"]
+        self.selection_fixture()
+        for pending in (False, True):
+            with self.subTest(pending=pending):
+                directory, _ = self.prepare_recorded_selection()
+                runner.finish_run(self.paths, self.settings, directory)
+                if not pending:
+                    self.complete_selection_actions(directory)
+                result = runner.analyze(self.paths, self.settings, DAY, skip_completed=True)
+                self.assertEqual(result["run_dir"], str(directory))
+                self.assertEqual(result["status"], "actions-pending" if pending else "already-completed")
+                if pending:
+                    self.complete_selection_actions(directory)
+
+    def test_existing_separate_completion_is_reused_from_its_retained_context(self):
+        self.selection_fixture(shared=False, actions=False)
+        directory, context = self.prepare_recorded_selection()
+        self.assertEqual(len(context["final_output_paths"]), 7)
+        runner.finish_run(self.paths, self.settings, directory)
+        self.assertTrue(runner.completed(self.paths, self.settings, DAY))
+        result = runner.analyze(self.paths, self.settings, DAY, skip_completed=True)
+        self.assertEqual((result["status"], result["run_dir"]), ("already-completed", str(directory)))
+        self.assertEqual(runner.finish_run(self.paths, self.settings, directory)["status"], "completed")
+
+    def test_unavailable_or_unidentifiable_context_does_not_reuse_old_state(self):
+        self.settings["outputs"] = ["user-model", "machine-context"]
+        self.selection_fixture()
+        for pending in (False, True):
+            for damage in ("missing", "malformed", "missing-selection", "wrong-identity"):
+                with self.subTest(pending=pending, damage=damage):
+                    directory, context = self.prepare_recorded_selection()
+                    runner.finish_run(self.paths, self.settings, directory)
+                    if not pending:
+                        self.complete_selection_actions(directory)
+                    target = directory / "context.json"
+                    if damage == "missing":
+                        target.rename(directory / "context-backup.json")
+                    elif damage == "malformed":
+                        target.write_text("{", encoding="utf-8")
+                    else:
+                        if damage == "missing-selection":
+                            context.pop("outputs")
+                        else:
+                            context["run_id"] = "another-run"
+                        config.write_json(target, context)
+                    self.assertFalse(runner.completed(self.paths, self.settings, DAY))
+                    fresh = runner.analyze(self.paths, self.settings, DAY, skip_completed=True)
+                    self.assertEqual(fresh["status"], "prepared")
+                    self.assertNotEqual(fresh["run_dir"], str(directory))
 
     def test_all_outputs_default_to_enabled_and_resolve_stable_paths(self):
         defaults = config.defaults(self.paths)

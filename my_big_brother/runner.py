@@ -319,6 +319,20 @@ def day_entry(paths, review_date):
     return (paths.layout.record(review_date) or {}).get("review", {})
 
 
+def output_selection_matches(paths, config, entry, review_date, review=None):
+    """Physical destinations alone cannot identify shared knowledge selections."""
+    try:
+        directory = Path(entry["run_dir"]).resolve()
+        paths.layout.check_run(directory)
+        if review is None:
+            review = read_object(directory / "context.json")
+    except (KeyError, OSError, ValueError, TypeError):
+        return False
+    return (review.get("run_id") == entry.get("run_id") == directory.name
+            and review.get("date") == review_date
+            and review.get("outputs") == config["outputs"])
+
+
 def publish_outputs(context, layout, profile_digest, file_mode=None):
     """Publish validated drafts, retaining progress for retry or manual recovery."""
     journal_path = Path(context["publication_journal"])
@@ -574,7 +588,9 @@ def completed(paths, config, review_date):
             and entry.get("profile_digest") == (profile["digest"] if profile else None)
             and entry.get("review_configuration") == review_configuration(paths, config)
             and entry.get("results_root") == config["results_root"]
-            and entry.get("outputs") == expected and all(Path(x).is_file() for x in expected))
+            and entry.get("outputs") == expected
+            and output_selection_matches(paths, config, entry, review_date)
+            and all(Path(x).is_file() for x in expected))
 
 
 def analyze(paths, config, review_date, *, allow_empty=False, skip_completed=False, snapshot_end=None):
@@ -593,7 +609,8 @@ def analyze(paths, config, review_date, *, allow_empty=False, skip_completed=Fal
             and snapshot_matches
             and entry.get("profile_digest") == (profile["digest"] if profile else None)
             and entry.get("review_configuration") == review_configuration(paths, config)
-            and entry.get("results_root") == config["results_root"] and entry.get("outputs") == expected):
+            and entry.get("results_root") == config["results_root"] and entry.get("outputs") == expected
+            and output_selection_matches(paths, config, entry, review_date)):
             return finish_run(paths, config, entry["run_dir"])
         prepared = prepare_run(paths, config, review_date, snapshot_end=snapshot_end)
         if prepared["status"] == "blocked":

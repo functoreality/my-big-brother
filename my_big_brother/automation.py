@@ -83,6 +83,7 @@ def validate_receipt(paths, settings, launch_dir, context):
                 or entry.get("review_configuration") != runner.review_configuration(paths, settings)
                 or entry.get("results_root") != settings["results_root"]
                 or entry.get("outputs") != expected_outputs
+                or not runner.output_selection_matches(paths, settings, entry, review_date, review)
                 or entry.get("window") != review.get("window")
                 or not all(Path(name).is_file() for name in expected_outputs)):
                 raise ValueError("Automation completion no longer matches this configuration")

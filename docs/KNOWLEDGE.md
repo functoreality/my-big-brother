@@ -53,6 +53,11 @@ retain the submitted version for that review. Publication
 preserves existing file permissions unless the profile explicitly overrides
 them. Later cumulative updates do not invalidate earlier completed dates.
 
+Changing the selected output types requires a fresh review for that date,
+even if they share the same final file. Completion skips and pending-action
+recovery check the logical selection in the retained run context. They do not
+reuse a run with different selections or an unverifiable context.
+
 ## Choosing where knowledge lives
 
 The installation Agent follows this priority: your explicit request or existing
