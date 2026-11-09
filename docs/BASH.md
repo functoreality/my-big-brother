@@ -22,8 +22,10 @@ source "/absolute/path/to/my-big-brother/collectors/bash/session-recorder.sh"
 
 On macOS, use the startup file from which your interactive Bash configuration
 is actually loaded. A login shell might read `.bash_profile` rather than
-`.bashrc`. The script uses syntax available in Bash 3.2, but this release has
-been executed only on Linux Bash. macOS execution remains unverified.
+`.bashrc`. A macOS arm64 installation report exercised the isolated recorder
+suite with Apple Bash 3.2.57 and Python 3.9.6. The trial identified history
+replay and existing DEBUG-hook failures, addressed by the fixes here.
+The array `PROMPT_COMMAND` test requires Bash 5.1+ and was skipped in that trial.
 For Windows, WSL follows Linux paths. Native Windows Python with Git Bash has
 not been tested. This is a Bash collector, not a PowerShell or Zsh collector.
 
@@ -143,7 +145,7 @@ interactions. Test your own integrations before relying on them.
 Existing scalar or array `PROMPT_COMMAND` hooks keep their order and receive
 the preceding command's exit status. Existing DEBUG and EXIT actions are
 chained, not discarded. `PS0`, functrace and repeated sourcing are covered by
-isolated Linux tests. Array prompt hooks require Bash 5.1 or newer.
+isolated tests. Array prompt hooks require Bash 5.1 or newer.
 A readonly `PROMPT_COMMAND` prevents installation. Dynamic replacement of
 prompt or trap integrations after loading is unsupported. Open a new shell
 after changing integrations or upgrading the recorder.
@@ -188,8 +190,8 @@ The cost is requiring Python and starting a helper process at session start,
 command completion and normal session end. It is not a background Python
 service. No Python process is added solely to capture the starting directory.
 Only Bash hooks observe shell activity. The helper does not execute captured
-commands or launch an analysis Agent. Native macOS and Windows execution
-remain unverified, as described above.
+commands or launch an analysis Agent. Native Windows execution remains
+unverified. The reported macOS trial covers the environment described above.
 
 ## Tests
 

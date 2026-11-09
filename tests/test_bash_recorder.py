@@ -32,7 +32,7 @@ class BashSessionNamingTests(unittest.TestCase):
     def setUp(self):
         directory = tempfile.TemporaryDirectory()
         self.addCleanup(directory.cleanup)
-        self.root = Path(directory.name)
+        self.root = Path(directory.name).resolve()
         self.config = self.root / 'config'
         self.data = self.root / 'data'
         locations = patch.object(recorder._paths, 'platform_paths', return_value=(self.config, self.data))
@@ -103,7 +103,7 @@ class BashRecorderTests(unittest.TestCase):
     def shell(self, setup, commands, *, initialize=True, recording=True, exit_command=True):
         directory = tempfile.TemporaryDirectory()
         self.addCleanup(directory.cleanup)
-        root = Path(directory.name)
+        root = Path(directory.name).resolve()
         if initialize:
             config.initialize(Paths(root / "config/my-big-brother", root / "data/my-big-brother"))
         env = os.environ.copy()
@@ -373,6 +373,31 @@ class BashRecorderTests(unittest.TestCase):
         self.assertIn("printf user", [row["command"] for row in rows])
         self.assertIn("printf debug", (root / "debug-trap").read_text())
         self.assertEqual((root / "exit-marker").read_text(), "exit")
+
+    def test_history_filtering_and_existing_hooks_with_function_tracing(self):
+        import re
+
+        for tracing in ("", "set -T", "shopt -s extdebug"):
+            with self.subTest(tracing=tracing):
+                setup = ([tracing] if tracing else []) + [
+                    "HISTCONTROL=ignoreboth:erasedups", "HISTIGNORE='*private*'", "HISTSIZE=3",
+                    'test_debug_marker="$PWD/debug-marker"', 'test_exit_status="$PWD/exit-status"',
+                    "trap 'printf debug >> \"$test_debug_marker\"' DEBUG",
+                    "trap 'printf \"%s\" \"$?\" > \"$test_exit_status\"' EXIT",
+                ]
+                commands = ["history -c", "printf repeated", "printf repeated", " printf spaced",
+                            "for word in first second\ndo\nprintf '%s' \"$word\"\ndone",
+                            "printf private", "builtin history > observed-history", "false", "exit 7"]
+                _, _, baseline = self.shell(setup, commands, recording=False, exit_command=False)
+                result, rows, root = self.shell(setup, commands, exit_command=False)
+                without_numbers = lambda value: re.sub(r'^\s*\d+\s{2}', '', value, flags=re.MULTILINE)
+                self.assertEqual(without_numbers((root / "observed-history").read_text()),
+                                 without_numbers((baseline / "observed-history").read_text()))
+                self.assertEqual(sum(row['command'] == 'printf repeated' for row in rows), 2)
+                self.assertIn("printf private", [row['command'] for row in rows])
+                self.assertTrue((root / "debug-marker").read_text())
+                self.assertEqual((root / "exit-status").read_text(), "7")
+                self.assertEqual(result.returncode, 7)
 
     def test_functrace_and_ps0_remain_usable(self):
         for setting in ('set -T', 'PS0=precommand'):

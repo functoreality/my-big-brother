@@ -77,7 +77,11 @@ __mbb_observe_input() {
        [[ $__mbb_history_id != "$__mbb_last_history_id" ]]; then
         __mbb_pending=1
         if [[ $__mbb_temporary_history == 1 ]]; then
-            builtin history -d "$__mbb_history_id"
+            # Bash 3.2 history -s already removes this input inside DEBUG.
+            if [[ $__mbb_size == 0 ]] ||
+               (( BASH_VERSINFO[0] != 3 || BASH_VERSINFO[1] != 2 )); then
+                builtin history -d "$__mbb_history_id"
+            fi
             if [[ $__mbb_size != 0 ]]; then
                 builtin history -s -- "$__mbb_history_command"
             fi
@@ -142,14 +146,15 @@ fi
 trap '__mbb_on_exit'"${__mbb_previous_exit:+; $__mbb_previous_exit}" EXIT
 
 __mbb_prompt_prefix='__mbb_saved_status=$?; __mbb_prompt "$__mbb_saved_status"'
-__mbb_first_prefix='__mbb_saved_status=$?; __mbb_existing_debug=$(trap -p DEBUG); __mbb_bootstrap; __mbb_prompt "$__mbb_saved_status"'
+__mbb_first_prefix='__mbb_saved_status=$?; __mbb_existing_debug=$(trap -p DEBUG); __mbb_bootstrap; trap "$__mbb_debug_hook" DEBUG; __mbb_prompt "$__mbb_saved_status"'
 
 __mbb_bootstrap() {
     if [[ -n $__mbb_existing_debug ]]; then
         __mbb_existing_debug=${__mbb_existing_debug#trap -- }
         eval "__mbb_existing_debug=${__mbb_existing_debug% DEBUG}"
     fi
-    trap '__mbb_preexec "$BASH_COMMAND"'"${__mbb_existing_debug:+; $__mbb_existing_debug}" DEBUG
+    # Install at prompt scope so returning cannot restore an older DEBUG trap.
+    __mbb_debug_hook='__mbb_preexec "$BASH_COMMAND"'"${__mbb_existing_debug:+; $__mbb_existing_debug}"
     if [[ $__mbb_prompt_flags == *a* ]]; then
         PROMPT_COMMAND=("$__mbb_prompt_prefix" "${__mbb_previous_prompt[@]}" __mbb_ready)
     else

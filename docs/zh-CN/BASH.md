@@ -21,8 +21,9 @@ source "/absolute/path/to/my-big-brother/collectors/bash/session-recorder.sh"
 
 在 macOS 上，应修改实际加载交互式 Bash 配置的启动文件。
 登录 shell 可能读取 `.bash_profile`，而不是 `.bashrc`。
-脚本使用 Bash 3.2 可用的语法，但本版本只在 Linux Bash 上执行过，
-尚未验证 macOS 上的实际运行。
+收到的 macOS arm64 试装报告在 Apple Bash 3.2.57 和 Python 3.9.6
+下执行了隔离录制测试，发现的历史回放和已有 DEBUG hook 问题已在此修复。
+数组 `PROMPT_COMMAND` 测试要求 Bash 5.1+，该次试装跳过此项。
 Windows 上的 WSL 使用 Linux 路径。
 原生 Windows Python 与 Git Bash 的组合尚未测试。
 这个采集器用于 Bash，不适用于 PowerShell 或 Zsh。
@@ -167,7 +168,7 @@ Python 辅助程序负责 JSON 转义、Unicode 和多行文本、带 UTC 偏移
 代价是需要 Python，在会话开始、命令完成和正常结束时启动辅助进程。
 它不是常驻 Python 服务，也没有为记录初始目录额外启动 Python。
 只有 Bash 钩子观察 shell 活动，辅助程序不执行采集到的命令，也不启动分析 Agent。
-原生 macOS 和 Windows 的运行仍未经验证，具体范围见前文。
+原生 Windows 的运行仍未经验证。macOS 试装报告的覆盖环境见前文。
 
 ## 测试
 
