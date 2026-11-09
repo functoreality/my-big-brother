@@ -141,6 +141,13 @@ keeping array arguments separate. XML-escape special characters such as `&` in p
 Save the resolved file in the user's LaunchAgents directory and validate it
 with `plutil -lint` before loading it with the user's launchd tools.
 
+The template includes the usual Apple Silicon and Intel Homebrew directories
+in `PATH`. Adapt it to the installed Node, tmux and other dependencies.
+A script using `/usr/bin/env node` still needs Node on that path, even when
+`codex.executable` is absolute. Test the scheduler's environment rather than
+relying on an interactive shell's startup files. Keep any personal proxy
+configuration in the local job, outside the shared template.
+
 See Apple's [timed-job guide](https://developer.apple.com/library/archive/documentation/MacOSX/Conceptual/BPSystemStartup/Chapters/ScheduledJobs.html)
 and [property-list reference](https://github.com/apple-oss-distributions/launchd/blob/main/man/launchd.plist.5).
 Verify an actual scheduled run under that user's account.
@@ -172,6 +179,11 @@ The common workflow and external entry have isolated tests. A real Codex
 run on Linux used fictional records and a personal post-review task. It
 started one Agent and completed five reports plus the post-review receipt.
 It did not verify a production installation or a timer trigger.
-Actual OS timer triggers, including Linux cron, have not been verified. No scheduler is installed automatically. The native-Agent
-workflows and macOS/Windows scheduled actions remain unverified integrations. A timer firing successfully is not proof of a valid
-review: check the command result, generated reports, and evidence limits.
+A supplied macOS 26.7.1 arm64 installation report documents complete Codex
+tmux reviews with Python 3.9.6 and 3.13.18, including one real launchd
+calendar trigger using 3.13.18. It tested baseline `feba5b1` with the macOS
+compatibility fixes. It covers that installation, not every
+macOS version or the latest tree on macOS. Linux cron, native Windows and
+other native-Agent schedulers remain unverified integrations.
+No scheduler is installed automatically. A timer firing successfully is not
+proof of a valid review: check command results, reports and evidence limits.

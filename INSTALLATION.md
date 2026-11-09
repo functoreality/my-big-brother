@@ -14,8 +14,9 @@ confirm access to the intended computer and account, not only the chat UI.
 Do not substitute a cloud checkout or upload local histories without the
 user choosing that deployment. Resolve the operating system, stable checkout
 location and absolute Python executable in that execution environment.
-Python 3.11+ is recommended. Older versions are unverified,
-not rejected solely by version. The core uses only the standard library.
+Python 3.11+ is recommended. Compatibility with older versions requires
+separate verification. Do not reject an interpreter solely by version.
+The core uses only the standard library.
 Clone the repository or reuse the existing checkout. Run the examples below
 from its root with the selected absolute Python executable. `python` is a
 placeholder, not a requirement to use whichever interpreter is on `PATH`.
@@ -511,7 +512,8 @@ ended, even if the response describes a blocker. `actions-pending`, `blocked`
 and failed work are not completed reviews. An honest `empty` result is not an
 analyzed day. Without a launch context, use the final results returned by the
 common commands instead of expecting `automation-result.json`.
-macOS and Windows execution remain unverified by this repository.
+See [Scheduling](docs/SCHEDULING.md#current-support) for the scope of a supplied
+macOS installation report. Native Windows execution remains unverified.
 
 ## 8. Handoff and maintenance
 

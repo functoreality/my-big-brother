@@ -145,8 +145,8 @@ The Codex entry offers `exec` or an attachable interactive `tmux` session.
 The installer helps you choose. tmux mode needs Linux, macOS or WSL with tmux.
 See [Scheduling](docs/SCHEDULING.md) for joining and completion checks.
 
-Python 3.11+ is recommended. Older versions are unverified and compatibility
-is not guaranteed. The core uses only the standard library. Optional
+Python 3.11+ is recommended. Older versions need separate verification.
+Compatibility is not guaranteed. The core uses only the standard library. Optional
 screenshots need Pillow. Configure `language: "zh-CN"` in your personal JSON
 configuration to request Chinese reports.
 Daily analysis uses the chosen Agent's configured account and usage allowance.
@@ -191,8 +191,10 @@ Installing this repository does not automatically expose it to every Agent.
 
 The portable core is intended for Linux, macOS, and Windows. An isolated
 end-to-end run, including same-Agent post-review, has been verified on Linux
-with fictional records. Complete macOS and Windows runs and their scheduled
-actions still require validation on those systems.
+with fictional records. A supplied macOS arm64 installation report also
+documents complete reviews and a launchd trigger with compatibility fixes.
+See [Scheduling](docs/SCHEDULING.md#current-support) for its scope.
+Native Windows execution remains unverified.
 Bash support applies to Bash environments, including WSL as a separate
 environment, and does not record PowerShell.
 
@@ -226,7 +228,8 @@ python -m unittest discover -s tests -v
 ```
 
 `python tests/smoke.py` prepares an isolated fictional workday using platform
-configuration paths. Native Windows and macOS execution still needs validation.
+configuration paths. Preparation was also exercised in the reported macOS
+installation. Native Windows execution still needs validation.
 Add `--run-analyzer` to run a real Codex analysis and publish its outputs in
 the isolated fixture directory. That optional step uses your installed account
 and consumes quota. It does not use personal histories or install a scheduler.

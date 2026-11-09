@@ -131,6 +131,12 @@ cron 通常不会补发机器关机期间错过的触发。
 将替换好的文件保存在用户的 LaunchAgents 目录中，
 先用 `plutil -lint` 验证，再通过用户的 launchd 工具加载。
 
+模板的 `PATH` 包含 Apple Silicon 和 Intel 常见的 Homebrew 目录，
+应按实际安装的 Node、tmux 及其他依赖调整。
+脚本若使用 `/usr/bin/env node`，即使 `codex.executable` 是绝对路径，
+也仍需通过此路径找到 Node。验证调度环境，不依赖交互 shell 的启动文件。
+私人代理配置保存在本机任务中，不加入共享模板。
+
 参见 Apple 的[定时任务指南](https://developer.apple.com/library/archive/documentation/MacOSX/Conceptual/BPSystemStartup/Chapters/ScheduledJobs.html)
 和[属性列表参考](https://github.com/apple-oss-distributions/launchd/blob/main/man/launchd.plist.5)。
 在该用户账户下验证一次实际的定时运行。
@@ -160,9 +166,11 @@ WSL 应在 WSL 内按照 Linux 方式配置，
 通用流程和外部入口有隔离测试。Linux 上使用虚构记录及个人后操作任务，
 真实启动一次 Codex，完成五份报告和后操作回执。
 这不代表生产安装或真实定时触发已经验证。
-包括 Linux cron 在内的实际操作系统定时触发尚未验证。
+收到的 macOS 26.7.1 arm64 试装报告记录了 Python 3.9.6 和 3.13.18 下的完整
+Codex tmux 复盘，其中 3.13.18 还验证了一次 launchd 日历实际触发。
+它使用 `feba5b1` 基线及 macOS 兼容修复。
+这只覆盖该安装，不代表所有 macOS 版本或最新代码已在 macOS 上验证。
+Linux cron、原生 Windows 和其他 Agent 原生调度集成仍待验证。
 项目不会自动安装任何调度器。
-原生 Agent 工作流程，以及 macOS 和 Windows 定时操作，
-目前是配置指导，尚未验证这些集成。
 定时器成功触发不能证明复盘有效。
 还需要检查命令结果、生成的报告和证据局限。

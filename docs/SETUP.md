@@ -11,8 +11,9 @@ you want a daily schedule or optional Bash recording.
 
 ## Requirements
 
-- Python 3, with 3.11 or newer recommended. Older versions are unverified
-  and compatibility is not guaranteed. The core has no third-party dependencies.
+- Python 3, with 3.11 or newer recommended. Older versions need separate
+  verification and compatibility is not guaranteed. The core has no third-party
+  dependencies.
 - A clone of this repository in a stable directory.
 - At least one selected supported record source, such as Codex/OpenCode history
   or existing Bash, Vim or screenshot records. The executor and inputs are

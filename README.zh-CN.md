@@ -128,7 +128,7 @@ My Big Brother 的 Agent 注意到这次修改，用一个反例验证后发现�
 Codex 入口可选 `exec` 或可接入的 `tmux` 交互会话，安装时由 Agent 说明并询问偏好。
 tmux 模式需在 Linux、macOS 或 WSL 中安装 tmux，接入与完成检查见[定时运行](docs/zh-CN/SCHEDULING.md)。
 
-推荐 Python 3.11 或更新版本，旧版本未经验证，不保证兼容。
+推荐 Python 3.11 或更新版本，旧版本需单独验证，不保证兼容。
 核心只使用标准库，截图功能需要可选依赖 Pillow。
 在个人 JSON 配置中将 `language` 设为 `"zh-CN"`，即可请求生成中文报告。
 每日分析使用所选 Agent 配置的账号和使用额度。
@@ -170,7 +170,8 @@ MVP 不会自动删除原始日志或运行材料，请单独查看和管理磁�
 
 可移植核心面向 Linux、macOS 和 Windows。
 Linux 已通过虚构记录的隔离端到端测试，包括同一 Agent 完成后操作。
-macOS 和 Windows 上的完整运行及定时动作仍需在对应系统上验证。
+收到的 macOS arm64 试装报告也记录了带兼容修复的完整复盘和 launchd 触发，
+范围见[定时运行](docs/zh-CN/SCHEDULING.md#当前支持情况)。原生 Windows 仍待验证。
 Bash 支持适用于 Bash 环境，包括作为独立环境的 WSL，不记录 PowerShell。
 
 目前没有内置周报生成器。标准知识输出复用每日分析，
@@ -202,7 +203,7 @@ python -m unittest discover -s tests -v
 ```
 
 `python tests/smoke.py` 使用各平台配置路径准备隔离的虚构工作日。
-原生 Windows 和 macOS 上的运行仍待验证。
+收到的 macOS 试装报告也验证了准备流程。原生 Windows 上的运行仍待验证。
 添加 `--run-analyzer` 会执行真实 Codex 分析，并把输出发布到隔离的测试目录。
 这一步是可选的，使用已安装的账号并消耗额度。
 它不使用个人历史，也不安装调度器。

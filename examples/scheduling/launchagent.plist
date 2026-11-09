@@ -13,6 +13,11 @@
   </array>
   <key>WorkingDirectory</key>
   <string>/absolute/path/to/my-big-brother</string>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+  </dict>
   <key>StartCalendarInterval</key>
   <dict>
     <key>Hour</key>

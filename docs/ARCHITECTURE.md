@@ -8,7 +8,7 @@ My Big Brother is a local repository with an Agent-led review workflow.
 Python prepares evidence and manages publication. Markdown tasks tell the
 Agent how to interpret that evidence and produce useful records.
 The core uses only the standard library. Python 3.11+ is recommended.
-Older versions are unverified and compatibility is not guaranteed.
+Older versions need separate verification and compatibility is not guaranteed.
 
 ## Components
 
