@@ -19,7 +19,7 @@ class CodexTmuxTests(unittest.TestCase):
     def setUp(self):
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
-        self.root = Path(temporary.name)
+        self.root = Path(temporary.name).resolve()
         self.run = self.root / "unique-launch"
         (self.run / "logs").mkdir(parents=True)
         (self.run / "prompt.md").write_text("Isolated task.\n", encoding="utf-8")

@@ -14,7 +14,7 @@ class CodexTextPartTests(unittest.TestCase):
     def setUp(self):
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
-        self.root = Path(temporary.name)
+        self.root = Path(temporary.name).resolve()
         self.start = datetime(2026, 6, 20, tzinfo=timezone.utc)
         self.end = self.start + timedelta(days=1)
 
@@ -79,7 +79,7 @@ class VimSourceTests(unittest.TestCase):
     def setUp(self):
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
-        self.root = Path(temporary.name)
+        self.root = Path(temporary.name).resolve()
         self.start = datetime(2026, 6, 20, 4, tzinfo=timezone.utc)
         self.end = self.start + timedelta(days=1)
 
@@ -248,7 +248,7 @@ class BashSessionContextTests(unittest.TestCase):
     def setUp(self):
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
-        self.root = Path(temporary.name)
+        self.root = Path(temporary.name).resolve()
         self.start = datetime(2026, 6, 20, 4, tzinfo=timezone.utc)
         self.end = self.start + timedelta(days=1)
 
@@ -320,7 +320,7 @@ class ScreenshotSourceTests(unittest.TestCase):
     def setUp(self):
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
-        self.root = Path(temporary.name)
+        self.root = Path(temporary.name).resolve()
         self.start = datetime(2026, 6, 20, 4, tzinfo=timezone.utc)
         self.end = self.start + timedelta(days=1)
 

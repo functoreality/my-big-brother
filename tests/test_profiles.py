@@ -21,7 +21,7 @@ class ProfileTests(unittest.TestCase):
     def setUp(self):
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
-        self.root = Path(temporary.name)
+        self.root = Path(temporary.name).resolve()
         self.paths = Paths(self.root / "configuration", self.root / "data")
         self.settings = config.initialize(self.paths, sources=["codex"])
         self.settings["notifications"]["enabled"] = False

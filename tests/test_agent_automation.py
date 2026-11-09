@@ -21,7 +21,7 @@ class AutomationTests(unittest.TestCase):
     def setUp(self):
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
-        self.root = Path(temporary.name)
+        self.root = Path(temporary.name).resolve()
         self.paths = Paths(self.root / "config", self.root / "data")
         self.settings = config.initialize(self.paths, sources=["bash"])
         self.settings["notifications"]["enabled"] = False
@@ -87,6 +87,25 @@ class AutomationTests(unittest.TestCase):
         self.assertEqual(launch.call_count, 1)
         self.assertEqual(result["status"], "agent-exited")
         return runner.read_object(Path(result["launch_dir"]) / "automation-result.json")
+
+    def test_symlink_data_root_completes_review_and_automation(self):
+        alias = self.root / "data alias"
+        try:
+            alias.symlink_to(self.paths.data, target_is_directory=True)
+        except (OSError, NotImplementedError) as error:
+            self.skipTest("Directory symlinks unavailable: " + str(error))
+        self.paths = Paths(self.paths.config, alias)
+        result = self.automate(review_date=DAY)
+        self.assertEqual(result["results"][0]["status"], "completed")
+        run = Path(result["results"][0]["run_dir"])
+        self.assertEqual(run, run.resolve())
+        self.assertEqual(run.parents[2], self.paths.raw_logs.resolve())
+        context = runner.read_object(run / "context.json")
+        self.assertEqual(context["publication_journal"], str(run / "publication.json"))
+        self.assertTrue(all(Path(name).is_file() for name in context["final_output_paths"]))
+        self.assertEqual(runner.day_entry(self.paths, DAY)["run_dir"], str(run))
+        with patch.object(runner, "latest_closed_date", return_value=DAY):
+            self.assertEqual(self.automate()["results"][0]["status"], "already-completed")
 
     def test_one_startup_agent_drives_review_and_post_phase(self):
         task = self.root / "post.md"

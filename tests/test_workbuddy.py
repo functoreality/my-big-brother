@@ -15,7 +15,7 @@ class WorkBuddyTests(unittest.TestCase):
     def setUp(self):
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
-        self.root = Path(temporary.name)
+        self.root = Path(temporary.name).resolve()
         self.projects = self.root / 'projects'
         self.projects.mkdir()
         self.start = datetime.fromisoformat('2026-03-05T00:00:00+08:00')

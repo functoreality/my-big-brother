@@ -26,7 +26,7 @@ class StorageTests(unittest.TestCase):
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)
-        self.root = Path(self.temporary.name)
+        self.root = Path(self.temporary.name).resolve()
         self.paths = Paths(self.root / 'config', self.root / 'data')
         self.settings = config.initialize(self.paths, sources=['bash'], day_start_hour=4)
         self.settings["notifications"]["enabled"] = False

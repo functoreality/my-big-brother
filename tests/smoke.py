@@ -134,7 +134,7 @@ def main():
         assert review["status"] == "completed", review
         run_dir = Path(review["run_dir"])
         context = json.loads((run_dir / "context.json").read_text())
-        assert run_dir.parent == Path(paths["raw_logs"]) / DAY / "_analysis"
+        assert run_dir.parent == (Path(paths["raw_logs"]) / DAY / "_analysis").resolve()
         assert (Path(paths["raw_logs"]) / DAY / "review.json").is_file()
         assert Path(context["publication_journal"]) == run_dir / "publication.json"
         assert not (Path(paths["memory"]) / "_system").exists()

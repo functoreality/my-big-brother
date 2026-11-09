@@ -139,7 +139,7 @@ def prepare_run(paths, config, review_date, snapshot_end=None):
     start, end, full_end = snapshot_window(review_date, config["day_start_hour"], snapshot_end)
     run_id = now().strftime("%Y%m%dT%H%M%S") + "-" + uuid.uuid4().hex[:8]
     day_dir = paths.layout.ensure_day(review_date)
-    run_dir = day_dir / "_analysis" / run_id
+    run_dir = (day_dir / "_analysis" / run_id).resolve()
     run_dir.mkdir(parents=True, mode=0o700)
     for child in ("indexes", "excerpts", "drafts", "logs"):
         (run_dir / child).mkdir(mode=0o700)

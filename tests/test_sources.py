@@ -14,7 +14,7 @@ class SourceTests(unittest.TestCase):
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)
-        self.root = Path(self.temporary.name)
+        self.root = Path(self.temporary.name).resolve()
         self.start = datetime(2026, 6, 20, tzinfo=timezone.utc)
         self.end = self.start + timedelta(days=1)
 
