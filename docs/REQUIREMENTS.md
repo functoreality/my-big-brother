@@ -55,6 +55,17 @@ notice when first observed off or after another on-to-off transition.
 Session boundaries remain. See [Bash](BASH.md) for the input boundary and
 the accepted history-numbering limitation.
 
+## Zsh recording
+
+Zsh uses one fixed session-start-date JSONL under `YYYY-MM-DD/zsh/`, with
+the same compact boundary and command fields. Observe full input and its
+pre-execution cwd through native hooks, without rewriting history or shell
+options. History filters and disabled persistence do not exclude JSONL input.
+`MBB_ZSH_RECORDING=0` pauses subsequent input, retaining session boundaries.
+Readers search all retained start dates and filter actual event timestamps.
+The collector works independently through the shared locator. Preserve
+explicit opt-in and report hook and abnormal-exit limitations. See [Zsh](ZSH.md).
+
 ## Review windows belong to analysis
 
 `config.json` may select `day_start_hour`, such as 4. This affects preparation

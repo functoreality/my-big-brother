@@ -108,6 +108,31 @@ Other explicitly configured recorders can use different capture semantics.
 Preserve their declared scope, timing, and working-directory meanings rather
 than assuming every Bash source has the bundled collector's behavior.
 
+## Zsh
+
+When enabled, read the Zsh index and excerpts using the same evidence limits
+as Bash. The bundled collector writes one fixed start-date file under
+`raw-logs/YYYY-MM-DD/zsh/`. Preparation searches all retained date folders and
+selects commands by actual `completed_at`, attaching earlier session-start
+context without indexing earlier commands as current activity.
+
+`preexec` observes the complete submitted input, including multiline input,
+leading spaces and alias text before alias expansion. `started_at` is the
+pre-execution system time with second precision. Command `cwd` is the shell
+directory before that entire input executes. Status describes the whole
+input, not every internal operation or background job. Completion is observed
+at the next prompt or normal exit. No terminal output is captured.
+Native history filtering, zero size or disabled file persistence do not
+exclude inputs. `MBB_ZSH_RECORDING=0` pauses subsequent input while retaining
+session boundaries. The switching input may itself be recorded.
+
+`exec` replacement does not trigger the normal exit hook, so its pending
+input and end boundary have no completion records. Crashes, force termination,
+and earlier hooks returning nonzero can also leave gaps. Do not infer
+inactivity, complete coverage, focused work or success from missing records
+or elapsed time. Never reproduce sensitive arguments in formal outputs.
+See `docs/ZSH.md` for collector limits.
+
 ## Vim and Neovim
 
 Read every indexed session's metadata, file summaries, and declared gaps.

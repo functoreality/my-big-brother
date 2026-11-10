@@ -100,7 +100,7 @@ merely because the application is installed.
 Choose inputs independently of the executor. If its own format is unsupported,
 use supported histories actually detected instead of silently substituting
 Codex. Reading existing native histories does not install a new collector.
-New Bash, Vim or screenshot recording remains a separate user choice.
+New Bash, Zsh, Vim or screenshot recording remains a separate user choice.
 
 Also check whether your own harness's history is supported. If not, explain
 the gap and ask whether the user wants you to add a local reader for it.
@@ -156,7 +156,9 @@ These are examples, not a reason to enable an undetected Codex source.
 before analyzing. Preserve other settings and existing explicit choices.
 This choice does not select the executing Agent. For existing Bash records,
 `init --sources bash` is also a valid standalone starting point. Resolve that
-source's actual path. Enable `bash`, `vim` or `screenshots` only for wanted
+source's actual path. Zsh records similarly use `init --sources zsh` on a
+new installation. Preserve existing configurations rather than reinitializing.
+Enable `bash`, `zsh`, `vim` or `screenshots` only for wanted
 records, after checking existing compatible records or completing the chosen
 collector setup. Initialization does not read histories or install hooks.
 
@@ -337,6 +339,26 @@ sensitive input. `set -o history` resumes capture. A full history list can be re
 numeric expansion such as `!123`, as documented in BASH.md. Do not enable it
 for users requiring stable numbers. Keep the existing redaction rule.
 Do not source it in a different shell or treat it as a PowerShell recorder.
+
+### Zsh
+
+With the user's choice to record future interactive Zsh input, follow
+[ZSH.md](docs/ZSH.md). Back up the active `.zshrc`, honoring `ZDOTDIR`, and
+load `collectors/zsh/session-recorder.zsh` after prompt integrations.
+Choose the intended Python with `MBB_PYTHON` when needed. Open a new shell
+and verify a disposable command's JSONL, directory and exit status before
+enabling the `zsh` reader in existing configuration. Preserve other sources,
+review settings and schedules. The reader is disabled by default.
+
+The collector adds native hooks without rewriting history. History filters,
+leading spaces and disabled history-file saving do not prevent recording.
+Explain the limited redaction rule and that selected input can be sent to the
+Analyzer provider. Pause with `MBB_ZSH_RECORDING=0` in a separate input before
+sensitive text. The switching input may itself be recorded and session
+boundaries remain. An `exec` replacement or abnormal exit lacks the final
+completion and end boundary. Earlier hooks returning nonzero can suppress
+later recording hooks. Verify the user's integrations and do not infer
+complete coverage from a file's existence. This collector is Zsh-specific.
 
 ### Screenshots
 

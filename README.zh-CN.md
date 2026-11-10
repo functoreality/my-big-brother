@@ -57,7 +57,7 @@ My Big Brother 的 Agent 注意到这次修改，用一个反例验证后发现�
 - **Agent 对话记录：已支持** Codex 原生会话文件、受支持的 OpenCode SQLite 历史，
   以及 [WorkBuddy 项目会话](docs/zh-CN/WORKBUDDY.md)。
   **计划中**：更多 Agent 的历史读取器。
-- **软件使用记录：已支持** Bash 记录及可选的内置采集器，
+- **软件使用记录：已支持** Bash、Zsh 记录及可选的内置采集器，
   以及由独立插件
   [session-recorder.vim](https://github.com/functoreality/session-recorder.vim)
   采集的 Vim/Neovim 会话。**计划中**：VS Code 和更多软件的采集器、读取器。
@@ -158,7 +158,8 @@ tmux 模式需在 Linux、macOS 或 WSL 中安装 tmux，接入与完成检查�
 Agent 原生历史仍保存在原来的位置。
 MVP 不会自动删除原始日志或运行材料，请单独查看和管理磁盘占用。
 摘录可能包含私有会话文本。
-可选 Bash 采集器的说明见 [BASH.md](docs/zh-CN/BASH.md)。
+可选 shell 采集器的说明见 [BASH.md](docs/zh-CN/BASH.md) 和
+[ZSH.md](docs/zh-CN/ZSH.md)。
 
 其他 Agent 可以通过 `paths` 找到结果，只读取相关日期的报告。
 可以添加一条全局指令：
@@ -173,6 +174,8 @@ Linux 已通过虚构记录的隔离端到端测试，包括同一 Agent 完成�
 收到的 macOS arm64 试装报告也记录了带兼容修复的完整复盘和 launchd 触发，
 范围见[定时运行](docs/zh-CN/SCHEDULING.md#当前支持情况)。原生 Windows 仍待验证。
 Bash 支持适用于 Bash 环境，包括作为独立环境的 WSL，不记录 PowerShell。
+收到的 macOS arm64 试装报告验证了 Zsh 5.9 记录，
+限制见 [Zsh 说明](docs/zh-CN/ZSH.md)。
 
 目前没有内置周报生成器。标准知识输出复用每日分析，
 不额外启动 Agent，也不扫描整台机器。
@@ -186,7 +189,7 @@ Bash 支持适用于 Bash 环境，包括作为独立环境的 WSL，不记录 P
 ## 文档与测试
 
 - [安装与设置](docs/zh-CN/SETUP.md)和[提供给 Agent 的安装说明](INSTALLATION.md)。
-- [定时运行](docs/zh-CN/SCHEDULING.md)和[可选 Bash 记录](docs/zh-CN/BASH.md)。
+- [定时运行](docs/zh-CN/SCHEDULING.md)、[Bash 记录](docs/zh-CN/BASH.md)和 [Zsh 记录](docs/zh-CN/ZSH.md)。
 - [架构](docs/zh-CN/ARCHITECTURE.md)和[扩展指南](docs/zh-CN/EXTENDING.md)。
 - [输入来源](docs/zh-CN/INPUT-SOURCES.md)和[个人配置档案](docs/zh-CN/PROFILES.md)。
 - [手动清理与需要保留的状态](docs/zh-CN/CLEANUP.md)。

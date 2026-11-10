@@ -8,7 +8,7 @@ Do not treat this file as the daily analysis task itself.
 
 - Read `docs/REQUIREMENTS.md` before changing collection or storage.
   Collectors use real local calendar dates, equivalent to `date +%F`.
-  Bash keeps one JSONL per shell under its start date, even across months.
+  Bash and Zsh keep one JSONL per shell under its start date, even across months.
   Freeze its path and initial directory when recording starts. Never rotate
   an existing recording because the calendar or review boundary changes.
   Vim keeps one session per editor process under its start date, even across
@@ -31,6 +31,13 @@ Do not treat this file as the daily analysis task itself.
   persistence. Preserve native history contents and execution settings.
   `set +o history` intentionally pauses subsequent command capture, with one
   notice when observed off. Session boundaries remain. See docs/BASH.md.
+- Zsh uses native preexec/precmd/zshexit hooks and the same compact event
+  fields under a fixed startup-date `zsh/` file. Preserve native history,
+  options and existing hooks. Use `MBB_ZSH_RECORDING=0` for explicit pauses.
+  Recorders and readers share the locator and retained-date discovery contract.
+  Do not silently substitute Bash hooks or import native Zsh history.
+  Document earlier-hook failures, exec replacement and abnormal-exit gaps.
+  See docs/ZSH.md.
 - Treat source adapters and analyzer launchers as independent capabilities.
 - Keep Agent invocation only in independent startup entries. Common review
   scripts never launch a harness. The executing Agent follows AUTOMATION.md
@@ -40,7 +47,7 @@ Do not treat this file as the daily analysis task itself.
   workflow. Never loop or retry by launching another Agent from driver code.
 - Keep collectors limited to recording activity in their host environment.
 - Keep user configuration, logs, results, and state outside the repository.
-- Bash and Vim read `C/raw-logs-path.txt`, falling back to platform `raw-logs`.
+- Bash, Zsh and Vim read `C/raw-logs-path.txt`, falling back to platform `raw-logs`.
   They do not read `storage.json` or maintain runtime registries. The main
   application uses the same locator for raw-log and analysis storage, without
   requiring `storage.json`.
@@ -52,9 +59,9 @@ Do not treat this file as the daily analysis task itself.
   Unattended review considers only the latest closed logical day. Older dates
   require an explicit user-requested `--date` and may create their workspace.
   See `docs/STORAGE.md` before changing paths or adding a collector.
-  Bash and Vim readers search all retained date trees and filter by actual
+  Bash, Zsh and Vim readers search all retained date trees and filter by actual
   event time or session overlap. Window-date directories alone are insufficient.
-  Bash, Vim and screenshots accept only date/source trees beneath the source
+  Bash, Zsh, Vim and screenshots accept only date/source trees beneath the source
   root, even with an explicit path. Do not restore flat layouts, source-first
   layouts, old-root guessing or migration tools.
 - Keep the core standard-library only. Recommend Python 3.11+.

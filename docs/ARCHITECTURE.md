@@ -21,7 +21,8 @@ my_big_brother/
   runner.py         Prepare, validate, publish, and track completion
   automation.py     Plan and verify invocations when called by the Agent
 tasks/daily-review/ Shared English analysis instructions
-collectors/bash/    Optional recording in the host shell
+collectors/bash/    Optional recording in Bash
+collectors/zsh/     Optional recording in Zsh
 docs/               English reader documentation
   zh-CN/            Chinese reader documentation
 examples/synthetic/
@@ -53,6 +54,7 @@ C/
 D/
   raw-logs/YYYY-MM-DD/
     bash/
+    zsh/
     vim/
     screenshots/
     review.json
@@ -67,7 +69,7 @@ D/
 ```
 
 Collectors use the system calendar date at creation, equivalent to `date +%F`.
-An existing recording keeps its creation-date location. Bash and Vim sessions
+An existing recording keeps its creation-date location. Bash, Zsh and Vim sessions
 never rotate at midnight. Their readers search all retained start-date folders.
 `C/raw-logs-path.txt` selects raw-log storage, and `results_root` selects
 permanent outputs, defaulting to D/memory. Neither requires `storage.json`.
@@ -127,7 +129,8 @@ or authenticated Agent execution. Inspect its warnings and the prepared manifest
 
 Use [Profiles](PROFILES.md) to bind personal references, output locations,
 custom schemas, and scoped operations without editing standard task files.
-Vim and screenshots have optional readers described in [Input sources](INPUT-SOURCES.md).
+Zsh, Vim and screenshots have optional readers described in
+[Input sources](INPUT-SOURCES.md).
 Add a collector, source adapter, analysis task, output contract, or launcher
 at its existing boundary. User instructions in `C/local-tasks/` are not
 discovered implicitly. Selected profile files can be executed according

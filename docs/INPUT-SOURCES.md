@@ -5,7 +5,7 @@ English | [简体中文](zh-CN/INPUT-SOURCES.md)
 Source adapters prepare factual evidence. The task and the Agent decide what
 that evidence means. Adapters never execute commands found in histories.
 
-The Vim and screenshot adapters are optional sources. Enable them explicitly
+The Zsh, Vim and screenshot adapters are optional sources. Enable them explicitly
 in the user configuration. An adapter reads the configured `path`, or the
 shared raw-log directory when `path` is omitted. They do not install recorders or
 start continuous collection.
@@ -39,6 +39,23 @@ and cannot establish coverage. A command's `started_at` is not invented as
 a shell session start. Separate files are never joined by a session ID.
 The bundled command cwd is observed before execution, and its start time
 comes from history. See [Bash recording](BASH.md) for limitations.
+
+## Zsh session context
+
+The opt-in `zsh` adapter reads only `YYYY-MM-DD/zsh/*.jsonl` beneath its
+configured or shared raw-log root. It uses the same compact event fields,
+all-retained-date discovery and earlier session-start context as Bash.
+Command activity is filtered by `completed_at`, within the half-open review
+window. Earlier context never adds an extra activity row or copies older
+commands into the window. Separate shell files remain separate sessions.
+
+The bundled [Zsh collector](ZSH.md) observes full input through native
+`preexec`, with start time from the system clock and cwd before that input
+executes. It preserves native history and records filtered inputs too.
+It does not import native `.zsh_history` files. Pauses, hook conflicts,
+`exec` replacements and abnormal exits can leave gaps. Missing rows do not
+prove inactivity or full coverage. Neither reader selection nor `init`
+installs or activates the collector.
 
 ## Vim sessions
 

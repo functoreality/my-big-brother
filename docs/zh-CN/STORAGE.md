@@ -13,6 +13,7 @@ data-root/
     .publish.lock
     YYYY-MM-DD/
       bash/
+      zsh/
       vim/
       screenshots/
       review.json
@@ -116,6 +117,11 @@ Bash 按实际事件时间筛选，Vim 按会话区间与分析窗口的重叠�
 退出前已有原始快照，但没有最终 `record.json` 可供索引。
 一个自然日可能服务于多次复盘，分析材料仍在被复盘日期下的 `_analysis/`。
 Agent 原生历史由对应应用管理。
+
+Zsh 在 `raw-logs/YYYY-MM-DD/zsh/` 下遵循相同的固定 shell 启动日期规则，
+使用共享位置文件和标准库辅助程序，无需初始化主应用。
+读取器查找全部保留日期，再按真实事件时间筛选。
+逻辑日边界不会移动或轮换它的记录，详见 [Zsh 记录](ZSH.md)。
 
 ## 清理与重跑
 

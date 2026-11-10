@@ -21,7 +21,8 @@ my_big_brother/
   runner.py         准备、校验、发布和跟踪完成状态
   automation.py     由 Agent 调用的日期规划和最终校验
 tasks/daily-review/ 共享的英文分析指令
-collectors/bash/    宿主 shell 中可选的活动记录
+collectors/bash/    Bash 中可选的活动记录
+collectors/zsh/     Zsh 中可选的活动记录
 docs/               英文用户文档
   zh-CN/            中文用户文档
 examples/synthetic/
@@ -53,6 +54,7 @@ C/
 D/
   raw-logs/YYYY-MM-DD/
     bash/
+    zsh/
     vim/
     screenshots/
     review.json
@@ -67,7 +69,7 @@ D/
 ```
 
 采集器在创建记录时按本机自然日期归档，等价于 `date +%F`。
-Bash 和 Vim 会话固定使用启动日期下的位置，不因跨午夜而轮转。
+Bash、Zsh 和 Vim 会话固定使用启动日期下的位置，不因跨午夜而轮转。
 读取器查找全部保留的启动日期。
 `C/raw-logs-path.txt` 选择原始日志位置，`results_root` 选择长期输出，默认为 D/memory。
 所有应用都不要求 `storage.json`。
@@ -121,7 +123,7 @@ Bash 和 Vim 会话固定使用启动日期下的位置，不因跨午夜而轮�
 
 通过[个人配置档案](PROFILES.md)可以绑定参考资料、输出位置、自定义结构和操作，
 无需修改标准任务文件。
-Vim 和截图的可选读取器见[输入来源](INPUT-SOURCES.md)。
+Zsh、Vim 和截图的可选读取器见[输入来源](INPUT-SOURCES.md)。
 在已有边界上添加采集器、输入适配器、分析任务、输出约定或启动器。
 `C/local-tasks/` 中的用户指令不会隐式发现，
 但选定的配置文件可以按其声明的阶段和范围执行。

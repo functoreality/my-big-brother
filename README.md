@@ -64,8 +64,8 @@ separate capabilities, as noted below.
 - **Agent conversations:** **Available** native Codex session files and
   supported OpenCode SQLite history and [WorkBuddy project sessions](docs/WORKBUDDY.md).
   **Planned** readers for more Agents.
-- **Software activity:** **Available** Bash records with an optional bundled
-  recorder, and Vim/Neovim sessions collected by the separate
+- **Software activity:** **Available** Bash and Zsh records with optional bundled
+  recorders, and Vim/Neovim sessions collected by the separate
   [session-recorder.vim](https://github.com/functoreality/session-recorder.vim)
   plugin. **Planned** VS Code and additional application collectors/readers.
 - **Periodic screenshots: Planned.** An official periodic capture tool and
@@ -180,7 +180,8 @@ personal history inside Git.
 Native Agent histories stay in their own locations. This MVP does not
 automatically delete captures or run materials. Review and manage their disk
 usage separately. Excerpts can contain private conversation text.
-The optional Bash recorder is described in [BASH.md](docs/BASH.md).
+Optional shell recording is described in [BASH.md](docs/BASH.md) and
+[ZSH.md](docs/ZSH.md).
 
 Another Agent can discover results through `paths` and read only the relevant
 dated reports. A useful global instruction is: "For my recorded work history,
@@ -196,7 +197,8 @@ documents complete reviews and a launchd trigger with compatibility fixes.
 See [Scheduling](docs/SCHEDULING.md#current-support) for its scope.
 Native Windows execution remains unverified.
 Bash support applies to Bash environments, including WSL as a separate
-environment, and does not record PowerShell.
+environment, and does not record PowerShell. A macOS arm64 installation report
+exercised Zsh recording with Zsh 5.9. See [Zsh recording](docs/ZSH.md) for limits.
 
 There is no built-in weekly-report command. Standard knowledge
 outputs share the daily review, with no extra Agent or machine-wide scan.
@@ -210,7 +212,7 @@ input adapters, analysis tasks, and independent Agent startup entries.
 ## Documentation and tests
 
 - [Setup](docs/SETUP.md) and [installation instructions for an Agent](INSTALLATION.md).
-- [Scheduling](docs/SCHEDULING.md) and [optional Bash recording](docs/BASH.md).
+- [Scheduling](docs/SCHEDULING.md), [Bash recording](docs/BASH.md) and [Zsh recording](docs/ZSH.md).
 - [Architecture](docs/ARCHITECTURE.md) and [extension guide](docs/EXTENDING.md).
 - [Input sources](docs/INPUT-SOURCES.md) and [personal profiles](docs/PROFILES.md).
 - [Manual cleanup](docs/CLEANUP.md).

@@ -7,7 +7,7 @@ computer. It is the shared English installation guide. The installer discovers
 supported local Agent histories, resolves their paths and tells you which
 sources will be included. You do not need to know their history directories.
 Tell it any sources to exclude, your preferred report language, and whether
-you want a daily schedule or optional Bash recording.
+you want a daily schedule or optional Bash or Zsh recording.
 
 ## Requirements
 
@@ -16,7 +16,7 @@ you want a daily schedule or optional Bash recording.
   dependencies.
 - A clone of this repository in a stable directory.
 - At least one selected supported record source, such as Codex/OpenCode history
-  or existing Bash, Vim or screenshot records. The executor and inputs are
+  or existing Bash, Zsh, Vim or screenshot records. The executor and inputs are
   independent choices. New recording needs separately chosen collectors.
 - A working, authenticated Codex CLI for the bundled unattended launcher.
   Another capable Agent can instead use prepare/task/finish itself.
@@ -71,7 +71,7 @@ state stays with disposable `raw-logs/DATE` material. Collectors use natural
 calendar dates. See [Storage](STORAGE.md) before changing paths.
 Reading native Agent histories does not require a new collector plugin.
 
-Optional Vim and screenshot adapters, record formats, and replay assets are
+Optional Zsh, Vim and screenshot adapters, record formats, and replay assets are
 described in [Input sources](INPUT-SOURCES.md).
 
 For an unsupported history format, the installer can ask to develop and test a
@@ -146,8 +146,9 @@ The project supplies review commands for the latest closed logical day, while
 your selected scheduler starts them. Older dates require explicit `--date` reruns.
 Test an actual scheduled action in its user account and environment before relying on it.
 
-Bash recording is separately optional. See [BASH.md](BASH.md) before changing
-shell startup files. Published results and configuration should be backed up.
+Bash and Zsh recording are separately optional. See [BASH.md](BASH.md) or
+[ZSH.md](ZSH.md) for your shell before changing its startup files.
+Published results and configuration should be backed up.
 Captures and private excerpts are not automatically cleaned in this release.
 See [Manual cleanup](CLEANUP.md) for removable run directories, startup logs,
 and the formal outputs to retain.

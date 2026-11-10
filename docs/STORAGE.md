@@ -15,6 +15,7 @@ data-root/
     .publish.lock
     YYYY-MM-DD/
       bash/
+      zsh/
       vim/
       screenshots/
       review.json
@@ -135,6 +136,12 @@ establish which edits belong to each day. Before exit, original snapshots exist
 but there is no final `record.json` to index. One natural date may contribute
 to multiple reviews. Analysis material remains under the reviewed date's
 `_analysis/` directory. Native Agent histories stay with their applications.
+
+Zsh follows the same fixed shell-start-date lifecycle under
+`raw-logs/YYYY-MM-DD/zsh/`. It uses the shared locator and a standard-library
+helper without application initialization. Its reader searches all retained
+date folders, then selects actual event timestamps. Logical-day boundaries
+never move or rotate its recording. See [Zsh recording](ZSH.md).
 
 ## Retention and reruns
 
