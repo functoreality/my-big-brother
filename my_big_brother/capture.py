@@ -9,8 +9,8 @@ from .storage import file_lock, timestamp
 
 
 def directory(paths, source, captured_at=None):
-    if source not in ('bash', 'vim', 'screenshots'):
-        raise ValueError('source must be bash, vim or screenshots')
+    if source not in ('bash', 'zsh', 'vim', 'screenshots'):
+        raise ValueError('source must be bash, zsh, vim or screenshots')
     day = timestamp(captured_at).strftime('%Y-%m-%d')
     target = paths.raw_logs / day / source
     target.mkdir(parents=True, exist_ok=True, mode=0o700)

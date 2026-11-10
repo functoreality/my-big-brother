@@ -22,7 +22,7 @@ def parser():
     init.add_argument("--data-root")
     init.add_argument("--day-start-hour", type=int, default=0)
     capture = commands.add_parser("capture-path", help="Allocate a calendar-date source directory")
-    capture.add_argument("--source", required=True, choices=('bash', 'vim', 'screenshots'))
+    capture.add_argument("--source", required=True, choices=('bash', 'zsh', 'vim', 'screenshots'))
     capture.add_argument("--timestamp")
     screenshot = commands.add_parser("record-screenshot", help="Store an existing capture, without taking screenshots")
     screenshot.add_argument("--image", required=True)
@@ -105,11 +105,14 @@ def main(argv=None):
                         value["sources"][name]["reader"] = {"path": spec["reader"], "exists": exists}
                         if not exists:
                             value["warnings"].append(f"{name}: reader file does not exist: {spec['reader']}")
-                if "bash" in native and "reader" not in settings["sources"]["bash"]:
-                    present = any(path.is_file() for path in Path(native["bash"]).glob("????-??-??/bash/*.jsonl"))
-                    value["sources"]["bash"]["records_present"] = present
-                    if not present:
-                        value["warnings"].append("bash: no session JSONL files found. Root existence does not verify recording.")
+                for name in ("bash", "zsh"):
+                    if name in native and "reader" not in settings["sources"][name]:
+                        pattern = "????-??-??/" + name + "/*.jsonl"
+                        present = any(path.is_file() for path in Path(native[name]).glob(pattern))
+                        value["sources"][name]["records_present"] = present
+                        if not present:
+                            value["warnings"].append(
+                                f"{name}: no session JSONL files found. Root existence does not verify recording.")
                 print(json.dumps(value, indent=2, ensure_ascii=False))
                 return 0
             elif args.command == 'log-startup-error':

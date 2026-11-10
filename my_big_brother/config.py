@@ -13,7 +13,7 @@ from . import notifications
 
 DEFAULT_OUTPUTS = ("worklog", "time-use", "insights", "time-estimates", "user-model", "machine-context")
 OUTPUTS = DEFAULT_OUTPUTS
-SOURCES = ("codex", "opencode", "workbuddy", "bash", "vim", "screenshots")
+SOURCES = ("codex", "opencode", "workbuddy", "bash", "zsh", "vim", "screenshots")
 KNOWLEDGE_KEYS = ("user_model", "machine_context")
 OUTPUT_KEYS = ("worklog", "time_use_markdown", "time_use_json", "insights", "time_estimates") + KNOWLEDGE_KEYS
 
@@ -49,6 +49,7 @@ def defaults(paths: Paths):
             "opencode": {"enabled": True, "path": str(opencode_data / "opencode" / "opencode.db")},
             "workbuddy": {"enabled": False, "path": str(Path.home() / ".workbuddy" / "projects")},
             "bash": {"enabled": True},
+            "zsh": {"enabled": False},
             "vim": {"enabled": False},
             "screenshots": {"enabled": False},
         },
