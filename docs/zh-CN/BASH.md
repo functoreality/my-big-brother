@@ -7,6 +7,8 @@ Bash 采集器记录交互式 history 输入，以及会话开始、命令完成
 
 这个采集器需要主动启用。仅使用 Agent 会话记录就可以使用 MVP。
 未经本人同意，不要在他人的 shell 中安装它。
+若已有授权覆盖这类记录，安装或更新 Agent 可直接配置、验证并告知，无需重复询问。
+范围与排除规则见[来源维护](../../INSTALLATION.md#adding-sources-during-maintenance)。
 
 ## 安装
 

@@ -8,6 +8,10 @@ compound input instead of recording only the first executed simple command.
 
 This collector is opt-in. Agent session history alone is sufficient to use the
 MVP. Do not install it in someone else's shell without their permission.
+An installing or updating Agent can reuse existing permission that covers this
+recording, configure and verify it, then report the change without asking again.
+Follow [source maintenance](../INSTALLATION.md#adding-sources-during-maintenance)
+for scope and exclusions.
 
 ## Installation
 

@@ -12,7 +12,11 @@ The reader is included here, but the plugin is not bundled.
 The installing Agent should check for Vim/Neovim executables, an existing
 editor configuration or plugin installation, or user-confirmed regular use.
 These are reasons to offer the plugin, not permission to enable recording.
-Ask whether the user wants editor records included. If they decline, leave
+If existing permission covers this editor recording, configure and verify it,
+then report the change without asking again. Otherwise ask whether the user
+wants editor records included. Follow
+[source maintenance](../INSTALLATION.md#adding-sources-during-maintenance)
+for scope and exclusions. If they decline, leave
 both the editor setup and the `vim` source unchanged or disabled as requested.
 
 Explain that the plugin stores original text, saved diffs, file paths and
@@ -62,8 +66,10 @@ The plugin does not read `storage.json` or participate in date registration.
 It creates the session folder at startup and uses that exact folder at exit,
 without reloading configuration, rotating or recreating a removed folder.
 There is no managed/standalone split, migration or legacy-layout discovery.
-Update the whole plugin. Preserve exclusions and existing records, and ask
-before changing the user's editor configuration or recording destination.
+Update the whole plugin. Preserve recording destinations, exclusions and records.
+Apply configuration edits under the source-maintenance policy above, reusing
+authorization that covers the operation. Ask when scope is unclear or a change
+would override the user's explicit choice.
 Ensure GUI editors, shells and schedulers use the same account and location
 settings. WSL and remote editors have their own environments.
 

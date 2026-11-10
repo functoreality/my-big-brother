@@ -5,7 +5,11 @@ English | [简体中文](zh-CN/ZSH.md)
 The bundled Zsh collector records full interactive input, command completion,
 and normal session boundaries. The separate `zsh` reader makes those records
 available to the daily review. Neither installing the project nor enabling the
-reader starts recording. Obtain the user's choice before adding shell hooks.
+reader starts recording. Adding shell hooks requires permission to record
+future input. An installing or updating Agent can reuse permission that covers
+this recording, verify it and report the change without asking again.
+See [source maintenance](../INSTALLATION.md#adding-sources-during-maintenance)
+for scope and exclusions.
 
 ## Installation
 

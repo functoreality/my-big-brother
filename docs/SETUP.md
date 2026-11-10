@@ -9,6 +9,12 @@ sources will be included. You do not need to know their history directories.
 Tell it any sources to exclude, your preferred report language, and whether
 you want a daily schedule or optional Bash or Zsh recording.
 
+During installation or updates, the Agent can configure and verify additional
+sources already covered by your permission, then tell you what changed.
+It preserves explicit exclusions and asks when the scope is unclear or expands.
+See [adding sources during maintenance](../INSTALLATION.md#adding-sources-during-maintenance).
+Loading configuration or updating source code alone still preserves your sources.
+
 ## Requirements
 
 - Python 3, with 3.11 or newer recommended. Older versions need separate
@@ -17,7 +23,8 @@ you want a daily schedule or optional Bash or Zsh recording.
 - A clone of this repository in a stable directory.
 - At least one selected supported record source, such as Codex/OpenCode history
   or existing Bash, Zsh, Vim or screenshot records. The executor and inputs are
-  independent choices. New recording needs separately chosen collectors.
+  independent choices. Permission to read existing logs does not by itself
+  authorize new continuous recording.
 - A working, authenticated Codex CLI for the bundled unattended launcher.
   Another capable Agent can instead use prepare/task/finish itself.
 

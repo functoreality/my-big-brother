@@ -64,7 +64,10 @@ options. History filters and disabled persistence do not exclude JSONL input.
 `MBB_ZSH_RECORDING=0` pauses subsequent input, retaining session boundaries.
 Readers search all retained start dates and filter actual event timestamps.
 The collector works independently through the shared locator. Preserve
-explicit opt-in and report hook and abnormal-exit limitations. See [Zsh](ZSH.md).
+recording permission and report hook and abnormal-exit limitations.
+An installing or updating Agent can reuse permission that already covers the
+source under [source maintenance](../INSTALLATION.md#adding-sources-during-maintenance).
+See [Zsh](ZSH.md).
 
 ## Review windows belong to analysis
 

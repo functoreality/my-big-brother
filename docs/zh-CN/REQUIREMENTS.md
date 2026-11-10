@@ -55,7 +55,9 @@ Zsh 在 `YYYY-MM-DD/zsh/` 下保留一个固定启动日期的 JSONL，
 不改写原生历史或 shell 选项。历史过滤和关闭文件落盘都不排除 JSONL 输入。
 `MBB_ZSH_RECORDING=0` 暂停后续输入，保留会话边界。
 读取器查找全部保留的启动日期，按真实事件时间筛选。
-采集器通过共享位置文件独立工作，仍需明确同意，并报告 hook 与异常退出的限制。
+采集器通过共享位置文件独立工作，须有记录授权，并报告 hook 与异常退出的限制。
+安装或更新 Agent 可按[来源维护](../../INSTALLATION.md#adding-sources-during-maintenance)
+复用已覆盖该来源的授权，无需逐来源重复询问。
 详见 [Zsh 说明](ZSH.md)。
 
 ## 分析才使用工作日窗口

@@ -9,6 +9,10 @@ The Zsh, Vim and screenshot adapters are optional sources. Enable them explicitl
 in the user configuration. An adapter reads the configured `path`, or the
 shared raw-log directory when `path` is omitted. They do not install recorders or
 start continuous collection.
+An installing or updating Agent may configure a newly supported source within
+existing permission, verify it and tell the user. Follow
+[source maintenance](../INSTALLATION.md#adding-sources-during-maintenance)
+without overriding exclusions or treating log access as recording permission.
 
 ## WorkBuddy conversations
 
